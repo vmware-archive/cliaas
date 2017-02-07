@@ -1,0 +1,18 @@
+
+groups: []
+
+resources:
+- name: cliaas 
+  type: git
+  source:
+    uri: git@github.com:c0-ops/cliaas.git
+    branch: master
+    private_key: {{git_private_key}}
+
+jobs:
+- name: unit-tests 
+  plan:
+  - aggregate:
+    - get: cliaas 
+  - task: run-unit-tests 
+    file: cliaas/ci/tasks/unit-tests/task.yml
