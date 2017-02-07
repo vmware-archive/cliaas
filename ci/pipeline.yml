@@ -14,5 +14,6 @@ jobs:
   plan:
   - aggregate:
     - get: cliaas 
+      trigger: true
   - task: run-unit-tests 
     file: cliaas/ci/tasks/unit-tests/task.yml
