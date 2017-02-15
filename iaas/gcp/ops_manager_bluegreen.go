@@ -2,28 +2,33 @@ package gcp
 
 import (
 	"fmt"
+	"time"
 
 	compute "google.golang.org/api/compute/v1"
 
 	errwrap "github.com/pkg/errors"
 )
 
+const defaultTimeoutSeconds int = 300
+
 type OpsManager interface {
 	RunBlueGreen(filter Filter, imageURL string) error
 }
+
 type OpsManagerGCP struct {
-	credPath    string
-	projectName string
-	zoneName    string
-	client      ClientAPI
+	client               ClientAPI
+	clientTimeoutSeconds int
 }
+
 type Filter struct {
 	TagRegexString  string
 	NameRegexString string
 }
 
 func NewOpsManager(configs ...func(*OpsManagerGCP) error) (*OpsManagerGCP, error) {
-	om := new(OpsManagerGCP)
+	om := &OpsManagerGCP{
+		clientTimeoutSeconds: defaultTimeoutSeconds,
+	}
 
 	for _, cfg := range configs {
 		err := cfg(om)
@@ -35,12 +40,20 @@ func NewOpsManager(configs ...func(*OpsManagerGCP) error) (*OpsManagerGCP, error
 	if om.client == nil {
 		return nil, fmt.Errorf("You have an incomplete OpsManagerGCP.client")
 	}
+
 	return om, nil
 }
 
 func ConfigClient(value ClientAPI) func(*OpsManagerGCP) error {
 	return func(om *OpsManagerGCP) error {
 		om.client = value
+		return nil
+	}
+}
+
+func ConfigClientTimeoutSeconds(value int) func(*OpsManagerGCP) error {
+	return func(om *OpsManagerGCP) error {
+		om.clientTimeoutSeconds = value
 		return nil
 	}
 }
@@ -65,24 +78,17 @@ func (s *OpsManagerGCP) RunBlueGreen(filter Filter, imageURL string) error {
 }
 
 func (s *OpsManagerGCP) stopVM(vmName string) error {
-
 	err := s.client.StopVM(vmName)
-
 	if err != nil {
 		return errwrap.Wrap(err, "StopVM failed")
 	}
 
-	for {
-		vmInfo, err := s.client.GetVMInfo(Filter{NameRegexString: vmName})
-		if err != nil {
-			return errwrap.Wrap(err, "GetVMInfo call failed")
-		}
-
-		if vmInfo.Status == "STOPPED" {
-			return nil
-		}
+	err = s.pollVMStatus("STOPPED", vmName)
+	if err != nil {
+		return errwrap.Wrap(err, "polling VM Status failed")
 	}
-	return fmt.Errorf("polling of vm stop failed")
+
+	return nil
 }
 
 func (s *OpsManagerGCP) createVM(vmInfo *compute.Instance, sourceImageTarballURL string) error {
@@ -91,10 +97,34 @@ func (s *OpsManagerGCP) createVM(vmInfo *compute.Instance, sourceImageTarballURL
 			Source: sourceImageTarballURL,
 		},
 	}
-	err := s.client.CreateVM(*vmInfo)
 
+	err := s.client.CreateVM(*vmInfo)
 	if err != nil {
 		return errwrap.Wrap(err, "CreateVM call failed")
 	}
+
 	return nil
+}
+
+func (s *OpsManagerGCP) pollVMStatus(desiredStatus string, vmName string) error {
+	errChannel := make(chan error)
+	go func() {
+		for {
+			vmInfo, err := s.client.GetVMInfo(Filter{NameRegexString: vmName})
+			if err != nil {
+				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
+			}
+
+			if vmInfo.Status == desiredStatus {
+				errChannel <- nil
+			}
+		}
+	}()
+	select {
+	case res := <-errChannel:
+		return res
+	case <-time.After(time.Second * time.Duration(s.clientTimeoutSeconds)):
+		return fmt.Errorf("polling for status timed out")
+	}
+	return fmt.Errorf("polling for status failed")
 }

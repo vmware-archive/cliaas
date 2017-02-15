@@ -1,6 +1,8 @@
 package gcp_test
 
 import (
+	"fmt"
+
 	compute "google.golang.org/api/compute/v1"
 
 	. "github.com/c0-ops/cliaas/iaas/gcp"
@@ -17,7 +19,7 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			NameRegexString: "ops-manager",
 		}
 		controlDiskImageURL      = "some/good/version.img"
-		fakeClient               = new(gcpfakes.FakeClientAPI)
+		fakeClient               *gcpfakes.FakeClientAPI
 		controlGetVMInfoInstance = compute.Instance{
 			Name: "ops-manager",
 			Tags: &compute.Tags{
@@ -27,7 +29,7 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			},
 			Status: "STOPPED",
 		}
-		/*controlStartVMInfoInstance = compute.Instance{
+		controlStartVMInfoInstance = compute.Instance{
 			Name: "ops-manager",
 			Tags: &compute.Tags{
 				Items: []string{
@@ -35,19 +37,24 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 				},
 			},
 			Status: "RUNNING",
-		}*/
+		}
 	)
 
 	Context("when attempting a RunBlueGreen() with valid arguments and a running ops manager", func() {
-		BeforeSuite(func() {
+		BeforeEach(func(done Done) {
+			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
-			opsManager, err = NewOpsManager(ConfigClient(fakeClient))
+			opsManager, err = NewOpsManager(
+				ConfigClient(fakeClient),
+				ConfigClientTimeoutSeconds(1),
+			)
 			Expect(err).ToNot(HaveOccurred())
 			fakeClient.GetVMInfoReturns(&controlGetVMInfoInstance, nil)
 			fakeClient.StopVMReturns(nil)
 			err = opsManager.RunBlueGreen(controlFilter, controlDiskImageURL)
 			Expect(err).ToNot(HaveOccurred())
-		})
+			close(done)
+		}, 5)
 
 		It("should spin down the existing ops manager", func() {
 			Expect(fakeClient.GetVMInfoCallCount()).Should(BeNumerically(">", 1), "we should call getVM a few times")
@@ -75,6 +82,24 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			Expect(true).To(BeFalse())
 		})
 
+	})
+
+	Context("when stopping a vm and the vm state never reaches a stopped status", func() {
+
+		BeforeEach(func() {
+			var err error
+			opsManager, err = NewOpsManager(
+				ConfigClient(fakeClient),
+				ConfigClientTimeoutSeconds(1),
+			)
+			Expect(err).ToNot(HaveOccurred())
+			fakeClient.GetVMInfoReturns(&controlStartVMInfoInstance, fmt.Errorf("I FAILED"))
+		})
+		It("then it should eventually timeout and give a reasonable error", func(done Done) {
+			err := opsManager.RunBlueGreen(controlFilter, controlDiskImageURL)
+			Expect(err).Should(HaveOccurred())
+			close(done)
+		}, 5)
 	})
 
 	Context("when attempting a RunBlueGreen() with valid arguments and an ops manager failing to stop", func() {
