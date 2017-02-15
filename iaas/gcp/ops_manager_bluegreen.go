@@ -3,6 +3,8 @@ package gcp
 import (
 	"fmt"
 
+	compute "google.golang.org/api/compute/v1"
+
 	errwrap "github.com/pkg/errors"
 )
 
@@ -54,6 +56,11 @@ func (s *OpsManagerGCP) RunBlueGreen(filter Filter, imageURL string) error {
 	if err != nil {
 		return errwrap.Wrap(err, "stopVM failed")
 	}
+
+	err = s.createVM(vmInfo, imageURL)
+	if err != nil {
+		return errwrap.Wrap(err, "createVM failed")
+	}
 	return nil
 }
 
@@ -76,4 +83,18 @@ func (s *OpsManagerGCP) stopVM(vmName string) error {
 		}
 	}
 	return fmt.Errorf("polling of vm stop failed")
+}
+
+func (s *OpsManagerGCP) createVM(vmInfo *compute.Instance, sourceImageTarballURL string) error {
+	vmInfo.Disks = []*compute.AttachedDisk{
+		&compute.AttachedDisk{
+			Source: sourceImageTarballURL,
+		},
+	}
+	err := s.client.CreateVM(*vmInfo)
+
+	if err != nil {
+		return errwrap.Wrap(err, "CreateVM call failed")
+	}
+	return nil
 }

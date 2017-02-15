@@ -9,11 +9,10 @@ import (
 )
 
 type FakeClientAPI struct {
-	CreateVMStub        func(instanceName string, sourceImageTarballUrl string) error
+	CreateVMStub        func(instance compute.Instance) error
 	createVMMutex       sync.RWMutex
 	createVMArgsForCall []struct {
-		instanceName          string
-		sourceImageTarballUrl string
+		instance compute.Instance
 	}
 	createVMReturns struct {
 		result1 error
@@ -47,16 +46,15 @@ type FakeClientAPI struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClientAPI) CreateVM(instanceName string, sourceImageTarballUrl string) error {
+func (fake *FakeClientAPI) CreateVM(instance compute.Instance) error {
 	fake.createVMMutex.Lock()
 	fake.createVMArgsForCall = append(fake.createVMArgsForCall, struct {
-		instanceName          string
-		sourceImageTarballUrl string
-	}{instanceName, sourceImageTarballUrl})
-	fake.recordInvocation("CreateVM", []interface{}{instanceName, sourceImageTarballUrl})
+		instance compute.Instance
+	}{instance})
+	fake.recordInvocation("CreateVM", []interface{}{instance})
 	fake.createVMMutex.Unlock()
 	if fake.CreateVMStub != nil {
-		return fake.CreateVMStub(instanceName, sourceImageTarballUrl)
+		return fake.CreateVMStub(instance)
 	}
 	return fake.createVMReturns.result1
 }
@@ -67,10 +65,10 @@ func (fake *FakeClientAPI) CreateVMCallCount() int {
 	return len(fake.createVMArgsForCall)
 }
 
-func (fake *FakeClientAPI) CreateVMArgsForCall(i int) (string, string) {
+func (fake *FakeClientAPI) CreateVMArgsForCall(i int) compute.Instance {
 	fake.createVMMutex.RLock()
 	defer fake.createVMMutex.RUnlock()
-	return fake.createVMArgsForCall[i].instanceName, fake.createVMArgsForCall[i].sourceImageTarballUrl
+	return fake.createVMArgsForCall[i].instance
 }
 
 func (fake *FakeClientAPI) CreateVMReturns(result1 error) {

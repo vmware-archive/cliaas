@@ -27,6 +27,15 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			},
 			Status: "STOPPED",
 		}
+		/*controlStartVMInfoInstance = compute.Instance{
+			Name: "ops-manager",
+			Tags: &compute.Tags{
+				Items: []string{
+					"ops-manager",
+				},
+			},
+			Status: "RUNNING",
+		}*/
 	)
 
 	Context("when attempting a RunBlueGreen() with valid arguments and a running ops manager", func() {
@@ -47,8 +56,12 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			Expect(fakeClient.StopVMArgsForCall(0)).Should(Equal(controlGetVMInfoInstance.Name), "the name of the found running instance should be used for the stop call")
 		})
 
-		XIt("should spin up a new ops manager successfully", func() {
-			Expect(true).To(BeFalse())
+		It("should spin up a new ops manager successfully", func() {
+			Expect(fakeClient.CreateVMCallCount()).Should(Equal(1), "we should call createVM once")
+			instance := fakeClient.CreateVMArgsForCall(0)
+			Expect(instance.Name).Should(Equal(controlGetVMInfoInstance.Name))
+			Expect(instance.Disks).Should(HaveLen(1))
+			Expect(instance.Disks[0].Source).Should(Equal(controlDiskImageURL))
 		})
 
 		XIt("should destroy the old ops manager", func() {

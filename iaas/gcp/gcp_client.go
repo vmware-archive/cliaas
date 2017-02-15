@@ -8,7 +8,7 @@ import (
 )
 
 type ClientAPI interface {
-	CreateVM(instanceName string, sourceImageTarballUrl string) error
+	CreateVM(instance compute.Instance) error
 	DeleteVM(instanceName string) error
 	GetVMInfo(filter Filter) (*compute.Instance, error)
 	StopVM(instanceName string) error
