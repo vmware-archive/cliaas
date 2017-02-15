@@ -12,10 +12,7 @@ import (
 var _ = Describe("OpsManager struct and a valid client", func() {
 	var opsManager *OpsManagerGCP
 	var (
-		controlCredPath = "fixture/creds.json"
-		controlProject  = "my-gcp"
-		controlZone     = "us-east1-b"
-		controlFilter   = Filter{
+		controlFilter = Filter{
 			TagRegexString:  "ops",
 			NameRegexString: "ops-manager",
 		}
@@ -35,12 +32,7 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 	Context("when attempting a RunBlueGreen() with valid arguments and a running ops manager", func() {
 		BeforeSuite(func() {
 			var err error
-			opsManager, err = NewOpsManager(
-				ConfigCredPath(controlCredPath),
-				ConfigProjectName(controlProject),
-				ConfigZoneName(controlZone),
-				ConfigClient(fakeClient),
-			)
+			opsManager, err = NewOpsManager(ConfigClient(fakeClient))
 			Expect(err).ToNot(HaveOccurred())
 			fakeClient.GetVMInfoReturns(&controlGetVMInfoInstance, nil)
 			fakeClient.StopVMReturns(nil)

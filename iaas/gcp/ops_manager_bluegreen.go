@@ -2,6 +2,7 @@ package gcp
 
 import (
 	"fmt"
+
 	errwrap "github.com/pkg/errors"
 )
 
@@ -29,15 +30,6 @@ func NewOpsManager(configs ...func(*OpsManagerGCP) error) (*OpsManagerGCP, error
 		}
 	}
 
-	if om.credPath == "" {
-		return nil, fmt.Errorf("You have an incomplete OpsManagerGCP.credPath")
-	}
-	if om.projectName == "" {
-		return nil, fmt.Errorf("You have an incomplete OpsManagerGCP.projectName")
-	}
-	if om.zoneName == "" {
-		return nil, fmt.Errorf("You have an incomplete OpsManagerGCP.zoneName")
-	}
 	if om.client == nil {
 		return nil, fmt.Errorf("You have an incomplete OpsManagerGCP.client")
 	}
@@ -47,27 +39,6 @@ func NewOpsManager(configs ...func(*OpsManagerGCP) error) (*OpsManagerGCP, error
 func ConfigClient(value ClientAPI) func(*OpsManagerGCP) error {
 	return func(om *OpsManagerGCP) error {
 		om.client = value
-		return nil
-	}
-}
-
-func ConfigZoneName(value string) func(*OpsManagerGCP) error {
-	return func(om *OpsManagerGCP) error {
-		om.zoneName = value
-		return nil
-	}
-}
-
-func ConfigProjectName(value string) func(*OpsManagerGCP) error {
-	return func(om *OpsManagerGCP) error {
-		om.projectName = value
-		return nil
-	}
-}
-
-func ConfigCredPath(value string) func(*OpsManagerGCP) error {
-	return func(om *OpsManagerGCP) error {
-		om.credPath = value
 		return nil
 	}
 }
