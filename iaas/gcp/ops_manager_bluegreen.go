@@ -9,7 +9,11 @@ import (
 	errwrap "github.com/pkg/errors"
 )
 
-const defaultTimeoutSeconds int = 300
+const (
+	defaultTimeoutSeconds int = 300
+	InstanceStatusRunning     = "RUNNING"
+	InstanceStatusStopped     = "STOPPED"
+)
 
 type OpsManager interface {
 	RunBlueGreen(filter Filter, imageURL string) error
@@ -23,6 +27,8 @@ type OpsManagerGCP struct {
 type Filter struct {
 	TagRegexString  string
 	NameRegexString string
+	Id              uint64
+	Status          string
 }
 
 func NewOpsManager(configs ...func(*OpsManagerGCP) error) (*OpsManagerGCP, error) {
@@ -80,17 +86,26 @@ func (s *OpsManagerGCP) SpinDown(filter Filter) (*compute.Instance, error) {
 	return vmInfo, nil
 }
 
-func (s *OpsManagerGCP) CleanUp(filter Filter, imageURL string) error {
+func (s *OpsManagerGCP) CleanUp(filter Filter) error {
 	vmInfo, err := s.client.GetVMInfo(filter)
-
 	if err != nil {
 		return errwrap.Wrap(err, "GetVMInfo failed")
 	}
-	err = s.stopVM(vmInfo.Name)
 
+	err = s.deleteVM(vmInfo.Id)
 	if err != nil {
-		return errwrap.Wrap(err, "stopVM failed")
+		return errwrap.Wrap(err, "GetVMInfo failed")
 	}
+
+	return nil
+}
+
+func (s *OpsManagerGCP) deleteVM(vmId uint64) error {
+	err := s.client.DeleteVM(vmId)
+	if err != nil {
+		return errwrap.Wrap(err, "DeleteVM failed")
+	}
+
 	return nil
 }
 
@@ -100,7 +115,7 @@ func (s *OpsManagerGCP) stopVM(vmName string) error {
 		return errwrap.Wrap(err, "StopVM failed")
 	}
 
-	err = s.pollVMStatus("STOPPED", vmName)
+	err = s.pollVMStatus(InstanceStatusStopped, vmName)
 	if err != nil {
 		return errwrap.Wrap(err, "polling VM Status failed")
 	}
@@ -114,7 +129,7 @@ func (s *OpsManagerGCP) createVM(vmInstance *compute.Instance) error {
 		return errwrap.Wrap(err, "CreateVM call failed")
 	}
 
-	err = s.pollVMStatus("RUNNING", vmInstance.Name)
+	err = s.pollVMStatus(InstanceStatusRunning, vmInstance.Name)
 	if err != nil {
 		return errwrap.Wrap(err, "polling VM Status failed")
 	}

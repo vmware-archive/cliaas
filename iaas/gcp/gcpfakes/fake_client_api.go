@@ -17,10 +17,10 @@ type FakeClientAPI struct {
 	createVMReturns struct {
 		result1 error
 	}
-	DeleteVMStub        func(instanceName string) error
+	DeleteVMStub        func(instanceId uint64) error
 	deleteVMMutex       sync.RWMutex
 	deleteVMArgsForCall []struct {
-		instanceName string
+		instanceId uint64
 	}
 	deleteVMReturns struct {
 		result1 error
@@ -78,15 +78,15 @@ func (fake *FakeClientAPI) CreateVMReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClientAPI) DeleteVM(instanceName string) error {
+func (fake *FakeClientAPI) DeleteVM(instanceId uint64) error {
 	fake.deleteVMMutex.Lock()
 	fake.deleteVMArgsForCall = append(fake.deleteVMArgsForCall, struct {
-		instanceName string
-	}{instanceName})
-	fake.recordInvocation("DeleteVM", []interface{}{instanceName})
+		instanceId uint64
+	}{instanceId})
+	fake.recordInvocation("DeleteVM", []interface{}{instanceId})
 	fake.deleteVMMutex.Unlock()
 	if fake.DeleteVMStub != nil {
-		return fake.DeleteVMStub(instanceName)
+		return fake.DeleteVMStub(instanceId)
 	}
 	return fake.deleteVMReturns.result1
 }
@@ -97,10 +97,10 @@ func (fake *FakeClientAPI) DeleteVMCallCount() int {
 	return len(fake.deleteVMArgsForCall)
 }
 
-func (fake *FakeClientAPI) DeleteVMArgsForCall(i int) string {
+func (fake *FakeClientAPI) DeleteVMArgsForCall(i int) uint64 {
 	fake.deleteVMMutex.RLock()
 	defer fake.deleteVMMutex.RUnlock()
-	return fake.deleteVMArgsForCall[i].instanceName
+	return fake.deleteVMArgsForCall[i].instanceId
 }
 
 func (fake *FakeClientAPI) DeleteVMReturns(result1 error) {

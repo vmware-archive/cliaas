@@ -9,7 +9,7 @@ import (
 
 type ClientAPI interface {
 	CreateVM(instance compute.Instance) error
-	DeleteVM(instanceName string) error
+	DeleteVM(instanceId uint64) error
 	GetVMInfo(filter Filter) (*compute.Instance, error)
 	StopVM(instanceName string) error
 }
@@ -67,7 +67,7 @@ func (s *GCPClientAPI) CreateVM(instanceName string, sourceImageTarballUrl strin
 	return nil
 }
 
-func (s *GCPClientAPI) DeleteVM(instanceName string) error {
+func (s *GCPClientAPI) DeleteVM(instanceId uint64) error {
 	return nil
 }
 

@@ -18,41 +18,11 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			TagRegexString:  "ops",
 			NameRegexString: "ops-manager",
 		}
-		controlDiskImageURL      = "some/good/version.img"
-		fakeClient               *gcpfakes.FakeClientAPI
-		controlGetVMInfoInstance = compute.Instance{
-			Name: "ops-manager",
-			Tags: &compute.Tags{
-				Items: []string{
-					"ops-manager",
-				},
-			},
-			Status: "STOPPED",
-		}
-		controlStartVMInfoInstance = compute.Instance{
-			Name: "ops-manager",
-			Tags: &compute.Tags{
-				Items: []string{
-					"ops-manager",
-				},
-			},
-			Status: "RUNNING",
-		}
-
-		controlDeployInstance = compute.Instance{
-			Name: "ops-manager",
-			Tags: &compute.Tags{
-				Items: []string{
-					"ops-manager",
-				},
-			},
-			Disks: []*compute.AttachedDisk{
-				&compute.AttachedDisk{
-					Source: controlDiskImageURL,
-				},
-			},
-			Status: "RUNNING",
-		}
+		controlDiskImageURL        = "some/good/version.img"
+		fakeClient                 *gcpfakes.FakeClientAPI
+		controlGetVMInfoInstance   = createFakeInstance(InstanceStatusStopped, controlDiskImageURL)
+		controlStartVMInfoInstance = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
+		controlDeployInstance      = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
 	)
 
 	Context("when calling SpinDown() on running vms", func() {
@@ -142,24 +112,48 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			}, 5)
 		})
 	})
-	XContext("when calling CleanUp on venerable VM", func() {
-
+	Context("when calling CleanUp on venerable VM", func() {
+		var controlCleanUpFilter Filter
 		BeforeEach(func(done Done) {
 			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
+			controlCleanUpFilter = Filter{
+				Id:     controlGetVMInfoInstance.Id,
+				Status: InstanceStatusStopped,
+			}
 			opsManager, err = NewOpsManager(
 				ConfigClient(fakeClient),
 				ConfigClientTimeoutSeconds(1),
 			)
 			Expect(err).ToNot(HaveOccurred())
+			fakeClient.DeleteVMReturns(nil)
 			fakeClient.GetVMInfoReturns(&controlGetVMInfoInstance, nil)
-			fakeClient.StopVMReturns(nil)
-			err = opsManager.CleanUp(controlFilter, controlDiskImageURL)
+			err = opsManager.CleanUp(controlCleanUpFilter)
 			Expect(err).ToNot(HaveOccurred())
 			close(done)
 		}, 5)
 		It("should destroy the old ops manager", func() {
-			Expect(true).To(BeFalse())
+			Expect(fakeClient.DeleteVMCallCount()).Should(Equal(1), "we should call deleteVM once")
+			id := fakeClient.DeleteVMArgsForCall(0)
+			Expect(id).To(Equal(controlCleanUpFilter.Id))
 		})
 	})
 })
+
+func createFakeInstance(status string, imageURL string) compute.Instance {
+	return compute.Instance{
+		Id:   4754383786208671047,
+		Name: "ops-manager",
+		Tags: &compute.Tags{
+			Items: []string{
+				"ops-manager",
+			},
+		},
+		Disks: []*compute.AttachedDisk{
+			&compute.AttachedDisk{
+				Source: imageURL,
+			},
+		},
+		Status: status,
+	}
+}
