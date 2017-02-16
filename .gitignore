@@ -26,3 +26,4 @@ vendor
 ci/params.yml
 
 *.sw[op]
+.DS_Store
