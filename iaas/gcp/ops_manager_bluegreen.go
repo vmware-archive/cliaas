@@ -58,7 +58,29 @@ func ConfigClientTimeoutSeconds(value int) func(*OpsManagerGCP) error {
 	}
 }
 
-func (s *OpsManagerGCP) RunBlueGreen(filter Filter, imageURL string) error {
+func (s *OpsManagerGCP) Deploy(vmInstance *compute.Instance) error {
+	err := s.createVM(vmInstance)
+	if err != nil {
+		return errwrap.Wrap(err, "createVM failed")
+	}
+	return nil
+}
+
+func (s *OpsManagerGCP) SpinDown(filter Filter) (*compute.Instance, error) {
+	vmInfo, err := s.client.GetVMInfo(filter)
+
+	if err != nil {
+		return nil, errwrap.Wrap(err, "GetVMInfo failed")
+	}
+	err = s.stopVM(vmInfo.Name)
+
+	if err != nil {
+		return nil, errwrap.Wrap(err, "stopVM failed")
+	}
+	return vmInfo, nil
+}
+
+func (s *OpsManagerGCP) CleanUp(filter Filter, imageURL string) error {
 	vmInfo, err := s.client.GetVMInfo(filter)
 
 	if err != nil {
@@ -68,11 +90,6 @@ func (s *OpsManagerGCP) RunBlueGreen(filter Filter, imageURL string) error {
 
 	if err != nil {
 		return errwrap.Wrap(err, "stopVM failed")
-	}
-
-	err = s.createVM(vmInfo, imageURL)
-	if err != nil {
-		return errwrap.Wrap(err, "createVM failed")
 	}
 	return nil
 }
@@ -91,18 +108,16 @@ func (s *OpsManagerGCP) stopVM(vmName string) error {
 	return nil
 }
 
-func (s *OpsManagerGCP) createVM(vmInfo *compute.Instance, sourceImageTarballURL string) error {
-	vmInfo.Disks = []*compute.AttachedDisk{
-		&compute.AttachedDisk{
-			Source: sourceImageTarballURL,
-		},
-	}
-
-	err := s.client.CreateVM(*vmInfo)
+func (s *OpsManagerGCP) createVM(vmInstance *compute.Instance) error {
+	err := s.client.CreateVM(*vmInstance)
 	if err != nil {
 		return errwrap.Wrap(err, "CreateVM call failed")
 	}
 
+	err = s.pollVMStatus("RUNNING", vmInstance.Name)
+	if err != nil {
+		return errwrap.Wrap(err, "polling VM Status failed")
+	}
 	return nil
 }
 

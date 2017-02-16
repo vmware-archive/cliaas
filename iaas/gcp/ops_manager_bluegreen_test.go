@@ -38,9 +38,25 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			},
 			Status: "RUNNING",
 		}
+
+		controlDeployInstance = compute.Instance{
+			Name: "ops-manager",
+			Tags: &compute.Tags{
+				Items: []string{
+					"ops-manager",
+				},
+			},
+			Disks: []*compute.AttachedDisk{
+				&compute.AttachedDisk{
+					Source: controlDiskImageURL,
+				},
+			},
+			Status: "RUNNING",
+		}
 	)
 
-	Context("when attempting a RunBlueGreen() with valid arguments and a running ops manager", func() {
+	Context("when calling SpinDown() on running vms", func() {
+		var vmInstance *compute.Instance
 		BeforeEach(func(done Done) {
 			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
@@ -51,7 +67,7 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			Expect(err).ToNot(HaveOccurred())
 			fakeClient.GetVMInfoReturns(&controlGetVMInfoInstance, nil)
 			fakeClient.StopVMReturns(nil)
-			err = opsManager.RunBlueGreen(controlFilter, controlDiskImageURL)
+			vmInstance, err = opsManager.SpinDown(controlFilter)
 			Expect(err).ToNot(HaveOccurred())
 			close(done)
 		}, 5)
@@ -61,52 +77,89 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			Expect(fakeClient.GetVMInfoArgsForCall(0)).Should(Equal(controlFilter), "the getvm calls should use the correct filter for the running ops manager")
 			Expect(fakeClient.StopVMCallCount()).Should(Equal(1), "this should only ever be called once")
 			Expect(fakeClient.StopVMArgsForCall(0)).Should(Equal(controlGetVMInfoInstance.Name), "the name of the found running instance should be used for the stop call")
+			Expect(vmInstance.Status).Should(Equal("STOPPED"))
 		})
 
-		It("should spin up a new ops manager successfully", func() {
-			Expect(fakeClient.CreateVMCallCount()).Should(Equal(1), "we should call createVM once")
-			instance := fakeClient.CreateVMArgsForCall(0)
-			Expect(instance.Name).Should(Equal(controlGetVMInfoInstance.Name))
-			Expect(instance.Disks).Should(HaveLen(1))
-			Expect(instance.Disks[0].Source).Should(Equal(controlDiskImageURL))
-		})
+		Context("when polling for proper SpinDown status hits timeout ", func() {
 
-		XIt("should destroy the old ops manager", func() {
-			Expect(true).To(BeFalse())
+			BeforeEach(func() {
+				var err error
+				opsManager, err = NewOpsManager(
+					ConfigClient(fakeClient),
+					ConfigClientTimeoutSeconds(1),
+				)
+				Expect(err).ToNot(HaveOccurred())
+				fakeClient.GetVMInfoReturns(&controlStartVMInfoInstance, fmt.Errorf("I FAILED"))
+			})
+			It("then it should timeout and give a error", func(done Done) {
+				vmInstance, err := opsManager.SpinDown(controlFilter)
+				Expect(err).Should(HaveOccurred())
+				Expect(vmInstance).Should(BeNil())
+				close(done)
+			}, 5)
 		})
 	})
-
-	Context("when attempting a RunBlueGreen() with invalid arguments", func() {
-
-		XIt("should fail to retrieve ops manager VM", func() {
-			Expect(true).To(BeFalse())
-		})
-
-	})
-
-	Context("when stopping a vm and the vm state never reaches a stopped status", func() {
-
-		BeforeEach(func() {
+	Context("when calling Deploy()", func() {
+		BeforeEach(func(done Done) {
+			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
 			opsManager, err = NewOpsManager(
 				ConfigClient(fakeClient),
 				ConfigClientTimeoutSeconds(1),
 			)
 			Expect(err).ToNot(HaveOccurred())
-			fakeClient.GetVMInfoReturns(&controlStartVMInfoInstance, fmt.Errorf("I FAILED"))
-		})
-		It("then it should eventually timeout and give a reasonable error", func(done Done) {
-			err := opsManager.RunBlueGreen(controlFilter, controlDiskImageURL)
-			Expect(err).Should(HaveOccurred())
+			fakeClient.GetVMInfoReturns(&controlDeployInstance, nil)
+			fakeClient.StopVMReturns(nil)
+			err = opsManager.Deploy(&controlDeployInstance)
+			Expect(err).ToNot(HaveOccurred())
 			close(done)
 		}, 5)
+		It("should spin up a new ops manager successfully", func() {
+			Expect(fakeClient.CreateVMCallCount()).Should(Equal(1), "we should call createVM once")
+			instance := fakeClient.CreateVMArgsForCall(0)
+			Expect(instance.Name).Should(Equal(controlDeployInstance.Name))
+			Expect(instance.Disks).Should(HaveLen(1))
+			Expect(instance.Disks[0].Source).Should(Equal(controlDiskImageURL))
+		})
+
+		Context("when polling for proper RUNNING status hits timeout ", func() {
+			failingInstance := controlGetVMInfoInstance
+
+			BeforeEach(func() {
+				var err error
+				opsManager, err = NewOpsManager(
+					ConfigClient(fakeClient),
+					ConfigClientTimeoutSeconds(1),
+				)
+				Expect(err).ToNot(HaveOccurred())
+				failingInstance.Status = "NOT_RUNNING"
+				fakeClient.GetVMInfoReturns(&failingInstance, fmt.Errorf("I FAILED"))
+			})
+			It("then it should timeout and give a error", func(done Done) {
+				err := opsManager.Deploy(&failingInstance)
+				Expect(err).Should(HaveOccurred())
+				close(done)
+			}, 5)
+		})
 	})
+	XContext("when calling CleanUp on venerable VM", func() {
 
-	Context("when attempting a RunBlueGreen() with valid arguments and an ops manager failing to stop", func() {
-
-		XIt("should not retrieve a STOPPED state from the ops manager VM", func() {
+		BeforeEach(func(done Done) {
+			fakeClient = new(gcpfakes.FakeClientAPI)
+			var err error
+			opsManager, err = NewOpsManager(
+				ConfigClient(fakeClient),
+				ConfigClientTimeoutSeconds(1),
+			)
+			Expect(err).ToNot(HaveOccurred())
+			fakeClient.GetVMInfoReturns(&controlGetVMInfoInstance, nil)
+			fakeClient.StopVMReturns(nil)
+			err = opsManager.CleanUp(controlFilter, controlDiskImageURL)
+			Expect(err).ToNot(HaveOccurred())
+			close(done)
+		}, 5)
+		It("should destroy the old ops manager", func() {
 			Expect(true).To(BeFalse())
 		})
 	})
-
 })
