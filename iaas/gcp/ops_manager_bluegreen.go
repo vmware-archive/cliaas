@@ -15,10 +15,6 @@ const (
 	InstanceStatusStopped     = "STOPPED"
 )
 
-type OpsManager interface {
-	RunBlueGreen(filter Filter, imageURL string) error
-}
-
 type OpsManagerGCP struct {
 	client               ClientAPI
 	clientTimeoutSeconds int
