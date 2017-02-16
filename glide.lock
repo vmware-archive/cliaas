@@ -1,8 +1,13 @@
-hash: 1048e9a29bd45130de10577737a5633bd3d3b6ec82ca4f43019625a8d85eab83
-updated: 2017-02-15T11:40:00.12565939-05:00
+hash: 3471dd62d09d56fac00afed62db5a689f1aa4374ffdc984aea05eda07eb07ea7
+updated: 2017-02-16T15:25:26.395292243-05:00
 imports:
+- name: cloud.google.com/go
+  version: 0b87d14d90086b53a97dfbd66f3000f7f112b494
+  subpackages:
+  - compute/metadata
+  - internal
 - name: github.com/aws/aws-sdk-go
-  version: 744809bad4e1770e6f2127c022c4d60117828bed
+  version: 7f96ce6d3bc37ec42c97a3f8d19209a134838042
   subpackages:
   - aws
   - aws/awserr
@@ -31,15 +36,33 @@ imports:
   - service/sts
 - name: github.com/go-ini/ini
   version: 6f66b0e091edb3c7b380f7c4f0f884274d550b67
+- name: github.com/golang/protobuf
+  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
+  subpackages:
+  - proto
+- name: github.com/googleapis/gax-go
+  version: da06d194a00e19ce00d9011a13931c3f6f6887c7
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: golang.org/x/net
-  version: 61557ac0112b576429a0df080e1c2cef5dfbb642
+  version: 07b51741c1d6423d4a6abab1c49940ec09cb1aaf
   subpackages:
   - context
   - context/ctxhttp
+  - http2
+  - http2/hpack
+  - internal/timeseries
+  - lex/httplex
+  - trace
+- name: golang.org/x/oauth2
+  version: 314dd2c0bf3ebd592ec0d20847d27e79d0dbe8dd
+  subpackages:
+  - google
+  - internal
+  - jws
+  - jwt
 - name: google.golang.org/api
   version: bc20c61134e1d25265dd60049f5735381e79b631
   subpackages:
@@ -47,6 +70,31 @@ imports:
   - gensupport
   - googleapi
   - googleapi/internal/uritemplates
+- name: google.golang.org/appengine
+  version: 08a149cfaee099e6ce4be01c0113a78c85ee1dee
+  subpackages:
+  - internal
+  - internal/app_identity
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/modules
+  - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
+- name: google.golang.org/grpc
+  version: d0c32ee6a441117d49856d6120ca9552af413ee0
+  subpackages:
+  - codes
+  - credentials
+  - grpclog
+  - internal
+  - metadata
+  - naming
+  - peer
+  - stats
+  - tap
+  - transport
 testImports:
 - name: github.com/onsi/ginkgo
   version: 462326b1628e124b23f42e87a8f2750e3c4e2d24

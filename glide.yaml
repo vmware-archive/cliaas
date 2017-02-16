@@ -6,3 +6,6 @@ import:
   - aws
   - aws/session
   - service/ec2
+- package: golang.org/x/oauth2
+  subpackages:
+  - google
