@@ -2,6 +2,7 @@ package gcp
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -34,15 +35,20 @@ type GCPClientAPI struct {
 
 //NewDefaultGoogleComputeClient -- builds a gcp client which connects to your gcp using `GOOGLE_APPLICATION_CREDENTIALS`
 func NewDefaultGoogleComputeClient(credpath string) (GoogleComputeClient, error) {
+	err := os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", credpath)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "couldnt set credentials ENV Var")
+	}
+
 	ctx := context.Background()
 	hc, err := google.DefaultClient(ctx, compute.CloudPlatformScope)
 	if err != nil {
-		return nil, errwrap.Wrap(err, "we have an DefaultClient error")
+		return nil, errwrap.Wrap(err, "we have a DefaultClient error")
 	}
 
 	c, err := compute.New(hc)
 	if err != nil {
-		return nil, errwrap.Wrap(err, "we have an compute.New error")
+		return nil, errwrap.Wrap(err, "we have a compute.New error")
 	}
 	return &googleComputeClientWrapper{instanceService: c.Instances}, nil
 }
@@ -84,11 +90,15 @@ func ConfigProjectName(value string) func(*GCPClientAPI) error {
 	}
 }
 
-func (s *GCPClientAPI) CreateVM(instanceName string, sourceImageTarballUrl string) error {
+func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
 	return nil
 }
 
 func (s *GCPClientAPI) DeleteVM(instanceId uint64) error {
+	return nil
+}
+
+func (s *GCPClientAPI) StopVM(instanceName string) error {
 	return nil
 }
 
@@ -98,7 +108,7 @@ func (s *GCPClientAPI) DeleteVM(instanceId uint64) error {
 func (s *GCPClientAPI) GetVMInfo(filter Filter) (*compute.Instance, error) {
 	list, err := s.googleClient.List(s.projectName, s.zoneName)
 	if err != nil {
-		return nil, errwrap.Wrap(err, "call.Do() on google client List() failed")
+		return nil, errwrap.Wrap(err, "call List on google client failed")
 	}
 
 	for _, item := range list.Items {
@@ -113,10 +123,6 @@ func (s *GCPClientAPI) GetVMInfo(filter Filter) (*compute.Instance, error) {
 		}
 	}
 	return nil, fmt.Errorf("No instance matches found")
-}
-
-func (s *GCPClientAPI) StopVM(instanceName string) error {
-	return nil
 }
 
 type googleComputeClientWrapper struct {
