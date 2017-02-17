@@ -59,6 +59,10 @@ func ConfigClientTimeoutSeconds(value int) func(*OpsManagerGCP) error {
 	}
 }
 
+//Deploy - this should take a compute.Instance that is a copy of your existing
+//Ops manager instance object, with 2 modifications.
+// 1) you should swap the `Name` with a unique name you wish to use for the new opsmanager vm instnace
+// 2) you should swap the `Instance.Disks` to match the latest instance image tarball for ops manager (found on network.pivotal.io)
 func (s *OpsManagerGCP) Deploy(vmInstance *compute.Instance) error {
 	err := s.createVM(vmInstance)
 	if err != nil {
