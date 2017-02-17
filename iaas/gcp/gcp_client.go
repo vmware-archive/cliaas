@@ -107,14 +107,21 @@ func (s *GCPClientAPI) DeleteVM(instanceName string) error {
 	return fmt.Errorf("could not call deleteVM")
 }
 
+//StopVM - will try to stop the VM with the given name
 func (s *GCPClientAPI) StopVM(instanceName string) error {
-	operation, err := s.googleClient.Stop(s.projectName, s.zoneName, instanceName)
-	if err != nil {
-		return errwrap.Wrap(err, "call to googleclient.Stop yielded error")
-	}
+	for {
+		operation, err := s.googleClient.Stop(s.projectName, s.zoneName, instanceName)
+		if err != nil {
+			return errwrap.Wrap(err, "call to googleclient.Stop yielded error")
+		}
 
-	if operation == nil {
-		return fmt.Errorf("unexpected nil operation response from google client:", operation)
+		if operation.Error != nil {
+			return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
+		}
+
+		if operation.Status == "DONE" {
+			break
+		}
 	}
 
 	return nil

@@ -1,10 +1,13 @@
 package gcp_test
 
 import (
+	"fmt"
+
 	. "github.com/c0-ops/cliaas/iaas/gcp"
 	"github.com/c0-ops/cliaas/iaas/gcp/gcpfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	errwrap "github.com/pkg/errors"
 	compute "google.golang.org/api/compute/v1"
 )
 
@@ -19,9 +22,13 @@ var _ = Describe("GCPClientAPI", func() {
 		var controlInstanceTag = "hello"
 		Describe("given a StopVM method and a running instance", func() {
 			Context("when called with the name of a valid running instance", func() {
+				var fakeGoogleClient *gcpfakes.FakeGoogleComputeClient
+				fakeOperation := &compute.Operation{
+					Status: "DONE",
+				}
 				BeforeEach(func() {
-					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
-					fakeGoogleClient.StopReturns(new(compute.Operation), nil)
+					fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.StopReturns(fakeOperation, nil)
 
 					client, err = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
@@ -31,13 +38,58 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 				It("then the instance should be stopped in gcp", func() {
 					err := client.StopVM(controlInstanceName)
+					Expect(fakeGoogleClient.StopCallCount()).Should(Equal(1))
+					project, zone, instanceName := fakeGoogleClient.StopArgsForCall(0)
+					Expect(project).Should(Equal(controlProject))
+					Expect(zone).Should(Equal(controlZone))
+					Expect(instanceName).Should(Equal(controlInstanceName))
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 			})
 
 			Context("when called with a invalid (not-running) instance name", func() {
-				It("then the we should exit in error", func() {
+				BeforeEach(func() {
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeOperation := &compute.Operation{
+						Error: &compute.OperationError{
+							Errors: []*compute.OperationErrorErrors{
+								&compute.OperationErrorErrors{
+									Message: "Instance not found",
+								},
+							},
+						},
+						Status: "DONE",
+					}
+					fakeGoogleClient.StopReturns(fakeOperation, nil)
 
+					client, err = NewGCPClientAPI(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+				It("then we should exit in error", func() {
+					err := client.StopVM(controlInstanceName)
+					Expect(err).Should(HaveOccurred())
+				})
+			})
+
+			Context("when gcp api call fails", func() {
+				var controlErr = fmt.Errorf("Some GCP API Error")
+				BeforeEach(func() {
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.StopReturns(nil, controlErr)
+
+					client, err = NewGCPClientAPI(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+				It("then we should exit in error", func() {
+					err := client.StopVM(controlInstanceName)
+					Expect(err).Should(HaveOccurred())
+					Expect(errwrap.Cause(err)).Should(Equal(controlErr))
 				})
 			})
 		})
