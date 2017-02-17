@@ -20,6 +20,86 @@ var _ = Describe("GCPClientAPI", func() {
 		var controlProject = "prj"
 		var controlInstanceName = "blah"
 		var controlInstanceTag = "hello"
+
+		Describe("given a CreateVM method and a valid instance", func() {
+			var controlInstance compute.Instance
+			Context("when called with a valid instance", func() {
+				controlInstance = compute.Instance{}
+				var fakeGoogleClient *gcpfakes.FakeGoogleComputeClient
+				fakeOperation := &compute.Operation{
+					Status: "DONE",
+				}
+				BeforeEach(func() {
+					fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.InsertReturns(fakeOperation, nil)
+
+					client, err = NewGCPClientAPI(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+
+				It("then the instance should be created in gcp", func() {
+					err := client.CreateVM(controlInstance)
+					Expect(fakeGoogleClient.InsertCallCount()).Should(BeNumerically(">=", 1))
+					project, zone, instance := fakeGoogleClient.InsertArgsForCall(0)
+					Expect(project).Should(Equal(controlProject))
+					Expect(zone).Should(Equal(controlZone))
+					Expect(*instance).Should(Equal(controlInstance))
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when called with an invalid instance", func() {
+				BeforeEach(func() {
+					controlInstance = compute.Instance{}
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeOperation := &compute.Operation{
+						Error: &compute.OperationError{
+							Errors: []*compute.OperationErrorErrors{
+								&compute.OperationErrorErrors{
+									Message: "Instance not found",
+								},
+							},
+						},
+						Status: "DONE",
+					}
+					fakeGoogleClient.InsertReturns(fakeOperation, nil)
+
+					client, err = NewGCPClientAPI(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+				It("then we should exit in error", func() {
+					err := client.CreateVM(controlInstance)
+					Expect(err).Should(HaveOccurred())
+				})
+			})
+
+			Context("when gcp api call fails", func() {
+				var controlErr = fmt.Errorf("Some GCP API Error")
+				BeforeEach(func() {
+					controlInstance = compute.Instance{}
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.InsertReturns(nil, controlErr)
+
+					client, err = NewGCPClientAPI(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+				It("then we should exit in error", func() {
+					err := client.CreateVM(controlInstance)
+					Expect(err).Should(HaveOccurred())
+					Expect(errwrap.Cause(err)).Should(Equal(controlErr))
+				})
+			})
+		})
+
 		Describe("given a DeleteVM method and a valid instance", func() {
 			Context("when called with the name of a valid instance", func() {
 				var fakeGoogleClient *gcpfakes.FakeGoogleComputeClient

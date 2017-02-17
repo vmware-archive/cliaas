@@ -100,7 +100,22 @@ func ConfigProjectName(value string) func(*GCPClientAPI) error {
 }
 
 func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
-	return fmt.Errorf("could not call createVM")
+	for {
+		operation, err := s.googleClient.Insert(s.projectName, s.zoneName, &instance)
+		if err != nil {
+			return errwrap.Wrap(err, "call to googleclient.Insert yielded error")
+		}
+
+		if operation.Error != nil {
+			return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
+		}
+
+		if operation.Status == "DONE" {
+			break
+		}
+	}
+
+	return nil
 }
 
 func (s *GCPClientAPI) DeleteVM(instanceName string) error {
