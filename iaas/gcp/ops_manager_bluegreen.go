@@ -23,7 +23,6 @@ type OpsManagerGCP struct {
 type Filter struct {
 	TagRegexString  string
 	NameRegexString string
-	Id              uint64
 	Status          string
 }
 
@@ -88,7 +87,7 @@ func (s *OpsManagerGCP) CleanUp(filter Filter) error {
 		return errwrap.Wrap(err, "GetVMInfo failed")
 	}
 
-	err = s.deleteVM(vmInfo.Id)
+	err = s.deleteVM(vmInfo.Name)
 	if err != nil {
 		return errwrap.Wrap(err, "GetVMInfo failed")
 	}
@@ -96,8 +95,8 @@ func (s *OpsManagerGCP) CleanUp(filter Filter) error {
 	return nil
 }
 
-func (s *OpsManagerGCP) deleteVM(vmId uint64) error {
-	err := s.client.DeleteVM(vmId)
+func (s *OpsManagerGCP) deleteVM(instanceName string) error {
+	err := s.client.DeleteVM(instanceName)
 	if err != nil {
 		return errwrap.Wrap(err, "DeleteVM failed")
 	}

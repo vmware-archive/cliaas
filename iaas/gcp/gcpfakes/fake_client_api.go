@@ -17,10 +17,10 @@ type FakeClientAPI struct {
 	createVMReturns struct {
 		result1 error
 	}
-	DeleteVMStub        func(instanceId uint64) error
+	DeleteVMStub        func(instanceName string) error
 	deleteVMMutex       sync.RWMutex
 	deleteVMArgsForCall []struct {
-		instanceId uint64
+		instanceName string
 	}
 	deleteVMReturns struct {
 		result1 error
@@ -42,8 +42,6 @@ type FakeClientAPI struct {
 	stopVMReturns struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
-	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeClientAPI) CreateVM(instance compute.Instance) error {
@@ -51,12 +49,12 @@ func (fake *FakeClientAPI) CreateVM(instance compute.Instance) error {
 	fake.createVMArgsForCall = append(fake.createVMArgsForCall, struct {
 		instance compute.Instance
 	}{instance})
-	fake.recordInvocation("CreateVM", []interface{}{instance})
 	fake.createVMMutex.Unlock()
 	if fake.CreateVMStub != nil {
 		return fake.CreateVMStub(instance)
+	} else {
+		return fake.createVMReturns.result1
 	}
-	return fake.createVMReturns.result1
 }
 
 func (fake *FakeClientAPI) CreateVMCallCount() int {
@@ -78,17 +76,17 @@ func (fake *FakeClientAPI) CreateVMReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClientAPI) DeleteVM(instanceId uint64) error {
+func (fake *FakeClientAPI) DeleteVM(instanceName string) error {
 	fake.deleteVMMutex.Lock()
 	fake.deleteVMArgsForCall = append(fake.deleteVMArgsForCall, struct {
-		instanceId uint64
-	}{instanceId})
-	fake.recordInvocation("DeleteVM", []interface{}{instanceId})
+		instanceName string
+	}{instanceName})
 	fake.deleteVMMutex.Unlock()
 	if fake.DeleteVMStub != nil {
-		return fake.DeleteVMStub(instanceId)
+		return fake.DeleteVMStub(instanceName)
+	} else {
+		return fake.deleteVMReturns.result1
 	}
-	return fake.deleteVMReturns.result1
 }
 
 func (fake *FakeClientAPI) DeleteVMCallCount() int {
@@ -97,10 +95,10 @@ func (fake *FakeClientAPI) DeleteVMCallCount() int {
 	return len(fake.deleteVMArgsForCall)
 }
 
-func (fake *FakeClientAPI) DeleteVMArgsForCall(i int) uint64 {
+func (fake *FakeClientAPI) DeleteVMArgsForCall(i int) string {
 	fake.deleteVMMutex.RLock()
 	defer fake.deleteVMMutex.RUnlock()
-	return fake.deleteVMArgsForCall[i].instanceId
+	return fake.deleteVMArgsForCall[i].instanceName
 }
 
 func (fake *FakeClientAPI) DeleteVMReturns(result1 error) {
@@ -115,12 +113,12 @@ func (fake *FakeClientAPI) GetVMInfo(filter gcp.Filter) (*compute.Instance, erro
 	fake.getVMInfoArgsForCall = append(fake.getVMInfoArgsForCall, struct {
 		filter gcp.Filter
 	}{filter})
-	fake.recordInvocation("GetVMInfo", []interface{}{filter})
 	fake.getVMInfoMutex.Unlock()
 	if fake.GetVMInfoStub != nil {
 		return fake.GetVMInfoStub(filter)
+	} else {
+		return fake.getVMInfoReturns.result1, fake.getVMInfoReturns.result2
 	}
-	return fake.getVMInfoReturns.result1, fake.getVMInfoReturns.result2
 }
 
 func (fake *FakeClientAPI) GetVMInfoCallCount() int {
@@ -148,12 +146,12 @@ func (fake *FakeClientAPI) StopVM(instanceName string) error {
 	fake.stopVMArgsForCall = append(fake.stopVMArgsForCall, struct {
 		instanceName string
 	}{instanceName})
-	fake.recordInvocation("StopVM", []interface{}{instanceName})
 	fake.stopVMMutex.Unlock()
 	if fake.StopVMStub != nil {
 		return fake.StopVMStub(instanceName)
+	} else {
+		return fake.stopVMReturns.result1
 	}
-	return fake.stopVMReturns.result1
 }
 
 func (fake *FakeClientAPI) StopVMCallCount() int {
@@ -173,32 +171,6 @@ func (fake *FakeClientAPI) StopVMReturns(result1 error) {
 	fake.stopVMReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeClientAPI) Invocations() map[string][][]interface{} {
-	fake.invocationsMutex.RLock()
-	defer fake.invocationsMutex.RUnlock()
-	fake.createVMMutex.RLock()
-	defer fake.createVMMutex.RUnlock()
-	fake.deleteVMMutex.RLock()
-	defer fake.deleteVMMutex.RUnlock()
-	fake.getVMInfoMutex.RLock()
-	defer fake.getVMInfoMutex.RUnlock()
-	fake.stopVMMutex.RLock()
-	defer fake.stopVMMutex.RUnlock()
-	return fake.invocations
-}
-
-func (fake *FakeClientAPI) recordInvocation(key string, args []interface{}) {
-	fake.invocationsMutex.Lock()
-	defer fake.invocationsMutex.Unlock()
-	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
-	}
-	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
-	}
-	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
 var _ gcp.ClientAPI = new(FakeClientAPI)

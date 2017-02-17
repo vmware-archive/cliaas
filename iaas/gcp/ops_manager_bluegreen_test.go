@@ -118,8 +118,8 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
 			controlCleanUpFilter = Filter{
-				Id:     controlGetVMInfoInstance.Id,
-				Status: InstanceStatusStopped,
+				NameRegexString: controlGetVMInfoInstance.Name,
+				Status:          InstanceStatusStopped,
 			}
 			opsManager, err = NewOpsManager(
 				ConfigClient(fakeClient),
@@ -134,15 +134,14 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 		}, 5)
 		It("should destroy the old ops manager", func() {
 			Expect(fakeClient.DeleteVMCallCount()).Should(Equal(1), "we should call deleteVM once")
-			id := fakeClient.DeleteVMArgsForCall(0)
-			Expect(id).To(Equal(controlCleanUpFilter.Id))
+			instanceName := fakeClient.DeleteVMArgsForCall(0)
+			Expect(instanceName).To(Equal(controlCleanUpFilter.NameRegexString))
 		})
 	})
 })
 
 func createFakeInstance(status string, imageURL string) compute.Instance {
 	return compute.Instance{
-		Id:   4754383786208671047,
 		Name: "ops-manager",
 		Tags: &compute.Tags{
 			Items: []string{

@@ -21,7 +21,7 @@ type GoogleComputeClient interface {
 
 type ClientAPI interface {
 	CreateVM(instance compute.Instance) error
-	DeleteVM(instanceId uint64) error
+	DeleteVM(instanceName string) error
 	GetVMInfo(filter Filter) (*compute.Instance, error)
 	StopVM(instanceName string) error
 }
@@ -102,7 +102,7 @@ func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
 	return nil
 }
 
-func (s *GCPClientAPI) DeleteVM(instanceId uint64) error {
+func (s *GCPClientAPI) DeleteVM(instanceName string) error {
 	return nil
 }
 
