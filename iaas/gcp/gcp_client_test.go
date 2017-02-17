@@ -17,10 +17,21 @@ var _ = Describe("GCPClientAPI", func() {
 		var controlProject = "prj"
 		var controlInstanceName = "blah"
 		var controlInstanceTag = "hello"
-		XDescribe("given a StopVM method and a running instance", func() {
+		Describe("given a StopVM method and a running instance", func() {
 			Context("when called with the name of a valid running instance", func() {
-				It("then the instance should be stopped in gcp", func() {
+				BeforeEach(func() {
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.StopReturns(new(compute.Operation), nil)
 
+					client, err = NewGCPClientAPI(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+				It("then the instance should be stopped in gcp", func() {
+					err := client.StopVM(controlInstanceName)
+					Expect(err).ShouldNot(HaveOccurred())
 				})
 			})
 

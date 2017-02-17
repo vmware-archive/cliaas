@@ -17,6 +17,7 @@ type GoogleComputeClient interface {
 	List(project string, zone string) (*compute.InstanceList, error)
 	Delete(project string, zone string, instanceName string) (*compute.Operation, error)
 	Insert(project string, zone string, instance *compute.Instance) (*compute.Operation, error)
+	Stop(project string, zone string, instanceName string) (*compute.Operation, error)
 }
 
 type ClientAPI interface {
@@ -99,14 +100,23 @@ func ConfigProjectName(value string) func(*GCPClientAPI) error {
 }
 
 func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
-	return nil
+	return fmt.Errorf("could not call createVM")
 }
 
 func (s *GCPClientAPI) DeleteVM(instanceName string) error {
-	return nil
+	return fmt.Errorf("could not call deleteVM")
 }
 
 func (s *GCPClientAPI) StopVM(instanceName string) error {
+	operation, err := s.googleClient.Stop(s.projectName, s.zoneName, instanceName)
+	if err != nil {
+		return errwrap.Wrap(err, "call to googleclient.Stop yielded error")
+	}
+
+	if operation == nil {
+		return fmt.Errorf("unexpected nil operation response from google client:", operation)
+	}
+
 	return nil
 }
 
@@ -143,6 +153,10 @@ func (s *googleComputeClientWrapper) List(project string, zone string) (*compute
 
 func (s *googleComputeClientWrapper) Delete(project string, zone string, instance string) (*compute.Operation, error) {
 	return s.instanceService.Delete(project, zone, instance).Do()
+}
+
+func (s *googleComputeClientWrapper) Stop(project string, zone string, instance string) (*compute.Operation, error) {
+	return s.instanceService.Stop(project, zone, instance).Do()
 }
 
 func (s *googleComputeClientWrapper) Insert(project string, zone string, instance *compute.Instance) (*compute.Operation, error) {

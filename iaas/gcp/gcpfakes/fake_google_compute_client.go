@@ -19,12 +19,12 @@ type FakeGoogleComputeClient struct {
 		result1 *compute.InstanceList
 		result2 error
 	}
-	DeleteStub        func(project string, zone string, instance string) (*compute.Operation, error)
+	DeleteStub        func(project string, zone string, instanceName string) (*compute.Operation, error)
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
-		project  string
-		zone     string
-		instance string
+		project      string
+		zone         string
+		instanceName string
 	}
 	deleteReturns struct {
 		result1 *compute.Operation
@@ -38,6 +38,17 @@ type FakeGoogleComputeClient struct {
 		instance *compute.Instance
 	}
 	insertReturns struct {
+		result1 *compute.Operation
+		result2 error
+	}
+	StopStub        func(project string, zone string, instanceName string) (*compute.Operation, error)
+	stopMutex       sync.RWMutex
+	stopArgsForCall []struct {
+		project      string
+		zone         string
+		instanceName string
+	}
+	stopReturns struct {
 		result1 *compute.Operation
 		result2 error
 	}
@@ -77,16 +88,16 @@ func (fake *FakeGoogleComputeClient) ListReturns(result1 *compute.InstanceList, 
 	}{result1, result2}
 }
 
-func (fake *FakeGoogleComputeClient) Delete(project string, zone string, instance string) (*compute.Operation, error) {
+func (fake *FakeGoogleComputeClient) Delete(project string, zone string, instanceName string) (*compute.Operation, error) {
 	fake.deleteMutex.Lock()
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
-		project  string
-		zone     string
-		instance string
-	}{project, zone, instance})
+		project      string
+		zone         string
+		instanceName string
+	}{project, zone, instanceName})
 	fake.deleteMutex.Unlock()
 	if fake.DeleteStub != nil {
-		return fake.DeleteStub(project, zone, instance)
+		return fake.DeleteStub(project, zone, instanceName)
 	} else {
 		return fake.deleteReturns.result1, fake.deleteReturns.result2
 	}
@@ -101,7 +112,7 @@ func (fake *FakeGoogleComputeClient) DeleteCallCount() int {
 func (fake *FakeGoogleComputeClient) DeleteArgsForCall(i int) (string, string, string) {
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	return fake.deleteArgsForCall[i].project, fake.deleteArgsForCall[i].zone, fake.deleteArgsForCall[i].instance
+	return fake.deleteArgsForCall[i].project, fake.deleteArgsForCall[i].zone, fake.deleteArgsForCall[i].instanceName
 }
 
 func (fake *FakeGoogleComputeClient) DeleteReturns(result1 *compute.Operation, result2 error) {
@@ -142,6 +153,41 @@ func (fake *FakeGoogleComputeClient) InsertArgsForCall(i int) (string, string, *
 func (fake *FakeGoogleComputeClient) InsertReturns(result1 *compute.Operation, result2 error) {
 	fake.InsertStub = nil
 	fake.insertReturns = struct {
+		result1 *compute.Operation
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeGoogleComputeClient) Stop(project string, zone string, instanceName string) (*compute.Operation, error) {
+	fake.stopMutex.Lock()
+	fake.stopArgsForCall = append(fake.stopArgsForCall, struct {
+		project      string
+		zone         string
+		instanceName string
+	}{project, zone, instanceName})
+	fake.stopMutex.Unlock()
+	if fake.StopStub != nil {
+		return fake.StopStub(project, zone, instanceName)
+	} else {
+		return fake.stopReturns.result1, fake.stopReturns.result2
+	}
+}
+
+func (fake *FakeGoogleComputeClient) StopCallCount() int {
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
+	return len(fake.stopArgsForCall)
+}
+
+func (fake *FakeGoogleComputeClient) StopArgsForCall(i int) (string, string, string) {
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
+	return fake.stopArgsForCall[i].project, fake.stopArgsForCall[i].zone, fake.stopArgsForCall[i].instanceName
+}
+
+func (fake *FakeGoogleComputeClient) StopReturns(result1 *compute.Operation, result2 error) {
+	fake.StopStub = nil
+	fake.stopReturns = struct {
 		result1 *compute.Operation
 		result2 error
 	}{result1, result2}
