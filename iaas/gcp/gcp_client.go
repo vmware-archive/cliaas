@@ -15,7 +15,7 @@ import (
 
 type GoogleComputeClient interface {
 	List(project string, zone string) (*compute.InstanceList, error)
-	Delete(project string, zone string, instance string) (*compute.Operation, error)
+	Delete(project string, zone string, instanceName string) (*compute.Operation, error)
 	Insert(project string, zone string, instance *compute.Instance) (*compute.Operation, error)
 }
 
@@ -65,6 +65,14 @@ func NewGCPClientAPI(configs ...func(*GCPClientAPI) error) (*GCPClientAPI, error
 
 	if gcpClient.googleClient == nil {
 		return nil, fmt.Errorf("You have an incomplete GCPClientAPI.googleClient")
+	}
+
+	if gcpClient.zoneName == "" {
+		return nil, fmt.Errorf("You have an incomplete GCPClientAPI.zoneName")
+	}
+
+	if gcpClient.projectName == "" {
+		return nil, fmt.Errorf("You have an incomplete GCPClientAPI.projectName")
 	}
 	return gcpClient, nil
 }

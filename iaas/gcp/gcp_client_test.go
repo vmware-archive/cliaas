@@ -17,7 +17,19 @@ var _ = Describe("GCPClientAPI", func() {
 		var controlProject = "prj"
 		var controlInstanceName = "blah"
 		var controlInstanceTag = "hello"
+		XDescribe("given a StopVM method and a running instance", func() {
+			Context("when called with the name of a valid running instance", func() {
+				It("then the instance should be stopped in gcp", func() {
 
+				})
+			})
+
+			Context("when called with a invalid (not-running) instance name", func() {
+				It("then the we should exit in error", func() {
+
+				})
+			})
+		})
 		Describe("given a GetVMInfo method and a filter object argument", func() {
 
 			Context("when there is a matching instance", func() {
@@ -85,6 +97,21 @@ var _ = Describe("GCPClientAPI", func() {
 
 	Describe("given a NewGCPCLIentAPI()", func() {
 
+		Context("when passed a incomplete/invalid set of configs", func() {
+
+			var client *GCPClientAPI
+			var err error
+			var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+			BeforeEach(func() {
+				client, err = NewGCPClientAPI(
+					ConfigGoogleClient(fakeGoogleClient),
+				)
+			})
+			It("then it should provide a properly initialized GCPCLientAPI object", func() {
+				Expect(err).Should(HaveOccurred())
+				Expect(client).Should(BeNil())
+			})
+		})
 		Context("when passed a valid set of configs", func() {
 
 			var client *GCPClientAPI
