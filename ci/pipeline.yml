@@ -10,10 +10,18 @@ resources:
     private_key: {{git_private_key}}
 
 jobs:
-- name: unit-tests 
+- name: unit-tests
   plan:
   - aggregate:
-    - get: cliaas 
+    - get: cliaas
       trigger: true
-  - task: run-unit-tests 
+  - task: run-unit-tests
     file: cliaas/ci/tasks/unit-tests/task.yml
+
+- name: integration-tests
+  plan:
+  - aggregate:
+    - get: cliaas
+      trigger: true
+  - task: run-integration-tests
+    file: cliaas/ci/tasks/integration-tests/task.yml

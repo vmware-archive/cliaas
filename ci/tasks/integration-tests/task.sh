@@ -6,5 +6,4 @@ mkdir -p /go/src/github.com/c0-ops
 cp -r ./cliaas/ /go/src/github.com/c0-ops/cliaas
 cd /go/src/github.com/c0-ops/cliaas
 glide install
-ignoreVendorAndCI=$(glide nv | grep -v './integration_tests/...')
-go test ${ignoreVendorAndCI} -v
+go test ./integration-tests/... -v

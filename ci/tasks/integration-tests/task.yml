@@ -9,4 +9,4 @@ inputs:
   - name: cliaas
 
 run:
-  path: cliaas/ci/tasks/unit-tests/task.sh
+  path: cliaas/ci/tasks/integration-tests/task.sh
