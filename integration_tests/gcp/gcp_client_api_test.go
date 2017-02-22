@@ -12,6 +12,7 @@ import (
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
 
+	"github.com/c0-ops/cliaas/iaas"
 	. "github.com/c0-ops/cliaas/iaas/gcp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -87,7 +88,7 @@ var _ = Describe("GCPCLientAPI", func() {
 			It("then we should recieve all info about the matching instance (by name) in GCP", func() {
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				instance, err := gcpClientAPI.GetVMInfo(Filter{
+				instance, err := gcpClientAPI.GetVMInfo(iaas.Filter{
 					NameRegexString: instanceNameGUID,
 					TagRegexString:  "",
 				})
@@ -103,7 +104,7 @@ var _ = Describe("GCPCLientAPI", func() {
 			It("then we should receive all info about the matching instance (by tag) in GCP", func() {
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				instance, err := gcpClientAPI.GetVMInfo(Filter{
+				instance, err := gcpClientAPI.GetVMInfo(iaas.Filter{
 					NameRegexString: "",
 					TagRegexString:  controlTag,
 				})
