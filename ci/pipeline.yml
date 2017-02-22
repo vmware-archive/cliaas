@@ -25,3 +25,7 @@ jobs:
       trigger: true
   - task: run-integration-tests
     file: cliaas/ci/tasks/integration_tests/task.yml
+    params:
+      GCP_CREDS: {{gcp_creds}}
+      GCP_PROJECT: {{gcp_project}}
+      GCP_ZONE: {{gcp_zone}}

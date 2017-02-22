@@ -42,7 +42,7 @@ var _ = Describe("GCPClientAPI", func() {
 
 				It("then the instance should be created in gcp", func() {
 					err := client.CreateVM(controlInstance)
-					Expect(fakeGoogleClient.InsertCallCount()).Should(BeNumerically(">=", 1))
+					Expect(fakeGoogleClient.InsertCallCount()).Should(Equal(1))
 					project, zone, instance := fakeGoogleClient.InsertArgsForCall(0)
 					Expect(project).Should(Equal(controlProject))
 					Expect(zone).Should(Equal(controlZone))
