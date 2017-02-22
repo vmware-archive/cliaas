@@ -19,6 +19,22 @@ type FakeAWSClient struct {
 		result1 []*ec2.Instance
 		result2 error
 	}
+	StopStub        func(instanceID string) error
+	stopMutex       sync.RWMutex
+	stopArgsForCall []struct {
+		instanceID string
+	}
+	stopReturns struct {
+		result1 error
+	}
+	DeleteStub        func(instanceID string) error
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct {
+		instanceID string
+	}
+	deleteReturns struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -58,11 +74,81 @@ func (fake *FakeAWSClient) ListReturns(result1 []*ec2.Instance, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeAWSClient) Stop(instanceID string) error {
+	fake.stopMutex.Lock()
+	fake.stopArgsForCall = append(fake.stopArgsForCall, struct {
+		instanceID string
+	}{instanceID})
+	fake.recordInvocation("Stop", []interface{}{instanceID})
+	fake.stopMutex.Unlock()
+	if fake.StopStub != nil {
+		return fake.StopStub(instanceID)
+	} else {
+		return fake.stopReturns.result1
+	}
+}
+
+func (fake *FakeAWSClient) StopCallCount() int {
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
+	return len(fake.stopArgsForCall)
+}
+
+func (fake *FakeAWSClient) StopArgsForCall(i int) string {
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
+	return fake.stopArgsForCall[i].instanceID
+}
+
+func (fake *FakeAWSClient) StopReturns(result1 error) {
+	fake.StopStub = nil
+	fake.stopReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeAWSClient) Delete(instanceID string) error {
+	fake.deleteMutex.Lock()
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
+		instanceID string
+	}{instanceID})
+	fake.recordInvocation("Delete", []interface{}{instanceID})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub(instanceID)
+	} else {
+		return fake.deleteReturns.result1
+	}
+}
+
+func (fake *FakeAWSClient) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeAWSClient) DeleteArgsForCall(i int) string {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return fake.deleteArgsForCall[i].instanceID
+}
+
+func (fake *FakeAWSClient) DeleteReturns(result1 error) {
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
 	return fake.invocations
 }
 

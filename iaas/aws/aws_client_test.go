@@ -3,6 +3,7 @@ package aws_test
 import (
 	"errors"
 
+	iaasaws "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/c0-ops/cliaas/iaas"
 	. "github.com/c0-ops/cliaas/iaas/aws"
@@ -59,6 +60,67 @@ var _ = Describe("Aws Client", func() {
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).Should(BeEquivalentTo("call List on aws client failed: got an error"))
 					Expect(instance).Should(BeNil())
+				})
+			})
+		})
+
+		Describe("given a Stop method", func() {
+			Context("when called", func() {
+				var fakeAWSClient *awsfakes.FakeAWSClient
+				BeforeEach(func() {
+					fakeAWSClient = new(awsfakes.FakeAWSClient)
+					client, err = NewAWSClientAPI(
+						ConfigAWSClient(fakeAWSClient),
+						ConfigVPC("some vpc"),
+					)
+					Expect(client).ShouldNot(BeNil())
+				})
+
+				It("then the instance should be stopped", func() {
+					fakeAWSClient.StopReturns(nil)
+					err := client.StopVM(ec2.Instance{InstanceId: iaasaws.String("foo")})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fakeAWSClient.StopCallCount()).Should(BeEquivalentTo(1))
+					instanceID := fakeAWSClient.StopArgsForCall(0)
+					Expect(instanceID).Should(BeEquivalentTo("foo"))
+				})
+				It("then it should error", func() {
+					fakeAWSClient.StopReturns(errors.New("got an error"))
+					err := client.StopVM(ec2.Instance{InstanceId: iaasaws.String("foo")})
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(BeEquivalentTo("call stop on aws client failed: got an error"))
+					instanceID := fakeAWSClient.StopArgsForCall(0)
+					Expect(instanceID).Should(BeEquivalentTo("foo"))
+				})
+			})
+		})
+		Describe("given a Delete method", func() {
+			Context("when called", func() {
+				var fakeAWSClient *awsfakes.FakeAWSClient
+				BeforeEach(func() {
+					fakeAWSClient = new(awsfakes.FakeAWSClient)
+					client, err = NewAWSClientAPI(
+						ConfigAWSClient(fakeAWSClient),
+						ConfigVPC("some vpc"),
+					)
+					Expect(client).ShouldNot(BeNil())
+				})
+
+				It("then the instance should be stopped", func() {
+					fakeAWSClient.DeleteReturns(nil)
+					err := client.DeleteVM(ec2.Instance{InstanceId: iaasaws.String("foo")})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fakeAWSClient.DeleteCallCount()).Should(BeEquivalentTo(1))
+					instanceID := fakeAWSClient.DeleteArgsForCall(0)
+					Expect(instanceID).Should(BeEquivalentTo("foo"))
+				})
+				It("then it should error", func() {
+					fakeAWSClient.DeleteReturns(errors.New("got an error"))
+					err := client.DeleteVM(ec2.Instance{InstanceId: iaasaws.String("foo")})
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(BeEquivalentTo("call delete on aws client failed: got an error"))
+					instanceID := fakeAWSClient.DeleteArgsForCall(0)
+					Expect(instanceID).Should(BeEquivalentTo("foo"))
 				})
 			})
 		})

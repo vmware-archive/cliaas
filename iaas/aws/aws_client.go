@@ -13,13 +13,15 @@ import (
 
 type AWSClient interface {
 	List(instanceNameRegex, vpcName string) ([]*ec2.Instance, error)
+	Stop(instanceID string) error
+	Delete(instanceID string) error
 }
 
 type ClientAPI interface {
 	CreateVM(instance ec2.Instance) error
-	DeleteVM(instanceName string) error
+	DeleteVM(instance ec2.Instance) error
 	GetVMInfo(filter iaas.Filter) (*ec2.Instance, error)
-	StopVM(instanceName string) error
+	StopVM(instance ec2.Instance) error
 }
 
 type AWSClientAPI struct {
@@ -77,13 +79,21 @@ func (s *AWSClientAPI) CreateVM(instance ec2.Instance) error {
 	return errors.New("Not implmented")
 }
 
-func (s *AWSClientAPI) DeleteVM(instanceName string) error {
-	return errors.New("Not implmented")
+func (s *AWSClientAPI) DeleteVM(instance ec2.Instance) error {
+	err := s.awsClient.Delete(*instance.InstanceId)
+	if err != nil {
+		return errwrap.Wrap(err, "call delete on aws client failed")
+	}
+	return nil
 }
 
-//StopVM - will try to stop the VM with the given name
-func (s *AWSClientAPI) StopVM(instanceName string) error {
-	return errors.New("Not implmented")
+//StopVM - will try to stop the VM
+func (s *AWSClientAPI) StopVM(instance ec2.Instance) error {
+	err := s.awsClient.Stop(*instance.InstanceId)
+	if err != nil {
+		return errwrap.Wrap(err, "call stop on aws client failed")
+	}
+	return nil
 }
 
 //GetVMInfo - gets the information on the first VM to match the given filter argument
@@ -135,4 +145,25 @@ func (s *awsClientWrapper) List(instanceNameRegex, vpcName string) ([]*ec2.Insta
 		}
 	}
 	return instances, nil
+}
+
+func (s *awsClientWrapper) Stop(instanceID string) error {
+	_, err := s.ec2.StopInstances(&ec2.StopInstancesInput{
+		InstanceIds: []*string{
+			iaasaws.String(instanceID),
+		},
+		DryRun: iaasaws.Bool(false),
+		Force:  iaasaws.Bool(true),
+	})
+	return err
+}
+
+func (s *awsClientWrapper) Delete(instanceID string) error {
+	_, err := s.ec2.TerminateInstances(&ec2.TerminateInstancesInput{
+		InstanceIds: []*string{
+			iaasaws.String(instanceID),
+		},
+		DryRun: iaasaws.Bool(false),
+	})
+	return err
 }
