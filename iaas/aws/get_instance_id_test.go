@@ -1,4 +1,4 @@
-package iaasaws_test
+package aws_test
 
 import (
 	"github.com/aws/aws-sdk-go/service/ec2"

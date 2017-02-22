@@ -53,4 +53,4 @@ func (fake *FakeInstanceDescriber) DescribeInstancesReturns(result1 *ec2.Describ
 	}{result1, result2}
 }
 
-var _ iaasaws.InstanceDescriber = new(FakeInstanceDescriber)
+var _ aws.InstanceDescriber = new(FakeInstanceDescriber)

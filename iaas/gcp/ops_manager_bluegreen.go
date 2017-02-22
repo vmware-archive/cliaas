@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	compute "google.golang.org/api/compute/v1"
-
+	"github.com/c0-ops/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
+	compute "google.golang.org/api/compute/v1"
 )
 
 const (
@@ -18,12 +18,6 @@ const (
 type OpsManagerGCP struct {
 	client               ClientAPI
 	clientTimeoutSeconds int
-}
-
-type Filter struct {
-	TagRegexString  string
-	NameRegexString string
-	Status          string
 }
 
 func NewOpsManager(configs ...func(*OpsManagerGCP) error) (*OpsManagerGCP, error) {
@@ -71,7 +65,7 @@ func (s *OpsManagerGCP) Deploy(vmInstance *compute.Instance) error {
 	return nil
 }
 
-func (s *OpsManagerGCP) SpinDown(filter Filter) (*compute.Instance, error) {
+func (s *OpsManagerGCP) SpinDown(filter iaas.Filter) (*compute.Instance, error) {
 	vmInfo, err := s.client.GetVMInfo(filter)
 
 	if err != nil {
@@ -85,7 +79,7 @@ func (s *OpsManagerGCP) SpinDown(filter Filter) (*compute.Instance, error) {
 	return vmInfo, nil
 }
 
-func (s *OpsManagerGCP) CleanUp(filter Filter) error {
+func (s *OpsManagerGCP) CleanUp(filter iaas.Filter) error {
 	vmInfo, err := s.client.GetVMInfo(filter)
 	if err != nil {
 		return errwrap.Wrap(err, "GetVMInfo failed")
@@ -139,7 +133,7 @@ func (s *OpsManagerGCP) pollVMStatus(desiredStatus string, vmName string) error 
 	errChannel := make(chan error)
 	go func() {
 		for {
-			vmInfo, err := s.client.GetVMInfo(Filter{NameRegexString: vmName})
+			vmInfo, err := s.client.GetVMInfo(iaas.Filter{NameRegexString: vmName})
 			if err != nil {
 				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
 			}

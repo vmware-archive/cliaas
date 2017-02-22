@@ -37,7 +37,7 @@ func getAWSClient() (IaasClient, error) {
 		return nil, fmt.Errorf("not enough args given to cli (requires one arg for instance tag regex)")
 	}
 	tagFilterString := os.Args[1]
-	return iaasaws.NewClient(region, tagFilterString, vpc)
+	return aws.NewClient(region, tagFilterString, vpc)
 }
 
 type IaasClient interface {

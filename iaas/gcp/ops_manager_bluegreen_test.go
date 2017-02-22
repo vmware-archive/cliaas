@@ -3,18 +3,18 @@ package gcp_test
 import (
 	"fmt"
 
-	compute "google.golang.org/api/compute/v1"
-
+	"github.com/c0-ops/cliaas/iaas"
 	. "github.com/c0-ops/cliaas/iaas/gcp"
 	"github.com/c0-ops/cliaas/iaas/gcp/gcpfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	compute "google.golang.org/api/compute/v1"
 )
 
 var _ = Describe("OpsManager struct and a valid client", func() {
 	var opsManager *OpsManagerGCP
 	var (
-		controlFilter = Filter{
+		controlFilter = iaas.Filter{
 			TagRegexString:  "ops",
 			NameRegexString: "ops-manager",
 		}
@@ -113,11 +113,11 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 		})
 	})
 	Context("when calling CleanUp on venerable VM", func() {
-		var controlCleanUpFilter Filter
+		var controlCleanUpFilter iaas.Filter
 		BeforeEach(func(done Done) {
 			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
-			controlCleanUpFilter = Filter{
+			controlCleanUpFilter = iaas.Filter{
 				NameRegexString: controlGetVMInfoInstance.Name,
 				Status:          InstanceStatusStopped,
 			}

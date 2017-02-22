@@ -1,9 +1,9 @@
-package iaasaws
+package aws
 
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
+	iaasaws "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	errwrap "github.com/pkg/errors"
@@ -63,7 +63,7 @@ func NewClient(region string, instanceNameRegex string, vpcname string) (*Client
 	if err != nil {
 		return nil, err
 	}
-	client.Describer = ec2.New(sess, &aws.Config{Region: aws.String(region)})
+	client.Describer = ec2.New(sess, &iaasaws.Config{Region: iaasaws.String(region)})
 	return client, nil
 }
 
@@ -71,15 +71,15 @@ func (s *Client) GetInstanceID() (string, error) {
 	params := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("tag:Name"),
+				Name: iaasaws.String("tag:Name"),
 				Values: []*string{
-					aws.String(s.InstanceNameRegex),
+					iaasaws.String(s.InstanceNameRegex),
 				},
 			},
 			{
-				Name: aws.String("vpc-id"),
+				Name: iaasaws.String("vpc-id"),
 				Values: []*string{
-					aws.String(s.VPCName),
+					iaasaws.String(s.VPCName),
 				},
 			},
 		},

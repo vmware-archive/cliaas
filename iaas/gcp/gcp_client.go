@@ -6,11 +6,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/c0-ops/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
-	compute "google.golang.org/api/compute/v1"
-
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
+	compute "google.golang.org/api/compute/v1"
 )
 
 type GoogleComputeClient interface {
@@ -23,7 +23,7 @@ type GoogleComputeClient interface {
 type ClientAPI interface {
 	CreateVM(instance compute.Instance) error
 	DeleteVM(instanceName string) error
-	GetVMInfo(filter Filter) (*compute.Instance, error)
+	GetVMInfo(filter iaas.Filter) (*compute.Instance, error)
 	StopVM(instanceName string) error
 }
 
@@ -154,7 +154,7 @@ func (s *GCPClientAPI) StopVM(instanceName string) error {
 //GetVMInfo - gets the information on the first VM to match the given filter argument
 // currently filter will only do a regex on teh tag||name regex fields against
 // the List's result set
-func (s *GCPClientAPI) GetVMInfo(filter Filter) (*compute.Instance, error) {
+func (s *GCPClientAPI) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) {
 	list, err := s.googleClient.List(s.projectName, s.zoneName)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call List on google client failed")
