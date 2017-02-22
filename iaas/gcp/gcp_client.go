@@ -113,19 +113,13 @@ func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
 }
 
 func (s *GCPClientAPI) DeleteVM(instanceName string) error {
-	for {
-		operation, err := s.googleClient.Delete(s.projectName, s.zoneName, instanceName)
-		if err != nil {
-			return errwrap.Wrap(err, "call to googleclient.Delete yielded error")
-		}
+	operation, err := s.googleClient.Delete(s.projectName, s.zoneName, instanceName)
+	if err != nil {
+		return errwrap.Wrap(err, "call to googleclient.Delete yielded error")
+	}
 
-		if operation.Error != nil {
-			return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
-		}
-
-		if operation.Status == "DONE" {
-			break
-		}
+	if operation.Error != nil {
+		return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
 	}
 
 	return nil
@@ -133,19 +127,13 @@ func (s *GCPClientAPI) DeleteVM(instanceName string) error {
 
 //StopVM - will try to stop the VM with the given name
 func (s *GCPClientAPI) StopVM(instanceName string) error {
-	for {
-		operation, err := s.googleClient.Stop(s.projectName, s.zoneName, instanceName)
-		if err != nil {
-			return errwrap.Wrap(err, "call to googleclient.Stop yielded error")
-		}
+	operation, err := s.googleClient.Stop(s.projectName, s.zoneName, instanceName)
+	if err != nil {
+		return errwrap.Wrap(err, "call to googleclient.Stop yielded error")
+	}
 
-		if operation.Error != nil {
-			return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
-		}
-
-		if operation.Status == "DONE" {
-			break
-		}
+	if operation.Error != nil {
+		return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
 	}
 
 	return nil

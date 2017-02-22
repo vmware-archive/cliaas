@@ -120,7 +120,7 @@ var _ = Describe("GCPClientAPI", func() {
 
 				It("then the instance should be deleted from gcp", func() {
 					err := client.DeleteVM(controlInstanceName)
-					Expect(fakeGoogleClient.DeleteCallCount()).Should(BeNumerically(">=", 1))
+					Expect(fakeGoogleClient.DeleteCallCount()).Should(Equal(1))
 					project, zone, instanceName := fakeGoogleClient.DeleteArgsForCall(0)
 					Expect(project).Should(Equal(controlProject))
 					Expect(zone).Should(Equal(controlZone))
@@ -194,7 +194,7 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 				It("then the instance should be stopped in gcp", func() {
 					err := client.StopVM(controlInstanceName)
-					Expect(fakeGoogleClient.StopCallCount()).Should(BeNumerically(">=", 1))
+					Expect(fakeGoogleClient.StopCallCount()).Should(Equal(1))
 					project, zone, instanceName := fakeGoogleClient.StopArgsForCall(0)
 					Expect(project).Should(Equal(controlProject))
 					Expect(zone).Should(Equal(controlZone))
