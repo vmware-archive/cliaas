@@ -1,8 +1,10 @@
 package aws_test
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
+	"time"
 
 	. "github.com/c0-ops/cliaas/iaas/aws"
 	. "github.com/onsi/ginkgo"
@@ -23,8 +25,6 @@ var _ = Describe("AwsClient", func() {
 			awsClient, _ = CreateAWSClient(region, accessKey, secretKey)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(awsClient).ShouldNot(BeNil())
-
-			//createVM(instanceNameGUID)
 		})
 		Context("GetVMInfo", func() {
 			It("then it should create a vm, list vm and destroy vm", func() {
@@ -60,15 +60,40 @@ var _ = Describe("AwsClient", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
+		Context("Associate EIP to created VM", func() {
+			It("then it should create vm and associate to eip", func() {
+				ami := "ami-0b33d91d"
+				vmType := "t2.micro"
+				name := randSeq(10)
+				keyPairName := "c0-cliaas"
+				subnetID := "subnet-52d6c61b"
+				securityGroupID := ""
+				fmt.Println("Name", name)
+				instance, err := awsClient.Create(ami, vmType, name, keyPairName, subnetID, securityGroupID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(instance).ShouldNot(BeNil())
+				clientAPI, err := NewAWSClientAPI(
+					ConfigAWSClient(awsClient),
+					ConfigVPC(vpc),
+				)
+				Expect(err).NotTo(HaveOccurred())
+				err = clientAPI.WaitForStartedVM(name)
+				Expect(err).NotTo(HaveOccurred())
+				err = awsClient.AssociateElasticIP(*instance.InstanceId, "52.1.191.81")
+				Expect(err).NotTo(HaveOccurred())
+				err = awsClient.Delete(*instance.InstanceId)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 	})
 })
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghipqrstuvwxyz0123456789"
+	result := make([]byte, n)
+	for i := 0; i < n; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
 	}
-	return string(b)
+	return string(result)
 }

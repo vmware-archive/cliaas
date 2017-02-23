@@ -49,6 +49,15 @@ type FakeAWSClient struct {
 		result1 *ec2.Instance
 		result2 error
 	}
+	AssociateElasticIPStub        func(instanceID, elasticIP string) error
+	associateElasticIPMutex       sync.RWMutex
+	associateElasticIPArgsForCall []struct {
+		instanceID string
+		elasticIP  string
+	}
+	associateElasticIPReturns struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -193,6 +202,40 @@ func (fake *FakeAWSClient) CreateReturns(result1 *ec2.Instance, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeAWSClient) AssociateElasticIP(instanceID string, elasticIP string) error {
+	fake.associateElasticIPMutex.Lock()
+	fake.associateElasticIPArgsForCall = append(fake.associateElasticIPArgsForCall, struct {
+		instanceID string
+		elasticIP  string
+	}{instanceID, elasticIP})
+	fake.recordInvocation("AssociateElasticIP", []interface{}{instanceID, elasticIP})
+	fake.associateElasticIPMutex.Unlock()
+	if fake.AssociateElasticIPStub != nil {
+		return fake.AssociateElasticIPStub(instanceID, elasticIP)
+	} else {
+		return fake.associateElasticIPReturns.result1
+	}
+}
+
+func (fake *FakeAWSClient) AssociateElasticIPCallCount() int {
+	fake.associateElasticIPMutex.RLock()
+	defer fake.associateElasticIPMutex.RUnlock()
+	return len(fake.associateElasticIPArgsForCall)
+}
+
+func (fake *FakeAWSClient) AssociateElasticIPArgsForCall(i int) (string, string) {
+	fake.associateElasticIPMutex.RLock()
+	defer fake.associateElasticIPMutex.RUnlock()
+	return fake.associateElasticIPArgsForCall[i].instanceID, fake.associateElasticIPArgsForCall[i].elasticIP
+}
+
+func (fake *FakeAWSClient) AssociateElasticIPReturns(result1 error) {
+	fake.AssociateElasticIPStub = nil
+	fake.associateElasticIPReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -204,6 +247,8 @@ func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	defer fake.deleteMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
+	fake.associateElasticIPMutex.RLock()
+	defer fake.associateElasticIPMutex.RUnlock()
 	return fake.invocations
 }
 

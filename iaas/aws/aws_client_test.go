@@ -125,6 +125,39 @@ var _ = Describe("Aws Client", func() {
 			})
 		})
 
+		Describe("given a AssignPublicIP method", func() {
+			Context("when called", func() {
+				var fakeAWSClient *awsfakes.FakeAWSClient
+				BeforeEach(func() {
+					fakeAWSClient = new(awsfakes.FakeAWSClient)
+					client, err = NewAWSClientAPI(
+						ConfigAWSClient(fakeAWSClient),
+						ConfigVPC("some vpc"),
+					)
+					Expect(client).ShouldNot(BeNil())
+				})
+
+				It("then the instance should be stopped", func() {
+					fakeAWSClient.AssociateElasticIPReturns(nil)
+					err := client.AssignPublicIP(ec2.Instance{InstanceId: iaasaws.String("foo")}, "1.1.1.1")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fakeAWSClient.AssociateElasticIPCallCount()).Should(BeEquivalentTo(1))
+					instanceID, ip := fakeAWSClient.AssociateElasticIPArgsForCall(0)
+					Expect(instanceID).Should(BeEquivalentTo("foo"))
+					Expect(ip).Should(BeEquivalentTo("1.1.1.1"))
+				})
+				It("then it should error", func() {
+					fakeAWSClient.AssociateElasticIPReturns(errors.New("got an error"))
+					err := client.AssignPublicIP(ec2.Instance{InstanceId: iaasaws.String("foo")}, "1.1.1.1")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(BeEquivalentTo("call associateElasticIP on aws client failed: got an error"))
+					instanceID, ip := fakeAWSClient.AssociateElasticIPArgsForCall(0)
+					Expect(instanceID).Should(BeEquivalentTo("foo"))
+					Expect(ip).Should(BeEquivalentTo("1.1.1.1"))
+				})
+			})
+		})
+
 		Describe("given a Create method", func() {
 			Context("when called", func() {
 				var fakeAWSClient *awsfakes.FakeAWSClient

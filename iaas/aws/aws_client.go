@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"errors"
+	"time"
 
 	iaasaws "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -16,6 +16,7 @@ type AWSClient interface {
 	Stop(instanceID string) error
 	Delete(instanceID string) error
 	Create(ami, vmType, name, keyPairName, subnetID, securityGroupID string) (*ec2.Instance, error)
+	AssociateElasticIP(instanceID, elasticIP string) error
 }
 
 type ClientAPI interface {
@@ -23,11 +24,14 @@ type ClientAPI interface {
 	DeleteVM(instance ec2.Instance) error
 	GetVMInfo(filter iaas.Filter) (*ec2.Instance, error)
 	StopVM(instance ec2.Instance) error
+	AssignPublicIP(instance ec2.Instance, ip string) error
+	WaitForStartedVM(instanceName string) error
 }
 
 type AWSClientAPI struct {
-	vpcName   string
-	awsClient AWSClient
+	vpcName              string
+	clientTimeoutSeconds int
+	awsClient            AWSClient
 }
 
 type awsClientWrapper struct {
@@ -36,7 +40,7 @@ type awsClientWrapper struct {
 
 func NewAWSClientAPI(configs ...func(*AWSClientAPI) error) (*AWSClientAPI, error) {
 	awsClient := new(AWSClientAPI)
-
+	awsClient.clientTimeoutSeconds = 60
 	for _, cfg := range configs {
 		err := cfg(awsClient)
 		if err != nil {
@@ -45,7 +49,7 @@ func NewAWSClientAPI(configs ...func(*AWSClientAPI) error) (*AWSClientAPI, error
 	}
 
 	if awsClient.awsClient == nil {
-		return nil, errors.New("must configure aws client")
+		return nil, errwrap.New("must configure aws client")
 	}
 	return awsClient, nil
 }
@@ -75,6 +79,36 @@ func ConfigVPC(value string) func(*AWSClientAPI) error {
 	}
 }
 
+func (s *AWSClientAPI) WaitForStartedVM(instanceName string) error {
+	errChannel := make(chan error)
+	go func() {
+		for {
+			instance, err := s.GetVMInfo(iaas.Filter{NameRegexString: instanceName})
+			if err != nil {
+				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
+			} else {
+				if *instance.State.Name == "running" {
+					errChannel <- nil
+				}
+			}
+		}
+	}()
+	select {
+	case res := <-errChannel:
+		return res
+	case <-time.After(time.Second * time.Duration(s.clientTimeoutSeconds)):
+		return errwrap.New("polling for status timed out")
+	}
+}
+
+func (s *AWSClientAPI) AssignPublicIP(instance ec2.Instance, ip string) error {
+	err := s.awsClient.AssociateElasticIP(*instance.InstanceId, ip)
+	if err != nil {
+		return errwrap.Wrap(err, "call associateElasticIP on aws client failed")
+	}
+	return nil
+}
+
 func (s *AWSClientAPI) CreateVM(instance ec2.Instance) (*ec2.Instance, error) {
 	name := ""
 	for _, tag := range instance.Tags {
@@ -84,7 +118,7 @@ func (s *AWSClientAPI) CreateVM(instance ec2.Instance) (*ec2.Instance, error) {
 		}
 	}
 	if name == "" {
-		return nil, errors.New("Must have Name tag value")
+		return nil, errwrap.New("Must have Name tag value")
 	}
 	securityGroupID := ""
 	if len(instance.SecurityGroups) > 0 {
@@ -124,11 +158,11 @@ func (s *AWSClientAPI) GetVMInfo(filter iaas.Filter) (*ec2.Instance, error) {
 	}
 
 	if len(list) == 0 {
-		return nil, errors.New("No instance matches found")
+		return nil, errwrap.New("No instance matches found")
 	}
 
 	if len(list) > 1 {
-		return nil, errors.New("Found more than one match")
+		return nil, errwrap.New("Found more than one match")
 	}
 	return list[0], nil
 }
@@ -218,6 +252,14 @@ func (s *awsClientWrapper) Delete(instanceID string) error {
 			iaasaws.String(instanceID),
 		},
 		DryRun: iaasaws.Bool(false),
+	})
+	return err
+}
+
+func (s *awsClientWrapper) AssociateElasticIP(instanceID, elasticIP string) error {
+	_, err := s.ec2.AssociateAddress(&ec2.AssociateAddressInput{
+		InstanceId: iaasaws.String(instanceID),
+		PublicIp:   iaasaws.String(elasticIP),
 	})
 	return err
 }
