@@ -124,5 +124,132 @@ var _ = Describe("Aws Client", func() {
 				})
 			})
 		})
+
+		Describe("given a Create method", func() {
+			Context("when called", func() {
+				var fakeAWSClient *awsfakes.FakeAWSClient
+				BeforeEach(func() {
+					fakeAWSClient = new(awsfakes.FakeAWSClient)
+					client, err = NewAWSClientAPI(
+						ConfigAWSClient(fakeAWSClient),
+						ConfigVPC("some vpc"),
+					)
+					Expect(client).ShouldNot(BeNil())
+				})
+
+				It("then the instance should be created with all values", func() {
+					instance := ec2.Instance{
+						ImageId:      iaasaws.String("foo"),
+						InstanceType: iaasaws.String("my.type"),
+						KeyName:      iaasaws.String("mykey"),
+						SubnetId:     iaasaws.String("mysubnet"),
+						Tags: []*ec2.Tag{
+							&ec2.Tag{
+								Key: iaasaws.String("Name"), Value: iaasaws.String("myname"),
+							},
+							&ec2.Tag{
+								Key: iaasaws.String("OtherTag"), Value: iaasaws.String("some random"),
+							},
+						},
+						SecurityGroups: []*ec2.GroupIdentifier{
+							&ec2.GroupIdentifier{
+								GroupId: iaasaws.String("mysecuritygroup"),
+							},
+						},
+					}
+					fakeAWSClient.CreateReturns(&instance, nil)
+					newInstance, err := client.CreateVM(instance)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(newInstance).ToNot(BeNil())
+					Expect(fakeAWSClient.CreateCallCount()).Should(BeEquivalentTo(1))
+					ami, vmType, name, keyPairName, subnetID, securityGroupID := fakeAWSClient.CreateArgsForCall(0)
+					Expect(ami).Should(BeEquivalentTo("foo"))
+					Expect(vmType).Should(BeEquivalentTo("my.type"))
+					Expect(name).Should(BeEquivalentTo("myname"))
+					Expect(keyPairName).Should(BeEquivalentTo("mykey"))
+					Expect(subnetID).Should(BeEquivalentTo("mysubnet"))
+					Expect(securityGroupID).Should(BeEquivalentTo("mysecuritygroup"))
+				})
+				It("then it should error when no name tag is provided", func() {
+					instance := ec2.Instance{
+						ImageId:        iaasaws.String("foo"),
+						InstanceType:   iaasaws.String("my.type"),
+						KeyName:        iaasaws.String("mykey"),
+						SubnetId:       iaasaws.String("mysubnet"),
+						Tags:           []*ec2.Tag{},
+						SecurityGroups: []*ec2.GroupIdentifier{},
+					}
+					fakeAWSClient.CreateReturns(&instance, nil)
+					newInstance, err := client.CreateVM(instance)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(BeEquivalentTo("Must have Name tag value"))
+					Expect(newInstance).To(BeNil())
+					Expect(fakeAWSClient.CreateCallCount()).Should(BeEquivalentTo(0))
+				})
+				It("then it should use blank security group value", func() {
+					instance := ec2.Instance{
+						ImageId:      iaasaws.String("foo"),
+						InstanceType: iaasaws.String("my.type"),
+						KeyName:      iaasaws.String("mykey"),
+						SubnetId:     iaasaws.String("mysubnet"),
+						Tags: []*ec2.Tag{
+							&ec2.Tag{
+								Key: iaasaws.String("Name"), Value: iaasaws.String("myname"),
+							},
+							&ec2.Tag{
+								Key: iaasaws.String("OtherTag"), Value: iaasaws.String("some random"),
+							},
+						},
+						SecurityGroups: []*ec2.GroupIdentifier{},
+					}
+					fakeAWSClient.CreateReturns(&instance, nil)
+					newInstance, err := client.CreateVM(instance)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(newInstance).ToNot(BeNil())
+					Expect(fakeAWSClient.CreateCallCount()).Should(BeEquivalentTo(1))
+					ami, vmType, name, keyPairName, subnetID, securityGroupID := fakeAWSClient.CreateArgsForCall(0)
+					Expect(ami).Should(BeEquivalentTo("foo"))
+					Expect(vmType).Should(BeEquivalentTo("my.type"))
+					Expect(name).Should(BeEquivalentTo("myname"))
+					Expect(keyPairName).Should(BeEquivalentTo("mykey"))
+					Expect(subnetID).Should(BeEquivalentTo("mysubnet"))
+					Expect(securityGroupID).Should(BeEquivalentTo(""))
+				})
+				It("then it should error", func() {
+					instance := ec2.Instance{
+						ImageId:      iaasaws.String("foo"),
+						InstanceType: iaasaws.String("my.type"),
+						KeyName:      iaasaws.String("mykey"),
+						SubnetId:     iaasaws.String("mysubnet"),
+						Tags: []*ec2.Tag{
+							&ec2.Tag{
+								Key: iaasaws.String("Name"), Value: iaasaws.String("myname"),
+							},
+							&ec2.Tag{
+								Key: iaasaws.String("OtherTag"), Value: iaasaws.String("some random"),
+							},
+						},
+						SecurityGroups: []*ec2.GroupIdentifier{
+							&ec2.GroupIdentifier{
+								GroupId: iaasaws.String("mysecuritygroup"),
+							},
+						},
+					}
+					fakeAWSClient.CreateReturns(nil, errors.New("got an error"))
+					newInstance, err := client.CreateVM(instance)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(BeEquivalentTo("call create on aws client failed: got an error"))
+					Expect(newInstance).To(BeNil())
+					Expect(fakeAWSClient.CreateCallCount()).Should(BeEquivalentTo(1))
+					ami, vmType, name, keyPairName, subnetID, securityGroupID := fakeAWSClient.CreateArgsForCall(0)
+					Expect(ami).Should(BeEquivalentTo("foo"))
+					Expect(vmType).Should(BeEquivalentTo("my.type"))
+					Expect(name).Should(BeEquivalentTo("myname"))
+					Expect(keyPairName).Should(BeEquivalentTo("mykey"))
+					Expect(subnetID).Should(BeEquivalentTo("mysubnet"))
+					Expect(securityGroupID).Should(BeEquivalentTo("mysecuritygroup"))
+				})
+			})
+		})
 	})
 })

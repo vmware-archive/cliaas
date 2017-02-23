@@ -35,6 +35,20 @@ type FakeAWSClient struct {
 	deleteReturns struct {
 		result1 error
 	}
+	CreateStub        func(ami, vmType, name, keyPairName, subnetID, securityGroupID string) (*ec2.Instance, error)
+	createMutex       sync.RWMutex
+	createArgsForCall []struct {
+		ami             string
+		vmType          string
+		name            string
+		keyPairName     string
+		subnetID        string
+		securityGroupID string
+	}
+	createReturns struct {
+		result1 *ec2.Instance
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -140,6 +154,45 @@ func (fake *FakeAWSClient) DeleteReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeAWSClient) Create(ami string, vmType string, name string, keyPairName string, subnetID string, securityGroupID string) (*ec2.Instance, error) {
+	fake.createMutex.Lock()
+	fake.createArgsForCall = append(fake.createArgsForCall, struct {
+		ami             string
+		vmType          string
+		name            string
+		keyPairName     string
+		subnetID        string
+		securityGroupID string
+	}{ami, vmType, name, keyPairName, subnetID, securityGroupID})
+	fake.recordInvocation("Create", []interface{}{ami, vmType, name, keyPairName, subnetID, securityGroupID})
+	fake.createMutex.Unlock()
+	if fake.CreateStub != nil {
+		return fake.CreateStub(ami, vmType, name, keyPairName, subnetID, securityGroupID)
+	} else {
+		return fake.createReturns.result1, fake.createReturns.result2
+	}
+}
+
+func (fake *FakeAWSClient) CreateCallCount() int {
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
+	return len(fake.createArgsForCall)
+}
+
+func (fake *FakeAWSClient) CreateArgsForCall(i int) (string, string, string, string, string, string) {
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
+	return fake.createArgsForCall[i].ami, fake.createArgsForCall[i].vmType, fake.createArgsForCall[i].name, fake.createArgsForCall[i].keyPairName, fake.createArgsForCall[i].subnetID, fake.createArgsForCall[i].securityGroupID
+}
+
+func (fake *FakeAWSClient) CreateReturns(result1 *ec2.Instance, result2 error) {
+	fake.CreateStub = nil
+	fake.createReturns = struct {
+		result1 *ec2.Instance
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -149,6 +202,8 @@ func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	defer fake.stopMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
 	return fake.invocations
 }
 

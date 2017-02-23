@@ -15,6 +15,7 @@ type AWSClient interface {
 	List(instanceNameRegex, vpcName string) ([]*ec2.Instance, error)
 	Stop(instanceID string) error
 	Delete(instanceID string) error
+	Create(ami, vmType, name, keyPairName, subnetID, securityGroupID string) (*ec2.Instance, error)
 }
 
 type ClientAPI interface {
@@ -74,9 +75,26 @@ func ConfigVPC(value string) func(*AWSClientAPI) error {
 	}
 }
 
-func (s *AWSClientAPI) CreateVM(instance ec2.Instance) error {
-
-	return errors.New("Not implmented")
+func (s *AWSClientAPI) CreateVM(instance ec2.Instance) (*ec2.Instance, error) {
+	name := ""
+	for _, tag := range instance.Tags {
+		if *tag.Key == "Name" {
+			name = *tag.Value
+			break
+		}
+	}
+	if name == "" {
+		return nil, errors.New("Must have Name tag value")
+	}
+	securityGroupID := ""
+	if len(instance.SecurityGroups) > 0 {
+		securityGroupID = *instance.SecurityGroups[0].GroupId
+	}
+	newInstance, err := s.awsClient.Create(*instance.ImageId, *instance.InstanceType, name, *instance.KeyName, *instance.SubnetId, securityGroupID)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "call create on aws client failed")
+	}
+	return newInstance, nil
 }
 
 func (s *AWSClientAPI) DeleteVM(instance ec2.Instance) error {
@@ -113,6 +131,42 @@ func (s *AWSClientAPI) GetVMInfo(filter iaas.Filter) (*ec2.Instance, error) {
 		return nil, errors.New("Found more than one match")
 	}
 	return list[0], nil
+}
+
+func (s *awsClientWrapper) Create(ami, vmType, name, keyPairName, subnetID, securityGroupID string) (*ec2.Instance, error) {
+	runInput := &ec2.RunInstancesInput{
+		ImageId:      iaasaws.String(ami),
+		InstanceType: iaasaws.String(vmType),
+		MinCount:     iaasaws.Int64(1),
+		MaxCount:     iaasaws.Int64(1),
+		KeyName:      iaasaws.String(keyPairName),
+	}
+	if subnetID != "" {
+		runInput.SubnetId = iaasaws.String(subnetID)
+	}
+
+	if securityGroupID != "" {
+		runInput.SecurityGroupIds = iaasaws.StringSlice([]string{securityGroupID})
+	}
+	runResult, err := s.ec2.RunInstances(runInput)
+
+	if err != nil {
+		return nil, err
+	}
+	// Add tags to the created instance
+	_, err = s.ec2.CreateTags(&ec2.CreateTagsInput{
+		Resources: []*string{runResult.Instances[0].InstanceId},
+		Tags: []*ec2.Tag{
+			{
+				Key:   iaasaws.String("Name"),
+				Value: iaasaws.String(name),
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return runResult.Instances[0], nil
 }
 
 func (s *awsClientWrapper) List(instanceNameRegex, vpcName string) ([]*ec2.Instance, error) {
