@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/c0-ops/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
 )
 
@@ -20,9 +19,9 @@ type AWSClient interface {
 }
 
 type ClientAPI interface {
-	CreateVM(instance ec2.Instance) error
+	CreateVM(instance ec2.Instance, ami, instanceType, newName string) (*ec2.Instance, error)
 	DeleteVM(instance ec2.Instance) error
-	GetVMInfo(filter iaas.Filter) (*ec2.Instance, error)
+	GetVMInfo(name string) (*ec2.Instance, error)
 	StopVM(instance ec2.Instance) error
 	AssignPublicIP(instance ec2.Instance, ip string) error
 	WaitForStartedVM(instanceName string) error
@@ -83,7 +82,7 @@ func (s *AWSClientAPI) WaitForStartedVM(instanceName string) error {
 	errChannel := make(chan error)
 	go func() {
 		for {
-			instance, err := s.GetVMInfo(iaas.Filter{NameRegexString: instanceName})
+			instance, err := s.GetVMInfo(instanceName)
 			if err != nil {
 				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
 			} else {
@@ -109,22 +108,12 @@ func (s *AWSClientAPI) AssignPublicIP(instance ec2.Instance, ip string) error {
 	return nil
 }
 
-func (s *AWSClientAPI) CreateVM(instance ec2.Instance) (*ec2.Instance, error) {
-	name := ""
-	for _, tag := range instance.Tags {
-		if *tag.Key == "Name" {
-			name = *tag.Value
-			break
-		}
-	}
-	if name == "" {
-		return nil, errwrap.New("Must have Name tag value")
-	}
+func (s *AWSClientAPI) CreateVM(instance ec2.Instance, ami, instanceType, name string) (*ec2.Instance, error) {
 	securityGroupID := ""
 	if len(instance.SecurityGroups) > 0 {
 		securityGroupID = *instance.SecurityGroups[0].GroupId
 	}
-	newInstance, err := s.awsClient.Create(*instance.ImageId, *instance.InstanceType, name, *instance.KeyName, *instance.SubnetId, securityGroupID)
+	newInstance, err := s.awsClient.Create(ami, instanceType, name, *instance.KeyName, *instance.SubnetId, securityGroupID)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call create on aws client failed")
 	}
@@ -151,8 +140,8 @@ func (s *AWSClientAPI) StopVM(instance ec2.Instance) error {
 //GetVMInfo - gets the information on the first VM to match the given filter argument
 // currently filter will only do a regex on teh tag||name regex fields against
 // the List's result set
-func (s *AWSClientAPI) GetVMInfo(filter iaas.Filter) (*ec2.Instance, error) {
-	list, err := s.awsClient.List(filter.NameRegexString, s.vpcName)
+func (s *AWSClientAPI) GetVMInfo(name string) (*ec2.Instance, error) {
+	list, err := s.awsClient.List(name, s.vpcName)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call List on aws client failed")
 	}

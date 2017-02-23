@@ -5,7 +5,6 @@ import (
 
 	iaasaws "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/c0-ops/cliaas/iaas"
 	. "github.com/c0-ops/cliaas/iaas/aws"
 	"github.com/c0-ops/cliaas/iaas/aws/awsfakes"
 	. "github.com/onsi/ginkgo"
@@ -32,7 +31,7 @@ var _ = Describe("Aws Client", func() {
 				It("then the instance should be found", func() {
 					instanceList := []*ec2.Instance{&ec2.Instance{}}
 					fakeAWSClient.ListReturns(instanceList, nil)
-					instance, err := client.GetVMInfo(iaas.Filter{NameRegexString: "Test*"})
+					instance, err := client.GetVMInfo("Test*")
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(instance).ShouldNot(BeNil())
 				})
@@ -40,7 +39,7 @@ var _ = Describe("Aws Client", func() {
 				It("then error when no instances", func() {
 					instanceList := []*ec2.Instance{}
 					fakeAWSClient.ListReturns(instanceList, nil)
-					instance, err := client.GetVMInfo(iaas.Filter{NameRegexString: "Test*"})
+					instance, err := client.GetVMInfo("Test*")
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).Should(BeEquivalentTo("No instance matches found"))
 					Expect(instance).Should(BeNil())
@@ -48,7 +47,7 @@ var _ = Describe("Aws Client", func() {
 				It("then error when more than 1 instance", func() {
 					instanceList := []*ec2.Instance{&ec2.Instance{}, &ec2.Instance{}}
 					fakeAWSClient.ListReturns(instanceList, nil)
-					instance, err := client.GetVMInfo(iaas.Filter{NameRegexString: "Test*"})
+					instance, err := client.GetVMInfo("Test*")
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).Should(BeEquivalentTo("Found more than one match"))
 					Expect(instance).Should(BeNil())
@@ -56,7 +55,7 @@ var _ = Describe("Aws Client", func() {
 
 				It("then error when error is returned", func() {
 					fakeAWSClient.ListReturns(nil, errors.New("got an error"))
-					instance, err := client.GetVMInfo(iaas.Filter{NameRegexString: "Test*"})
+					instance, err := client.GetVMInfo("Test*")
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).Should(BeEquivalentTo("call List on aws client failed: got an error"))
 					Expect(instance).Should(BeNil())
@@ -191,33 +190,17 @@ var _ = Describe("Aws Client", func() {
 						},
 					}
 					fakeAWSClient.CreateReturns(&instance, nil)
-					newInstance, err := client.CreateVM(instance)
+					newInstance, err := client.CreateVM(instance, "foo", "my.type", "newName")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newInstance).ToNot(BeNil())
 					Expect(fakeAWSClient.CreateCallCount()).Should(BeEquivalentTo(1))
 					ami, vmType, name, keyPairName, subnetID, securityGroupID := fakeAWSClient.CreateArgsForCall(0)
 					Expect(ami).Should(BeEquivalentTo("foo"))
 					Expect(vmType).Should(BeEquivalentTo("my.type"))
-					Expect(name).Should(BeEquivalentTo("myname"))
+					Expect(name).Should(BeEquivalentTo("newName"))
 					Expect(keyPairName).Should(BeEquivalentTo("mykey"))
 					Expect(subnetID).Should(BeEquivalentTo("mysubnet"))
 					Expect(securityGroupID).Should(BeEquivalentTo("mysecuritygroup"))
-				})
-				It("then it should error when no name tag is provided", func() {
-					instance := ec2.Instance{
-						ImageId:        iaasaws.String("foo"),
-						InstanceType:   iaasaws.String("my.type"),
-						KeyName:        iaasaws.String("mykey"),
-						SubnetId:       iaasaws.String("mysubnet"),
-						Tags:           []*ec2.Tag{},
-						SecurityGroups: []*ec2.GroupIdentifier{},
-					}
-					fakeAWSClient.CreateReturns(&instance, nil)
-					newInstance, err := client.CreateVM(instance)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).Should(BeEquivalentTo("Must have Name tag value"))
-					Expect(newInstance).To(BeNil())
-					Expect(fakeAWSClient.CreateCallCount()).Should(BeEquivalentTo(0))
 				})
 				It("then it should use blank security group value", func() {
 					instance := ec2.Instance{
@@ -236,14 +219,14 @@ var _ = Describe("Aws Client", func() {
 						SecurityGroups: []*ec2.GroupIdentifier{},
 					}
 					fakeAWSClient.CreateReturns(&instance, nil)
-					newInstance, err := client.CreateVM(instance)
+					newInstance, err := client.CreateVM(instance, "foo", "my.type", "newName")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newInstance).ToNot(BeNil())
 					Expect(fakeAWSClient.CreateCallCount()).Should(BeEquivalentTo(1))
 					ami, vmType, name, keyPairName, subnetID, securityGroupID := fakeAWSClient.CreateArgsForCall(0)
 					Expect(ami).Should(BeEquivalentTo("foo"))
 					Expect(vmType).Should(BeEquivalentTo("my.type"))
-					Expect(name).Should(BeEquivalentTo("myname"))
+					Expect(name).Should(BeEquivalentTo("newName"))
 					Expect(keyPairName).Should(BeEquivalentTo("mykey"))
 					Expect(subnetID).Should(BeEquivalentTo("mysubnet"))
 					Expect(securityGroupID).Should(BeEquivalentTo(""))
@@ -269,7 +252,7 @@ var _ = Describe("Aws Client", func() {
 						},
 					}
 					fakeAWSClient.CreateReturns(nil, errors.New("got an error"))
-					newInstance, err := client.CreateVM(instance)
+					newInstance, err := client.CreateVM(instance, "foo", "my.type", "newName")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(BeEquivalentTo("call create on aws client failed: got an error"))
 					Expect(newInstance).To(BeNil())
@@ -277,7 +260,7 @@ var _ = Describe("Aws Client", func() {
 					ami, vmType, name, keyPairName, subnetID, securityGroupID := fakeAWSClient.CreateArgsForCall(0)
 					Expect(ami).Should(BeEquivalentTo("foo"))
 					Expect(vmType).Should(BeEquivalentTo("my.type"))
-					Expect(name).Should(BeEquivalentTo("myname"))
+					Expect(name).Should(BeEquivalentTo("newName"))
 					Expect(keyPairName).Should(BeEquivalentTo("mykey"))
 					Expect(subnetID).Should(BeEquivalentTo("mysubnet"))
 					Expect(securityGroupID).Should(BeEquivalentTo("mysecuritygroup"))
