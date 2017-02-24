@@ -44,3 +44,11 @@ jobs:
       AWS_REGION: {{aws_region}}
       AWS_VPC: {{aws_vpc}}
       IAAS: aws
+- name: build
+  plan:
+  - aggregate:
+    - get: cliaas
+      passed: [aws-integration-tests, gcp-integration-tests]
+      trigger: true
+  - task: run-build
+    file: cliaas/ci/tasks/build/task.yml
