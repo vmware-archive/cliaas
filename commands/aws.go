@@ -1,6 +1,12 @@
 package commands
 
-import "github.com/c0-ops/cliaas/iaas/aws"
+import (
+	iaasaws "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/c0-ops/cliaas/iaas/aws"
+)
 
 type AWSCommand struct {
 	AccessKey    string `long:"accesskey" env:"AWS_ACCESSKEY" description:"aws access key" required:"true"`
@@ -14,13 +20,28 @@ type AWSCommand struct {
 }
 
 func (c *AWSCommand) Execute([]string) error {
-	client, err := aws.NewClientAPI(c.Region, c.AccessKey, c.SecretKey, c.VPC)
+	sess, err := session.NewSession()
 	if err != nil {
 		return err
 	}
+
+	ec2Client := ec2.New(sess, &iaasaws.Config{
+		Credentials: credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, ""),
+		Region:      iaasaws.String(c.Region),
+	})
+
+	client, err := aws.NewClient(
+		aws.ConfigAWSClient(aws.NewAWSClient(ec2Client)),
+		aws.ConfigVPC(c.VPC),
+	)
+	if err != nil {
+		return err
+	}
+
 	opsman, err := aws.NewUpgradeOpsMan(aws.ConfigClient(client))
 	if err != nil {
 		return err
 	}
+
 	return opsman.Upgrade(c.Name, c.AMI, c.InstanceType, c.ElasticIP)
 }

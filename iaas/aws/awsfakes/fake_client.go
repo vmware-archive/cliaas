@@ -8,7 +8,7 @@ import (
 	"github.com/c0-ops/cliaas/iaas/aws"
 )
 
-type FakeClientAPI struct {
+type FakeClient struct {
 	CreateVMStub        func(instance ec2.Instance, ami, instanceType, newName string) (*ec2.Instance, error)
 	createVMMutex       sync.RWMutex
 	createVMArgsForCall []struct {
@@ -67,7 +67,7 @@ type FakeClientAPI struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClientAPI) CreateVM(instance ec2.Instance, ami string, instanceType string, newName string) (*ec2.Instance, error) {
+func (fake *FakeClient) CreateVM(instance ec2.Instance, ami string, instanceType string, newName string) (*ec2.Instance, error) {
 	fake.createVMMutex.Lock()
 	fake.createVMArgsForCall = append(fake.createVMArgsForCall, struct {
 		instance     ec2.Instance
@@ -84,19 +84,19 @@ func (fake *FakeClientAPI) CreateVM(instance ec2.Instance, ami string, instanceT
 	}
 }
 
-func (fake *FakeClientAPI) CreateVMCallCount() int {
+func (fake *FakeClient) CreateVMCallCount() int {
 	fake.createVMMutex.RLock()
 	defer fake.createVMMutex.RUnlock()
 	return len(fake.createVMArgsForCall)
 }
 
-func (fake *FakeClientAPI) CreateVMArgsForCall(i int) (ec2.Instance, string, string, string) {
+func (fake *FakeClient) CreateVMArgsForCall(i int) (ec2.Instance, string, string, string) {
 	fake.createVMMutex.RLock()
 	defer fake.createVMMutex.RUnlock()
 	return fake.createVMArgsForCall[i].instance, fake.createVMArgsForCall[i].ami, fake.createVMArgsForCall[i].instanceType, fake.createVMArgsForCall[i].newName
 }
 
-func (fake *FakeClientAPI) CreateVMReturns(result1 *ec2.Instance, result2 error) {
+func (fake *FakeClient) CreateVMReturns(result1 *ec2.Instance, result2 error) {
 	fake.CreateVMStub = nil
 	fake.createVMReturns = struct {
 		result1 *ec2.Instance
@@ -104,7 +104,7 @@ func (fake *FakeClientAPI) CreateVMReturns(result1 *ec2.Instance, result2 error)
 	}{result1, result2}
 }
 
-func (fake *FakeClientAPI) DeleteVM(instance ec2.Instance) error {
+func (fake *FakeClient) DeleteVM(instance ec2.Instance) error {
 	fake.deleteVMMutex.Lock()
 	fake.deleteVMArgsForCall = append(fake.deleteVMArgsForCall, struct {
 		instance ec2.Instance
@@ -118,26 +118,26 @@ func (fake *FakeClientAPI) DeleteVM(instance ec2.Instance) error {
 	}
 }
 
-func (fake *FakeClientAPI) DeleteVMCallCount() int {
+func (fake *FakeClient) DeleteVMCallCount() int {
 	fake.deleteVMMutex.RLock()
 	defer fake.deleteVMMutex.RUnlock()
 	return len(fake.deleteVMArgsForCall)
 }
 
-func (fake *FakeClientAPI) DeleteVMArgsForCall(i int) ec2.Instance {
+func (fake *FakeClient) DeleteVMArgsForCall(i int) ec2.Instance {
 	fake.deleteVMMutex.RLock()
 	defer fake.deleteVMMutex.RUnlock()
 	return fake.deleteVMArgsForCall[i].instance
 }
 
-func (fake *FakeClientAPI) DeleteVMReturns(result1 error) {
+func (fake *FakeClient) DeleteVMReturns(result1 error) {
 	fake.DeleteVMStub = nil
 	fake.deleteVMReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeClientAPI) GetVMInfo(name string) (*ec2.Instance, error) {
+func (fake *FakeClient) GetVMInfo(name string) (*ec2.Instance, error) {
 	fake.getVMInfoMutex.Lock()
 	fake.getVMInfoArgsForCall = append(fake.getVMInfoArgsForCall, struct {
 		name string
@@ -151,19 +151,19 @@ func (fake *FakeClientAPI) GetVMInfo(name string) (*ec2.Instance, error) {
 	}
 }
 
-func (fake *FakeClientAPI) GetVMInfoCallCount() int {
+func (fake *FakeClient) GetVMInfoCallCount() int {
 	fake.getVMInfoMutex.RLock()
 	defer fake.getVMInfoMutex.RUnlock()
 	return len(fake.getVMInfoArgsForCall)
 }
 
-func (fake *FakeClientAPI) GetVMInfoArgsForCall(i int) string {
+func (fake *FakeClient) GetVMInfoArgsForCall(i int) string {
 	fake.getVMInfoMutex.RLock()
 	defer fake.getVMInfoMutex.RUnlock()
 	return fake.getVMInfoArgsForCall[i].name
 }
 
-func (fake *FakeClientAPI) GetVMInfoReturns(result1 *ec2.Instance, result2 error) {
+func (fake *FakeClient) GetVMInfoReturns(result1 *ec2.Instance, result2 error) {
 	fake.GetVMInfoStub = nil
 	fake.getVMInfoReturns = struct {
 		result1 *ec2.Instance
@@ -171,7 +171,7 @@ func (fake *FakeClientAPI) GetVMInfoReturns(result1 *ec2.Instance, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeClientAPI) StopVM(instance ec2.Instance) error {
+func (fake *FakeClient) StopVM(instance ec2.Instance) error {
 	fake.stopVMMutex.Lock()
 	fake.stopVMArgsForCall = append(fake.stopVMArgsForCall, struct {
 		instance ec2.Instance
@@ -185,26 +185,26 @@ func (fake *FakeClientAPI) StopVM(instance ec2.Instance) error {
 	}
 }
 
-func (fake *FakeClientAPI) StopVMCallCount() int {
+func (fake *FakeClient) StopVMCallCount() int {
 	fake.stopVMMutex.RLock()
 	defer fake.stopVMMutex.RUnlock()
 	return len(fake.stopVMArgsForCall)
 }
 
-func (fake *FakeClientAPI) StopVMArgsForCall(i int) ec2.Instance {
+func (fake *FakeClient) StopVMArgsForCall(i int) ec2.Instance {
 	fake.stopVMMutex.RLock()
 	defer fake.stopVMMutex.RUnlock()
 	return fake.stopVMArgsForCall[i].instance
 }
 
-func (fake *FakeClientAPI) StopVMReturns(result1 error) {
+func (fake *FakeClient) StopVMReturns(result1 error) {
 	fake.StopVMStub = nil
 	fake.stopVMReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeClientAPI) AssignPublicIP(instance ec2.Instance, ip string) error {
+func (fake *FakeClient) AssignPublicIP(instance ec2.Instance, ip string) error {
 	fake.assignPublicIPMutex.Lock()
 	fake.assignPublicIPArgsForCall = append(fake.assignPublicIPArgsForCall, struct {
 		instance ec2.Instance
@@ -219,26 +219,26 @@ func (fake *FakeClientAPI) AssignPublicIP(instance ec2.Instance, ip string) erro
 	}
 }
 
-func (fake *FakeClientAPI) AssignPublicIPCallCount() int {
+func (fake *FakeClient) AssignPublicIPCallCount() int {
 	fake.assignPublicIPMutex.RLock()
 	defer fake.assignPublicIPMutex.RUnlock()
 	return len(fake.assignPublicIPArgsForCall)
 }
 
-func (fake *FakeClientAPI) AssignPublicIPArgsForCall(i int) (ec2.Instance, string) {
+func (fake *FakeClient) AssignPublicIPArgsForCall(i int) (ec2.Instance, string) {
 	fake.assignPublicIPMutex.RLock()
 	defer fake.assignPublicIPMutex.RUnlock()
 	return fake.assignPublicIPArgsForCall[i].instance, fake.assignPublicIPArgsForCall[i].ip
 }
 
-func (fake *FakeClientAPI) AssignPublicIPReturns(result1 error) {
+func (fake *FakeClient) AssignPublicIPReturns(result1 error) {
 	fake.AssignPublicIPStub = nil
 	fake.assignPublicIPReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeClientAPI) WaitForStartedVM(instanceName string) error {
+func (fake *FakeClient) WaitForStartedVM(instanceName string) error {
 	fake.waitForStartedVMMutex.Lock()
 	fake.waitForStartedVMArgsForCall = append(fake.waitForStartedVMArgsForCall, struct {
 		instanceName string
@@ -252,26 +252,26 @@ func (fake *FakeClientAPI) WaitForStartedVM(instanceName string) error {
 	}
 }
 
-func (fake *FakeClientAPI) WaitForStartedVMCallCount() int {
+func (fake *FakeClient) WaitForStartedVMCallCount() int {
 	fake.waitForStartedVMMutex.RLock()
 	defer fake.waitForStartedVMMutex.RUnlock()
 	return len(fake.waitForStartedVMArgsForCall)
 }
 
-func (fake *FakeClientAPI) WaitForStartedVMArgsForCall(i int) string {
+func (fake *FakeClient) WaitForStartedVMArgsForCall(i int) string {
 	fake.waitForStartedVMMutex.RLock()
 	defer fake.waitForStartedVMMutex.RUnlock()
 	return fake.waitForStartedVMArgsForCall[i].instanceName
 }
 
-func (fake *FakeClientAPI) WaitForStartedVMReturns(result1 error) {
+func (fake *FakeClient) WaitForStartedVMReturns(result1 error) {
 	fake.WaitForStartedVMStub = nil
 	fake.waitForStartedVMReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeClientAPI) Invocations() map[string][][]interface{} {
+func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createVMMutex.RLock()
@@ -289,7 +289,7 @@ func (fake *FakeClientAPI) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeClientAPI) recordInvocation(key string, args []interface{}) {
+func (fake *FakeClient) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -301,4 +301,4 @@ func (fake *FakeClientAPI) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ aws.ClientAPI = new(FakeClientAPI)
+var _ aws.Client = new(FakeClient)

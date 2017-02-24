@@ -19,11 +19,11 @@ var _ = Describe("UpgradeOpsMan", func() {
 
 		Describe("given a Upgrade method", func() {
 			Context("when called", func() {
-				var fakeClient *awsfakes.FakeClientAPI
+				var fakeClient *awsfakes.FakeClient
 				controlInstance := &ec2.Instance{InstanceId: iaasaws.String("foo")}
 				newInstance := &ec2.Instance{InstanceId: iaasaws.String("bar")}
 				BeforeEach(func() {
-					fakeClient = new(awsfakes.FakeClientAPI)
+					fakeClient = new(awsfakes.FakeClient)
 					upgrade, err = NewUpgradeOpsMan(ConfigClient(fakeClient))
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(upgrade).ShouldNot(BeNil())

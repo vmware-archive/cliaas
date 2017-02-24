@@ -8,7 +8,7 @@ import (
 )
 
 type UpgradeOpsMan struct {
-	client ClientAPI
+	client Client
 }
 
 func NewUpgradeOpsMan(configs ...func(*UpgradeOpsMan) error) (*UpgradeOpsMan, error) {
@@ -26,17 +26,9 @@ func NewUpgradeOpsMan(configs ...func(*UpgradeOpsMan) error) (*UpgradeOpsMan, er
 	return upgradeOpsMan, nil
 }
 
-func NewClientAPI(region, accessKey, secretKey, vpc string) (ClientAPI, error) {
-	awsClient, err := CreateAWSClient(region, accessKey, secretKey)
-	if err != nil {
-		return nil, err
-	}
-	return NewAWSClientAPI(ConfigAWSClient(awsClient), ConfigVPC(vpc))
-}
-
-func ConfigClient(value ClientAPI) func(*UpgradeOpsMan) error {
+func ConfigClient(client Client) func(*UpgradeOpsMan) error {
 	return func(upgradeOpsMan *UpgradeOpsMan) error {
-		upgradeOpsMan.client = value
+		upgradeOpsMan.client = client
 		return nil
 	}
 }

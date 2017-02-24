@@ -1,89 +1,105 @@
 package aws_test
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"time"
 
-	. "github.com/c0-ops/cliaas/iaas/aws"
+	iaasaws "github.com/aws/aws-sdk-go/aws"
+	"github.com/c0-ops/cliaas/iaas/aws"
+
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("AwsClient", func() {
-	Describe("given a awsclientapi and a aws client which targets a valid aws account/creds", func() {
+	var (
+		awsClient aws.AWSClient
+		accessKey = os.Getenv("AWS_ACCESS_KEY")
+		secretKey = os.Getenv("AWS_SECRET_KEY")
+		region    = os.Getenv("AWS_REGION")
+		vpc       = os.Getenv("AWS_VPC")
 
-		//var vpc = os.Getenv("AWS_VPC")
-		var awsClient AWSClient
-		var accessKey = os.Getenv("AWS_ACCESS_KEY")
-		var secretKey = os.Getenv("AWS_SECRET_KEY")
-		var region = os.Getenv("AWS_REGION")
-		var vpc = os.Getenv("AWS_VPC")
+		ami         = "ami-0b33d91d"
+		vmType      = "t2.micro"
+		keyPairName = "c0-cliaas"
+		subnetID    = "subnet-52d6c61b"
+
+		name            string
+		securityGroupID string
+	)
+
+	BeforeEach(func() {
+		sess, err := session.NewSession()
+		Expect(err).NotTo(HaveOccurred())
+
+		ec2Client := ec2.New(sess, &iaasaws.Config{
+			Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
+			Region:      iaasaws.String(region),
+		})
+
+		awsClient = aws.NewAWSClient(ec2Client)
+		Expect(awsClient).NotTo(BeNil())
+
+		name = randSeq(10)
+	})
+
+	Context("Create", func() {
+		var (
+			instance  *ec2.Instance
+			createErr error
+		)
+
+		JustBeforeEach(func() {
+			instance, createErr = awsClient.Create(ami, vmType, name, keyPairName, subnetID, securityGroupID)
+		})
+
+		AfterEach(func() {
+			if instance != nil {
+				awsClient.Delete(*instance.InstanceId)
+			}
+		})
+
+		It("creates a VM", func() {
+			Expect(createErr).NotTo(HaveOccurred())
+			Expect(instance).NotTo(BeNil())
+
+			instances, err := awsClient.List(name, vpc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(instances).To(HaveLen(1))
+		})
+	})
+
+	Context("AssociateElasticIP", func() {
+		var instance *ec2.Instance
+
 		BeforeEach(func() {
-			var err error
-			awsClient, _ = CreateAWSClient(region, accessKey, secretKey)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(awsClient).ShouldNot(BeNil())
-		})
-		Context("GetVMInfo", func() {
-			It("then it should create a vm, list vm and destroy vm", func() {
-				ami := "ami-0b33d91d"
-				vmType := "t2.micro"
-				name := randSeq(10)
-				keyPairName := "c0-cliaas"
-				subnetID := "subnet-52d6c61b"
-				securityGroupID := ""
-				instance, err := awsClient.Create(ami, vmType, name, keyPairName, subnetID, securityGroupID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(instance).ShouldNot(BeNil())
-				instances, err := awsClient.List(name, vpc)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(len(instances)).Should(BeEquivalentTo(1))
-				err = awsClient.Delete(*instance.InstanceId)
-				Expect(err).NotTo(HaveOccurred())
-			})
+			var createErr error
+			instance, createErr = awsClient.Create(ami, vmType, name, keyPairName, subnetID, securityGroupID)
+			Expect(createErr).NotTo(HaveOccurred())
+
+			client, err := aws.NewClient(
+				aws.ConfigAWSClient(awsClient),
+				aws.ConfigVPC(vpc),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.WaitForStartedVM(name)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("CreateVM", func() {
-			It("then it should create and delete the VM", func() {
-				ami := "ami-0b33d91d"
-				vmType := "t2.micro"
-				name := randSeq(10)
-				keyPairName := "c0-cliaas"
-				subnetID := "subnet-52d6c61b"
-				securityGroupID := ""
-				instance, err := awsClient.Create(ami, vmType, name, keyPairName, subnetID, securityGroupID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(instance).ShouldNot(BeNil())
-				err = awsClient.Delete(*instance.InstanceId)
-				Expect(err).NotTo(HaveOccurred())
-			})
+		AfterEach(func() {
+			if instance != nil {
+				awsClient.Delete(*instance.InstanceId)
+			}
 		})
-		Context("Associate EIP to created VM", func() {
-			It("then it should create vm and associate to eip", func() {
-				ami := "ami-0b33d91d"
-				vmType := "t2.micro"
-				name := randSeq(10)
-				keyPairName := "c0-cliaas"
-				subnetID := "subnet-52d6c61b"
-				securityGroupID := ""
-				fmt.Println("Name", name)
-				instance, err := awsClient.Create(ami, vmType, name, keyPairName, subnetID, securityGroupID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(instance).ShouldNot(BeNil())
-				clientAPI, err := NewAWSClientAPI(
-					ConfigAWSClient(awsClient),
-					ConfigVPC(vpc),
-				)
-				Expect(err).NotTo(HaveOccurred())
-				err = clientAPI.WaitForStartedVM(name)
-				Expect(err).NotTo(HaveOccurred())
-				err = awsClient.AssociateElasticIP(*instance.InstanceId, "52.1.191.81")
-				Expect(err).NotTo(HaveOccurred())
-				err = awsClient.Delete(*instance.InstanceId)
-				Expect(err).NotTo(HaveOccurred())
-			})
+
+		It("it associates the elastic IP to the instance", func() {
+			err := awsClient.AssociateElasticIP(*instance.InstanceId, "52.1.191.81")
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
