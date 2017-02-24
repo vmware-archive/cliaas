@@ -8,6 +8,7 @@ cd /go/src/github.com/c0-ops/cliaas
 glide install
 
 version=beta
+output_path=cliaas-linux
 go build \
     -o $output_path \
     -ldflags "-s -w -X cliaas.Version=${version}" \
