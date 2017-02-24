@@ -1,5 +1,5 @@
-hash: 3471dd62d09d56fac00afed62db5a689f1aa4374ffdc984aea05eda07eb07ea7
-updated: 2017-02-16T15:25:26.395292243-05:00
+hash: a0d28452438309662feb92e29b7992a819dcb46d4dccc187b33228c6b0a67d6a
+updated: 2017-02-23T17:52:55.767335505-07:00
 imports:
 - name: cloud.google.com/go
   version: 0b87d14d90086b53a97dfbd66f3000f7f112b494
@@ -7,7 +7,7 @@ imports:
   - compute/metadata
   - internal
 - name: github.com/aws/aws-sdk-go
-  version: 7f96ce6d3bc37ec42c97a3f8d19209a134838042
+  version: 00fb2125993965df739fa3398b03bef3eb2e198f
   subpackages:
   - aws
   - aws/awserr
@@ -42,6 +42,8 @@ imports:
   - proto
 - name: github.com/googleapis/gax-go
   version: da06d194a00e19ce00d9011a13931c3f6f6887c7
+- name: github.com/jessevdk/go-flags
+  version: 48cf8722c3375517aba351d1f7577c40663a4407
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/pkg/errors

@@ -9,3 +9,5 @@ import:
 - package: golang.org/x/oauth2
   subpackages:
   - google
+- package: github.com/jessevdk/go-flags
+  version: ^1.2.0
