@@ -21,6 +21,19 @@ The following must be set depending on which IaaS provider you wish to target:
   - `AWS_REGION`
   - `AWS_VPC`
 
+#### CLI ####
+```
+aws command options]
+          --accesskey=    aws access key [$AWS_ACCESSKEY]
+          --secretkey=    aws secret access key [$AWS_SECRETKEY]
+          --region=       aws region (default: us-east-1) [$AWS_REGION]
+          --vpc=          aws VPC id [$AWS_VPC]
+          --name=         aws name tag for vm [$AWS_NAME]
+          --ami=          aws ami to provision [$AWS_AMI]
+          --instanceType= aws instance type to provision [$AWS_INSTANCE_TYPE]
+          --elastic-ip=   aws elastic ip to associate to provisioned VM [$AWS_ELASTIC_IP]
+```
+
 ### GCP
 
  - `GCP_CREDS` - String representation of the creds file
