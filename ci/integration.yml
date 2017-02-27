@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: golang}
+
+inputs:
+  - name: cliaas-with-dependencies
+    path: go/src/github.com/c0-ops/cliaas
+
+run:
+  path: sh
+  args:
+    - -cx
+    - |
+      pushd go/src/github.com/c0-ops/cliaas
+        ginkgo -r integration_tests/$IAAS
+      popd

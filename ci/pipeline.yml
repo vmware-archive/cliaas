@@ -5,50 +5,34 @@ resources:
 - name: cliaas
   type: git
   source:
-    uri: https://github.com/c0-ops/cliaas.git
+    uri: git@github.com:c0-ops/cliaas.git
     branch: master
+    private_key: {{git-private-key}}
+
 
 jobs:
-- name: unit-tests
-  plan:
-  - aggregate:
-    - get: cliaas
-      trigger: true
-  - task: run-unit-tests
-    file: cliaas/ci/tasks/unit_tests/task.yml
+  - name: test
+    plan:
+      - get: cliaas
+        trigger: true
+      - task: install-dependencies
+        file: cliaas/ci/install-dependencies.yml
+      - task: unit
+        file: cliaas/ci/unit.yml
+      - aggregate:
+        - task: aws-integration
+          file: cliaas/ci/integration.yml
+          params:
+            IAAS: aws
+            AWS_ACCESS_KEY: {{aws_access_key}}
+            AWS_SECRET_KEY: {{aws_secret_key}}
+            AWS_REGION: {{aws_region}}
+            AWS_VPC: {{aws_vpc}}
+        - task: gcp-integration
+          file: cliaas/ci/integration.yml
+          params:
+            IAAS: gcp
+            GCP_CREDS: {{gcp_creds}}
+            GCP_PROJECT: {{gcp_project}}
+            GCP_ZONE: {{gcp_zone}}
 
-- name: gcp-integration-tests
-  plan:
-  - aggregate:
-    - get: cliaas
-      passed: [unit-tests]
-      trigger: true
-  - task: run-integration-tests
-    file: cliaas/ci/tasks/integration_tests/task.yml
-    params:
-      GCP_CREDS: {{gcp_creds}}
-      GCP_PROJECT: {{gcp_project}}
-      GCP_ZONE: {{gcp_zone}}
-      IAAS: gcp
-- name: aws-integration-tests
-  plan:
-  - aggregate:
-    - get: cliaas
-      passed: [unit-tests]
-      trigger: true
-  - task: run-integration-tests
-    file: cliaas/ci/tasks/integration_tests/task.yml
-    params:
-      AWS_ACCESS_KEY: {{aws_access_key}}
-      AWS_SECRET_KEY: {{aws_secret_key}}
-      AWS_REGION: {{aws_region}}
-      AWS_VPC: {{aws_vpc}}
-      IAAS: aws
-- name: build
-  plan:
-  - aggregate:
-    - get: cliaas
-      passed: [aws-integration-tests, gcp-integration-tests]
-      trigger: true
-  - task: run-build
-    file: cliaas/ci/tasks/build/task.yml

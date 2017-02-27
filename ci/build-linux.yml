@@ -1,0 +1,22 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: latest
+
+inputs:
+- name: cliaas-with-dependencies
+  path: go/src/github.com/c0-ops/cliaas
+- name: version
+
+outputs:
+- name: linux-binary
+
+params:
+  OUTPUT_PATH: linux-binary/cliaas-linux
+
+run:
+  path: go/src/github.com/c0-ops/cliaas/ci/build.sh
