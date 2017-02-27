@@ -54,11 +54,11 @@ func ConfigVPC(value string) func(*client) error {
 	}
 }
 
-func (s *client) WaitForStartedVM(instanceName string) error {
+func (c *client) WaitForStartedVM(instanceName string) error {
 	errChannel := make(chan error)
 	go func() {
 		for {
-			instance, err := s.GetVMInfo(instanceName)
+			instance, err := c.GetVMInfo(instanceName)
 			if err != nil {
 				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
 			} else {
@@ -71,33 +71,33 @@ func (s *client) WaitForStartedVM(instanceName string) error {
 	select {
 	case res := <-errChannel:
 		return res
-	case <-time.After(time.Second * time.Duration(s.clientTimeoutSeconds)):
+	case <-time.After(time.Second * time.Duration(c.clientTimeoutSeconds)):
 		return errwrap.New("polling for status timed out")
 	}
 }
 
-func (s *client) AssignPublicIP(instance ec2.Instance, ip string) error {
-	err := s.awsClient.AssociateElasticIP(*instance.InstanceId, ip)
+func (c *client) AssignPublicIP(instance ec2.Instance, ip string) error {
+	err := c.awsClient.AssociateElasticIP(*instance.InstanceId, ip)
 	if err != nil {
 		return errwrap.Wrap(err, "call associateElasticIP on aws client failed")
 	}
 	return nil
 }
 
-func (s *client) CreateVM(instance ec2.Instance, ami, instanceType, name string) (*ec2.Instance, error) {
+func (c *client) CreateVM(instance ec2.Instance, ami, instanceType, name string) (*ec2.Instance, error) {
 	securityGroupID := ""
 	if len(instance.SecurityGroups) > 0 {
 		securityGroupID = *instance.SecurityGroups[0].GroupId
 	}
-	newInstance, err := s.awsClient.Create(ami, instanceType, name, *instance.KeyName, *instance.SubnetId, securityGroupID)
+	newInstance, err := c.awsClient.Create(ami, instanceType, name, *instance.KeyName, *instance.SubnetId, securityGroupID)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call create on aws client failed")
 	}
 	return newInstance, nil
 }
 
-func (s *client) DeleteVM(instance ec2.Instance) error {
-	err := s.awsClient.Delete(*instance.InstanceId)
+func (c *client) DeleteVM(instance ec2.Instance) error {
+	err := c.awsClient.Delete(*instance.InstanceId)
 	if err != nil {
 		return errwrap.Wrap(err, "call delete on aws client failed")
 	}
@@ -105,8 +105,8 @@ func (s *client) DeleteVM(instance ec2.Instance) error {
 }
 
 //StopVM - will try to stop the VM
-func (s *client) StopVM(instance ec2.Instance) error {
-	err := s.awsClient.Stop(*instance.InstanceId)
+func (c *client) StopVM(instance ec2.Instance) error {
+	err := c.awsClient.Stop(*instance.InstanceId)
 	if err != nil {
 		return errwrap.Wrap(err, "call stop on aws client failed")
 	}
@@ -116,8 +116,8 @@ func (s *client) StopVM(instance ec2.Instance) error {
 //GetVMInfo - gets the information on the first VM to match the given filter argument
 // currently filter will only do a regex on teh tag||name regex fields against
 // the List's result set
-func (s *client) GetVMInfo(name string) (*ec2.Instance, error) {
-	list, err := s.awsClient.List(name, s.vpcName)
+func (c *client) GetVMInfo(name string) (*ec2.Instance, error) {
+	list, err := c.awsClient.List(name, c.vpcName)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call List on aws client failed")
 	}
