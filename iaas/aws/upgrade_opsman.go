@@ -3,33 +3,15 @@ package aws
 import (
 	"fmt"
 	"time"
-
-	errwrap "github.com/pkg/errors"
 )
 
 type UpgradeOpsMan struct {
 	client Client
 }
 
-func NewUpgradeOpsMan(configs ...func(*UpgradeOpsMan) error) (*UpgradeOpsMan, error) {
-	upgradeOpsMan := new(UpgradeOpsMan)
-	for _, cfg := range configs {
-		err := cfg(upgradeOpsMan)
-		if err != nil {
-			return nil, errwrap.Wrap(err, "new upgradeOpsMan config loading error")
-		}
-	}
-
-	if upgradeOpsMan.client == nil {
-		return nil, errwrap.New("must configure client")
-	}
-	return upgradeOpsMan, nil
-}
-
-func ConfigClient(client Client) func(*UpgradeOpsMan) error {
-	return func(upgradeOpsMan *UpgradeOpsMan) error {
-		upgradeOpsMan.client = client
-		return nil
+func NewUpgradeOpsMan(client Client) *UpgradeOpsMan {
+	return &UpgradeOpsMan{
+		client: client,
 	}
 }
 

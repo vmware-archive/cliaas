@@ -24,7 +24,7 @@ var _ = Describe("UpgradeOpsMan", func() {
 				newInstance := &ec2.Instance{InstanceId: iaasaws.String("bar")}
 				BeforeEach(func() {
 					fakeClient = new(awsfakes.FakeClient)
-					upgrade, err = NewUpgradeOpsMan(ConfigClient(fakeClient))
+					upgrade = NewUpgradeOpsMan(fakeClient)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(upgrade).ShouldNot(BeNil())
 				})

@@ -35,10 +35,7 @@ func (c *AWSCommand) Execute([]string) error {
 		c.VPC,
 	)
 
-	opsman, err := aws.NewUpgradeOpsMan(aws.ConfigClient(client))
-	if err != nil {
-		return err
-	}
+	opsman := aws.NewUpgradeOpsMan(client)
 
 	return opsman.Upgrade(c.Name, c.AMI, c.InstanceType, c.ElasticIP)
 }
