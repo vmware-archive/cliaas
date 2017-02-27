@@ -12,7 +12,7 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateVM(instance ec2.Instance, ami, instanceType, newName string) (*ec2.Instance, error)
+	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (*ec2.Instance, error)
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (*ec2.Instance, error)
 	StopVM(instance ec2.Instance) error
@@ -95,15 +95,26 @@ func (c *client) AssignPublicIP(instance ec2.Instance, ip string) error {
 	return nil
 }
 
-func (c *client) CreateVM(instance ec2.Instance, ami, instanceType, name string) (*ec2.Instance, error) {
-	securityGroupID := ""
-	if len(instance.SecurityGroups) > 0 {
-		securityGroupID = *instance.SecurityGroups[0].GroupId
-	}
-	newInstance, err := c.awsClient.Create(ami, instanceType, name, *instance.KeyName, *instance.SubnetId, securityGroupID)
+func (c *client) CreateVM(
+	ami string,
+	instanceType string,
+	name string,
+	keyName string,
+	subnetID string,
+	securityGroupID string,
+) (*ec2.Instance, error) {
+	newInstance, err := c.awsClient.Create(
+		ami,
+		instanceType,
+		name,
+		keyName,
+		subnetID,
+		securityGroupID,
+	)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call create on aws client failed")
 	}
+
 	return newInstance, nil
 }
 

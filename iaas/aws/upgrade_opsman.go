@@ -31,7 +31,30 @@ func (s *UpgradeOpsMan) Upgrade(name, ami, instanceType, ip string) error {
 	newName := fmt.Sprintf("%s - %s", name, dateString)
 
 	fmt.Println("Creating new VM with name", newName)
-	newInstance, err := s.client.CreateVM(*instance, ami, instanceType, newName)
+
+	var keyName string
+	if instance.KeyName != nil {
+		keyName = *instance.KeyName
+	}
+
+	var subnetID string
+	if instance.SubnetId != nil {
+		subnetID = *instance.SubnetId
+	}
+
+	var securityGroupID string
+	if len(instance.SecurityGroups) > 0 {
+		securityGroupID = *instance.SecurityGroups[0].GroupId
+	}
+
+	newInstance, err := s.client.CreateVM(
+		ami,
+		instanceType,
+		newName,
+		keyName,
+		subnetID,
+		securityGroupID,
+	)
 	if err != nil {
 		return err
 	}

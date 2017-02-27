@@ -179,56 +179,49 @@ var _ = Describe("Client", func() {
 
 	Describe("Create", func() {
 		var (
-			instanceToCreate ec2.Instance
-			createdInstance  *ec2.Instance
-			newInstance      *ec2.Instance
-			err              error
-			createErr        error
+			createdInstance *ec2.Instance
+			newInstance     *ec2.Instance
+			err             error
+			createErr       error
+
+			name            = "some-instance-name"
+			ami             = "some-instance-ami"
+			instanceType    = "some-instance-type"
+			keyName         = "some-key-name"
+			subnetID        = "some-subnet-id"
+			securityGroupID = "some-security-group-id"
 		)
 
 		BeforeEach(func() {
-			instanceToCreate = ec2.Instance{
-				ImageId:      iaasaws.String("foo"),
-				InstanceType: iaasaws.String("my.type"),
-				KeyName:      iaasaws.String("mykey"),
-				SubnetId:     iaasaws.String("mysubnet"),
-				Tags: []*ec2.Tag{
-					&ec2.Tag{
-						Key: iaasaws.String("Name"), Value: iaasaws.String("myname"),
-					},
-					&ec2.Tag{
-						Key: iaasaws.String("OtherTag"), Value: iaasaws.String("some random"),
-					},
-				},
-				SecurityGroups: []*ec2.GroupIdentifier{
-					&ec2.GroupIdentifier{
-						GroupId: iaasaws.String("mysecuritygroup"),
-					},
-				},
-			}
-
 			createdInstance = &ec2.Instance{}
 		})
 
 		JustBeforeEach(func() {
 			awsClient.CreateReturns(createdInstance, createErr)
-			newInstance, err = client.CreateVM(instanceToCreate, "foo", "my.type", "newName")
+			newInstance, err = client.CreateVM(
+				ami,
+				instanceType,
+				name,
+				keyName,
+				subnetID,
+				securityGroupID,
+			)
 		})
 
 		It("tries to create the instance", func() {
 			Expect(awsClient.CreateCallCount()).To(Equal(1))
-			ami, vmType, name, keyPairName, subnetID, securityGroupID := awsClient.CreateArgsForCall(0)
-			Expect(ami).To(Equal("foo"))
-			Expect(vmType).To(Equal("my.type"))
-			Expect(name).To(Equal("newName"))
-			Expect(keyPairName).To(Equal("mykey"))
-			Expect(subnetID).To(Equal("mysubnet"))
-			Expect(securityGroupID).To(Equal("mysecuritygroup"))
+			actualAMI, actualVMType, actualName, actualKeyPairName, actualSubnetID, actualSecurityGroupID := awsClient.CreateArgsForCall(0)
+			Expect(actualAMI).To(Equal(ami))
+			Expect(actualVMType).To(Equal(instanceType))
+			Expect(actualName).To(Equal(name))
+			Expect(actualKeyPairName).To(Equal(keyName))
+			Expect(actualSubnetID).To(Equal(subnetID))
+			Expect(actualSecurityGroupID).To(Equal(securityGroupID))
 		})
 
 		Context("when no security groups are set", func() {
 			BeforeEach(func() {
-				instanceToCreate.SecurityGroups = nil
+				securityGroupID = ""
 			})
 
 			It("should create an instance with a blank security group", func() {

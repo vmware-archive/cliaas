@@ -9,13 +9,15 @@ import (
 )
 
 type FakeClient struct {
-	CreateVMStub        func(instance ec2.Instance, ami, instanceType, newName string) (*ec2.Instance, error)
+	CreateVMStub        func(ami, instanceType, name, keyName, subnetID, securityGroupID string) (*ec2.Instance, error)
 	createVMMutex       sync.RWMutex
 	createVMArgsForCall []struct {
-		instance     ec2.Instance
-		ami          string
-		instanceType string
-		newName      string
+		ami             string
+		instanceType    string
+		name            string
+		keyName         string
+		subnetID        string
+		securityGroupID string
 	}
 	createVMReturns struct {
 		result1 *ec2.Instance
@@ -67,18 +69,20 @@ type FakeClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) CreateVM(instance ec2.Instance, ami string, instanceType string, newName string) (*ec2.Instance, error) {
+func (fake *FakeClient) CreateVM(ami string, instanceType string, name string, keyName string, subnetID string, securityGroupID string) (*ec2.Instance, error) {
 	fake.createVMMutex.Lock()
 	fake.createVMArgsForCall = append(fake.createVMArgsForCall, struct {
-		instance     ec2.Instance
-		ami          string
-		instanceType string
-		newName      string
-	}{instance, ami, instanceType, newName})
-	fake.recordInvocation("CreateVM", []interface{}{instance, ami, instanceType, newName})
+		ami             string
+		instanceType    string
+		name            string
+		keyName         string
+		subnetID        string
+		securityGroupID string
+	}{ami, instanceType, name, keyName, subnetID, securityGroupID})
+	fake.recordInvocation("CreateVM", []interface{}{ami, instanceType, name, keyName, subnetID, securityGroupID})
 	fake.createVMMutex.Unlock()
 	if fake.CreateVMStub != nil {
-		return fake.CreateVMStub(instance, ami, instanceType, newName)
+		return fake.CreateVMStub(ami, instanceType, name, keyName, subnetID, securityGroupID)
 	} else {
 		return fake.createVMReturns.result1, fake.createVMReturns.result2
 	}
@@ -90,10 +94,10 @@ func (fake *FakeClient) CreateVMCallCount() int {
 	return len(fake.createVMArgsForCall)
 }
 
-func (fake *FakeClient) CreateVMArgsForCall(i int) (ec2.Instance, string, string, string) {
+func (fake *FakeClient) CreateVMArgsForCall(i int) (string, string, string, string, string, string) {
 	fake.createVMMutex.RLock()
 	defer fake.createVMMutex.RUnlock()
-	return fake.createVMArgsForCall[i].instance, fake.createVMArgsForCall[i].ami, fake.createVMArgsForCall[i].instanceType, fake.createVMArgsForCall[i].newName
+	return fake.createVMArgsForCall[i].ami, fake.createVMArgsForCall[i].instanceType, fake.createVMArgsForCall[i].name, fake.createVMArgsForCall[i].keyName, fake.createVMArgsForCall[i].subnetID, fake.createVMArgsForCall[i].securityGroupID
 }
 
 func (fake *FakeClient) CreateVMReturns(result1 *ec2.Instance, result2 error) {
