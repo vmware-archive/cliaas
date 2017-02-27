@@ -115,7 +115,6 @@ func (c *client) DeleteVM(instance ec2.Instance) error {
 	return nil
 }
 
-//StopVM - will try to stop the VM
 func (c *client) StopVM(instance ec2.Instance) error {
 	err := c.awsClient.Stop(*instance.InstanceId)
 	if err != nil {
@@ -124,9 +123,6 @@ func (c *client) StopVM(instance ec2.Instance) error {
 	return nil
 }
 
-//GetVMInfo - gets the information on the first VM to match the given filter argument
-// currently filter will only do a regex on teh tag||name regex fields against
-// the List's result set
 func (c *client) GetVMInfo(name string) (*ec2.Instance, error) {
 	list, err := c.awsClient.List(name, c.vpcName)
 	if err != nil {
@@ -140,5 +136,6 @@ func (c *client) GetVMInfo(name string) (*ec2.Instance, error) {
 	if len(list) > 1 {
 		return nil, errwrap.New("Found more than one match")
 	}
+
 	return list[0], nil
 }

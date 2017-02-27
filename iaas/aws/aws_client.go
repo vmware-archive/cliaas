@@ -34,6 +34,7 @@ func (c *awsClient) Create(ami, vmType, name, keyPairName, subnetID, securityGro
 		MaxCount:     iaasaws.Int64(1),
 		KeyName:      iaasaws.String(keyPairName),
 	}
+
 	if subnetID != "" {
 		runInput.SubnetId = iaasaws.String(subnetID)
 	}
@@ -41,12 +42,12 @@ func (c *awsClient) Create(ami, vmType, name, keyPairName, subnetID, securityGro
 	if securityGroupID != "" {
 		runInput.SecurityGroupIds = iaasaws.StringSlice([]string{securityGroupID})
 	}
-	runResult, err := c.ec2.RunInstances(runInput)
 
+	runResult, err := c.ec2.RunInstances(runInput)
 	if err != nil {
 		return nil, err
 	}
-	// Add tags to the created instance
+
 	_, err = c.ec2.CreateTags(&ec2.CreateTagsInput{
 		Resources: []*string{runResult.Instances[0].InstanceId},
 		Tags: []*ec2.Tag{
@@ -59,6 +60,7 @@ func (c *awsClient) Create(ami, vmType, name, keyPairName, subnetID, securityGro
 	if err != nil {
 		return nil, err
 	}
+
 	return runResult.Instances[0], nil
 }
 
