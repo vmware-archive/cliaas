@@ -65,8 +65,8 @@ var _ = Describe("UpgradeOpsMan", func() {
 					Expect(assignIP).Should(BeEquivalentTo(ip))
 
 					Expect(fakeClient.DeleteVMCallCount()).To(BeEquivalentTo(1))
-					deleteInstance := fakeClient.DeleteVMArgsForCall(0)
-					Expect(deleteInstance).Should(BeEquivalentTo(*controlInstance))
+					deleteInstanceID := fakeClient.DeleteVMArgsForCall(0)
+					Expect(deleteInstanceID).Should(BeEquivalentTo(*controlInstance.InstanceId))
 				})
 				It("then should error on GetVMInfo", func() {
 					fakeClient.GetVMInfoReturns(nil, errors.New("got an error"))
@@ -251,8 +251,8 @@ var _ = Describe("UpgradeOpsMan", func() {
 					Expect(assignIP).Should(BeEquivalentTo(ip))
 
 					Expect(fakeClient.DeleteVMCallCount()).To(BeEquivalentTo(1))
-					deleteInstance := fakeClient.DeleteVMArgsForCall(0)
-					Expect(deleteInstance).Should(BeEquivalentTo(*controlInstance))
+					deleteInstanceID := fakeClient.DeleteVMArgsForCall(0)
+					Expect(deleteInstanceID).Should(BeEquivalentTo(*controlInstance.InstanceId))
 				})
 			})
 		})

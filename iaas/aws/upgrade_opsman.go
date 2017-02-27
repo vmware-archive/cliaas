@@ -48,5 +48,5 @@ func (s *UpgradeOpsMan) Upgrade(name, ami, instanceType, ip string) error {
 		return err
 	}
 	fmt.Println("Delete VM", *instance.InstanceId)
-	return s.client.DeleteVM(*instance)
+	return s.client.DeleteVM(*instance.InstanceId)
 }

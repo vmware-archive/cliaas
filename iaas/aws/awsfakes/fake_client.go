@@ -21,10 +21,10 @@ type FakeClient struct {
 		result1 *ec2.Instance
 		result2 error
 	}
-	DeleteVMStub        func(instance ec2.Instance) error
+	DeleteVMStub        func(instanceID string) error
 	deleteVMMutex       sync.RWMutex
 	deleteVMArgsForCall []struct {
-		instance ec2.Instance
+		instanceID string
 	}
 	deleteVMReturns struct {
 		result1 error
@@ -104,15 +104,15 @@ func (fake *FakeClient) CreateVMReturns(result1 *ec2.Instance, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) DeleteVM(instance ec2.Instance) error {
+func (fake *FakeClient) DeleteVM(instanceID string) error {
 	fake.deleteVMMutex.Lock()
 	fake.deleteVMArgsForCall = append(fake.deleteVMArgsForCall, struct {
-		instance ec2.Instance
-	}{instance})
-	fake.recordInvocation("DeleteVM", []interface{}{instance})
+		instanceID string
+	}{instanceID})
+	fake.recordInvocation("DeleteVM", []interface{}{instanceID})
 	fake.deleteVMMutex.Unlock()
 	if fake.DeleteVMStub != nil {
-		return fake.DeleteVMStub(instance)
+		return fake.DeleteVMStub(instanceID)
 	} else {
 		return fake.deleteVMReturns.result1
 	}
@@ -124,10 +124,10 @@ func (fake *FakeClient) DeleteVMCallCount() int {
 	return len(fake.deleteVMArgsForCall)
 }
 
-func (fake *FakeClient) DeleteVMArgsForCall(i int) ec2.Instance {
+func (fake *FakeClient) DeleteVMArgsForCall(i int) string {
 	fake.deleteVMMutex.RLock()
 	defer fake.deleteVMMutex.RUnlock()
-	return fake.deleteVMArgsForCall[i].instance
+	return fake.deleteVMArgsForCall[i].instanceID
 }
 
 func (fake *FakeClient) DeleteVMReturns(result1 error) {

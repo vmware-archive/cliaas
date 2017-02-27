@@ -124,9 +124,7 @@ var _ = Describe("Client", func() {
 
 		JustBeforeEach(func() {
 			awsClient.DeleteReturns(deleteErr)
-			err = client.DeleteVM(ec2.Instance{
-				InstanceId: iaasaws.String("foo"),
-			})
+			err = client.DeleteVM("foo")
 		})
 
 		It("tries to delete the instance", func() {

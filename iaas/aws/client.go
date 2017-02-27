@@ -13,7 +13,7 @@ import (
 
 type Client interface {
 	CreateVM(instance ec2.Instance, ami, instanceType, newName string) (*ec2.Instance, error)
-	DeleteVM(instance ec2.Instance) error
+	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (*ec2.Instance, error)
 	StopVM(instance ec2.Instance) error
 	AssignPublicIP(instance ec2.Instance, ip string) error
@@ -107,8 +107,8 @@ func (c *client) CreateVM(instance ec2.Instance, ami, instanceType, name string)
 	return newInstance, nil
 }
 
-func (c *client) DeleteVM(instance ec2.Instance) error {
-	err := c.awsClient.Delete(*instance.InstanceId)
+func (c *client) DeleteVM(instanceID string) error {
+	err := c.awsClient.Delete(instanceID)
 	if err != nil {
 		return errwrap.Wrap(err, "call delete on aws client failed")
 	}
