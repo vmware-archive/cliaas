@@ -1,11 +1,13 @@
-hash: a0d28452438309662feb92e29b7992a819dcb46d4dccc187b33228c6b0a67d6a
-updated: 2017-02-23T17:52:55.767335505-07:00
+hash: 05173b120f11db7455ad49ebb0890c96d5200954995051d2e2cde9b242e6a153
+updated: 2017-02-27T10:41:28.905541929-08:00
 imports:
 - name: cloud.google.com/go
   version: 0b87d14d90086b53a97dfbd66f3000f7f112b494
   subpackages:
   - compute/metadata
   - internal
+- name: code.cloudfoundry.org/clock
+  version: 07af930eb5e50f99b6e7b413774d1a6b1cc8e598
 - name: github.com/aws/aws-sdk-go
   version: 00fb2125993965df739fa3398b03bef3eb2e198f
   subpackages:
@@ -119,6 +121,8 @@ testImports:
   version: a78ae492d53aad5a7a232d0d0462c14c400e3ee7
   subpackages:
   - format
+  - gbytes
+  - gexec
   - internal/assertion
   - internal/asyncassertion
   - internal/testingtsupport

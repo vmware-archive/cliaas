@@ -3,6 +3,8 @@ package aws
 import (
 	"time"
 
+	"code.cloudfoundry.org/clock"
+
 	"github.com/aws/aws-sdk-go/service/ec2"
 	errwrap "github.com/pkg/errors"
 )
@@ -22,6 +24,7 @@ type client struct {
 	awsClient      AWSClient
 	vpcName        string
 	timeoutSeconds int
+	clock          clock.Clock
 }
 
 func NewClient(
@@ -33,6 +36,7 @@ func NewClient(
 		awsClient:      awsClient,
 		vpcName:        vpcName,
 		timeoutSeconds: 60,
+		clock:          clock.NewClock(),
 	}
 
 	for _, option := range options {
@@ -50,23 +54,34 @@ func TimeoutSeconds(seconds int) OptionFunc {
 	}
 }
 
+func Clock(clock clock.Clock) OptionFunc {
+	return func(c *client) {
+		c.clock = clock
+	}
+}
+
 func (c *client) WaitForStartedVM(instanceName string) error {
-	errChannel := make(chan error)
+	doneCh := make(chan struct{})
+
 	go func() {
 		for {
+			<-time.After(time.Second)
+
 			instance, err := c.GetVMInfo(instanceName)
 			if err != nil {
-				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
-			} else {
-				if *instance.State.Name == "running" {
-					errChannel <- nil
-				}
+				continue
+			}
+
+			if *instance.State.Name == ec2.InstanceStateNameRunning {
+				close(doneCh)
+				return
 			}
 		}
 	}()
+
 	select {
-	case res := <-errChannel:
-		return res
+	case <-doneCh:
+		return nil
 	case <-time.After(time.Second * time.Duration(c.timeoutSeconds)):
 		return errwrap.New("polling for status timed out")
 	}
