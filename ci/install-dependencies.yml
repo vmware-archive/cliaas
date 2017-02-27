@@ -20,7 +20,7 @@ run:
   - -exc
   - |
     export GOPATH=$PWD/go
-    export PATH=$GOPATH/bin
+    export PATH=$GOPATH/bin:$PATH
 
     ROOT=$(cd $(dirname $0) && pwd)
 
