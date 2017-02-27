@@ -21,10 +21,10 @@ type Client interface {
 }
 
 type client struct {
-	awsClient      AWSClient
-	vpcName        string
-	timeoutSeconds int
-	clock          clock.Clock
+	awsClient AWSClient
+	vpcName   string
+	timeout   time.Duration
+	clock     clock.Clock
 }
 
 func NewClient(
@@ -33,10 +33,10 @@ func NewClient(
 	options ...OptionFunc,
 ) Client {
 	client := &client{
-		awsClient:      awsClient,
-		vpcName:        vpcName,
-		timeoutSeconds: 60,
-		clock:          clock.NewClock(),
+		awsClient: awsClient,
+		vpcName:   vpcName,
+		timeout:   60 * time.Second,
+		clock:     clock.NewClock(),
 	}
 
 	for _, option := range options {
@@ -48,9 +48,9 @@ func NewClient(
 
 type OptionFunc func(*client)
 
-func TimeoutSeconds(seconds int) OptionFunc {
+func Timeout(timeout time.Duration) OptionFunc {
 	return func(c *client) {
-		c.timeoutSeconds = seconds
+		c.timeout = timeout
 	}
 }
 
@@ -65,7 +65,7 @@ func (c *client) WaitForStartedVM(instanceName string) error {
 
 	go func() {
 		for {
-			<-time.After(time.Second)
+			<-c.clock.After(time.Second)
 
 			instance, err := c.GetVMInfo(instanceName)
 			if err != nil {
@@ -82,7 +82,7 @@ func (c *client) WaitForStartedVM(instanceName string) error {
 	select {
 	case <-doneCh:
 		return nil
-	case <-time.After(time.Second * time.Duration(c.timeoutSeconds)):
+	case <-c.clock.After(c.timeout):
 		return errwrap.New("polling for status timed out")
 	}
 }
