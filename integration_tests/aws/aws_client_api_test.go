@@ -81,13 +81,9 @@ var _ = Describe("AwsClient", func() {
 			instance, createErr = awsClient.Create(ami, vmType, name, keyPairName, subnetID, securityGroupID)
 			Expect(createErr).NotTo(HaveOccurred())
 
-			client, err := aws.NewClient(
-				aws.ConfigAWSClient(awsClient),
-				aws.ConfigVPC(vpc),
-			)
-			Expect(err).NotTo(HaveOccurred())
+			client := aws.NewClient(awsClient, vpc)
 
-			err = client.WaitForStartedVM(name)
+			err := client.WaitForStartedVM(name)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

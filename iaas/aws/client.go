@@ -19,38 +19,34 @@ type Client interface {
 }
 
 type client struct {
-	vpcName              string
-	clientTimeoutSeconds int
-	awsClient            AWSClient
+	awsClient      AWSClient
+	vpcName        string
+	timeoutSeconds int
 }
 
-func NewClient(configs ...func(*client) error) (Client, error) {
-	awsClient := new(client)
-	awsClient.clientTimeoutSeconds = 60
-	for _, cfg := range configs {
-		err := cfg(awsClient)
-		if err != nil {
-			return nil, errwrap.Wrap(err, "new AWS Client config loading error")
-		}
+func NewClient(
+	awsClient AWSClient,
+	vpcName string,
+	options ...OptionFunc,
+) Client {
+	client := &client{
+		awsClient:      awsClient,
+		vpcName:        vpcName,
+		timeoutSeconds: 60,
 	}
 
-	if awsClient.awsClient == nil {
-		return nil, errwrap.New("must configure aws client")
+	for _, option := range options {
+		option(client)
 	}
-	return awsClient, nil
+
+	return client
 }
 
-func ConfigAWSClient(value AWSClient) func(*client) error {
-	return func(awsClient *client) error {
-		awsClient.awsClient = value
-		return nil
-	}
-}
+type OptionFunc func(*client)
 
-func ConfigVPC(value string) func(*client) error {
-	return func(awsClient *client) error {
-		awsClient.vpcName = value
-		return nil
+func TimeoutSeconds(seconds int) OptionFunc {
+	return func(c *client) {
+		c.timeoutSeconds = seconds
 	}
 }
 
@@ -71,7 +67,7 @@ func (c *client) WaitForStartedVM(instanceName string) error {
 	select {
 	case res := <-errChannel:
 		return res
-	case <-time.After(time.Second * time.Duration(c.clientTimeoutSeconds)):
+	case <-time.After(time.Second * time.Duration(c.timeoutSeconds)):
 		return errwrap.New("polling for status timed out")
 	}
 }

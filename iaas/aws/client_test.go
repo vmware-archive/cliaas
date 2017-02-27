@@ -20,12 +20,7 @@ var _ = Describe("Client", func() {
 	BeforeEach(func() {
 		awsClient = new(awsfakes.FakeAWSClient)
 
-		var err error
-		client, err = aws.NewClient(
-			aws.ConfigAWSClient(awsClient),
-			aws.ConfigVPC("some vpc"),
-		)
-		Expect(err).NotTo(HaveOccurred())
+		client = aws.NewClient(awsClient, "some vpc")
 	})
 
 	Describe("GetVMInfo", func() {

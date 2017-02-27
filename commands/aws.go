@@ -30,13 +30,10 @@ func (c *AWSCommand) Execute([]string) error {
 		Region:      iaasaws.String(c.Region),
 	})
 
-	client, err := aws.NewClient(
-		aws.ConfigAWSClient(aws.NewAWSClient(ec2Client)),
-		aws.ConfigVPC(c.VPC),
+	client := aws.NewClient(
+		aws.NewAWSClient(ec2Client),
+		c.VPC,
 	)
-	if err != nil {
-		return err
-	}
 
 	opsman, err := aws.NewUpgradeOpsMan(aws.ConfigClient(client))
 	if err != nil {
