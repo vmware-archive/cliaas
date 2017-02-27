@@ -18,6 +18,6 @@ run:
   - |
     go get -u github.com/onsi/ginkgo/ginkgo
 
-    pushd go/src/github.com/c0-ops/cliaas
+    cd go/src/github.com/c0-ops/cliaas
       ginkgo -r -p -race -randomizeAllSpecs
-    popd
+    cd -

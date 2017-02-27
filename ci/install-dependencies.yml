@@ -23,7 +23,7 @@ run:
 
     go get -u github.com/Masterminds/glide
 
-    pushd go/src/github.com/c0-ops/cliaas
+    cd go/src/github.com/c0-ops/cliaas
       glide install
       cp -R . "${ROOT}/cliaas-with-dependencies"
-    popd
+    cd -

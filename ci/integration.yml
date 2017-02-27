@@ -14,6 +14,6 @@ run:
   args:
     - -cx
     - |
-      pushd go/src/github.com/c0-ops/cliaas
+      cd go/src/github.com/c0-ops/cliaas
         ginkgo -r integration_tests/$IAAS
-      popd
+      cd -
