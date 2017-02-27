@@ -19,6 +19,9 @@ run:
   args:
   - -exc
   - |
+    export GOPATH=$PWD/go
+    export PATH=$GOPATH/bin
+
     ROOT=$(cd $(dirname $0) && pwd)
 
     go get -u github.com/Masterminds/glide

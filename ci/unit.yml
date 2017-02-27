@@ -16,6 +16,9 @@ run:
   args:
   - -exc
   - |
+    export GOPATH=$PWD/go
+    export PATH=$GOPATH/bin
+
     go get -u github.com/onsi/ginkgo/ginkgo
 
     cd go/src/github.com/c0-ops/cliaas
