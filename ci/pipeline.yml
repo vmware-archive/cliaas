@@ -9,6 +9,31 @@ resources:
     branch: master
     private_key: {{git_private_key}}
 
+- name: github-rc
+  type: github-release
+  source:
+    release: false
+    pre_release: true
+    user: c0-ops
+    repository: cliaas
+    access_token: {{github_token}}
+
+- name: github-release
+  type: github-release
+  source:
+    user: c0-ops
+    repository: cliaas
+    access_token: {{github_token}}
+
+- name: version
+  type: semver
+  source:
+    driver: git
+    uri: git@github.com:c0-ops/cliaas.git
+    branch: version
+    file: version
+    private_key: {{git_private_key}}
+
 jobs:
   - name: test
     serial_groups: [version]
