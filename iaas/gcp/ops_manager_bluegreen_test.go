@@ -1,6 +1,7 @@
 package gcp_test
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/c0-ops/cliaas/iaas"
@@ -24,6 +25,7 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 	)
 
 	BeforeEach(func() {
+		fakeClient = new(gcpfakes.FakeClientAPI)
 		controlFilter = iaas.Filter{
 			TagRegexString:  "ops",
 			NameRegexString: "ops-manager",
@@ -32,26 +34,24 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 		controlGetVMInfoInstance = createFakeInstance(InstanceStatusStopped, controlDiskImageURL)
 		controlStartVMInfoInstance = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
 		controlDeployInstance = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
+
+		var err error
+		opsManager, err = NewOpsManager(
+			ConfigClient(fakeClient),
+			ConfigClientTimeoutSeconds(1),
+		)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Context("when calling SpinDown() on running vms", func() {
-		var vmInstance *compute.Instance
-		BeforeEach(func(done Done) {
-			fakeClient = new(gcpfakes.FakeClientAPI)
-			var err error
-			opsManager, err = NewOpsManager(
-				ConfigClient(fakeClient),
-				ConfigClientTimeoutSeconds(1),
-			)
-			Expect(err).ToNot(HaveOccurred())
+		BeforeEach(func() {
 			fakeClient.GetVMInfoReturns(&controlGetVMInfoInstance, nil)
-			fakeClient.StopVMReturns(nil)
-			vmInstance, err = opsManager.SpinDown(controlFilter)
-			Expect(err).ToNot(HaveOccurred())
-			close(done)
-		}, 5)
+		})
 
 		It("should spin down the existing ops manager", func() {
+			vmInstance, err := opsManager.SpinDown(controlFilter)
+			Expect(err).NotTo(HaveOccurred())
+
 			Expect(fakeClient.GetVMInfoCallCount()).Should(BeNumerically(">", 1), "we should call getVM a few times")
 			Expect(fakeClient.GetVMInfoArgsForCall(0)).Should(Equal(controlFilter), "the getvm calls should use the correct filter for the running ops manager")
 			Expect(fakeClient.StopVMCallCount()).Should(Equal(1), "this should only ever be called once")
@@ -60,26 +60,20 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 		})
 
 		Context("when polling for proper SpinDown status hits timeout ", func() {
-
 			BeforeEach(func() {
-				var err error
-				opsManager, err = NewOpsManager(
-					ConfigClient(fakeClient),
-					ConfigClientTimeoutSeconds(1),
-				)
-				Expect(err).ToNot(HaveOccurred())
-				fakeClient.GetVMInfoReturns(&controlStartVMInfoInstance, fmt.Errorf("I FAILED"))
+				fakeClient.GetVMInfoReturns(nil, errors.New("an error"))
 			})
-			It("then it should timeout and give a error", func(done Done) {
+
+			It("returns an error", func() {
 				vmInstance, err := opsManager.SpinDown(controlFilter)
 				Expect(err).Should(HaveOccurred())
 				Expect(vmInstance).Should(BeNil())
-				close(done)
-			}, 5)
+			})
 		})
 	})
+
 	Context("when calling Deploy()", func() {
-		BeforeEach(func(done Done) {
+		BeforeEach(func() {
 			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
 			opsManager, err = NewOpsManager(
@@ -91,8 +85,8 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			fakeClient.StopVMReturns(nil)
 			err = opsManager.Deploy(&controlDeployInstance)
 			Expect(err).ToNot(HaveOccurred())
-			close(done)
-		}, 5)
+		})
+
 		It("should spin up a new ops manager successfully", func() {
 			Expect(fakeClient.CreateVMCallCount()).Should(Equal(1), "we should call createVM once")
 			instance := fakeClient.CreateVMArgsForCall(0)
@@ -114,16 +108,16 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 				failingInstance.Status = "NOT_RUNNING"
 				fakeClient.GetVMInfoReturns(&failingInstance, fmt.Errorf("I FAILED"))
 			})
-			It("then it should timeout and give a error", func(done Done) {
+			It("then it should timeout and give a error", func() {
 				err := opsManager.Deploy(&failingInstance)
 				Expect(err).Should(HaveOccurred())
-				close(done)
-			}, 5)
+			})
 		})
 	})
 	Context("when calling CleanUp on venerable VM", func() {
 		var controlCleanUpFilter iaas.Filter
-		BeforeEach(func(done Done) {
+
+		BeforeEach(func() {
 			fakeClient = new(gcpfakes.FakeClientAPI)
 			var err error
 			controlCleanUpFilter = iaas.Filter{
@@ -139,8 +133,7 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 			fakeClient.GetVMInfoReturns(&controlGetVMInfoInstance, nil)
 			err = opsManager.CleanUp(controlCleanUpFilter)
 			Expect(err).ToNot(HaveOccurred())
-			close(done)
-		}, 5)
+		})
 		It("should destroy the old ops manager", func() {
 			Expect(fakeClient.DeleteVMCallCount()).Should(Equal(1), "we should call deleteVM once")
 			instanceName := fakeClient.DeleteVMArgsForCall(0)
