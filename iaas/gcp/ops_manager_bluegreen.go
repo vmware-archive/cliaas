@@ -136,10 +136,12 @@ func (s *OpsManagerGCP) pollVMStatus(desiredStatus string, vmName string) error 
 			vmInfo, err := s.client.GetVMInfo(iaas.Filter{NameRegexString: vmName})
 			if err != nil {
 				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
+				return
 			}
 
 			if vmInfo.Status == desiredStatus {
 				errChannel <- nil
+				return
 			}
 		}
 	}()

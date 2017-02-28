@@ -12,18 +12,27 @@ import (
 )
 
 var _ = Describe("OpsManager struct and a valid client", func() {
-	var opsManager *OpsManagerGCP
 	var (
+		opsManager *OpsManagerGCP
+		fakeClient *gcpfakes.FakeClientAPI
+
+		controlFilter              iaas.Filter
+		controlDiskImageURL        string
+		controlGetVMInfoInstance   compute.Instance
+		controlStartVMInfoInstance compute.Instance
+		controlDeployInstance      compute.Instance
+	)
+
+	BeforeEach(func() {
 		controlFilter = iaas.Filter{
 			TagRegexString:  "ops",
 			NameRegexString: "ops-manager",
 		}
-		controlDiskImageURL        = "some/good/version.img"
-		fakeClient                 *gcpfakes.FakeClientAPI
-		controlGetVMInfoInstance   = createFakeInstance(InstanceStatusStopped, controlDiskImageURL)
+		controlDiskImageURL = "some/good/version.img"
+		controlGetVMInfoInstance = createFakeInstance(InstanceStatusStopped, controlDiskImageURL)
 		controlStartVMInfoInstance = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
-		controlDeployInstance      = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
-	)
+		controlDeployInstance = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
+	})
 
 	Context("when calling SpinDown() on running vms", func() {
 		var vmInstance *compute.Instance
