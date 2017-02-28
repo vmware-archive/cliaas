@@ -58,65 +58,6 @@ func ConfigClientTimeoutSeconds(value int) func(*OpsManagerGCP) error {
 // 1) you should swap the `Name` with a unique name you wish to use for the new opsmanager vm instnace
 // 2) you should swap the `Instance.Disks` to match the latest instance image tarball for ops manager (found on network.pivotal.io)
 func (s *OpsManagerGCP) Deploy(vmInstance *compute.Instance) error {
-	err := s.createVM(vmInstance)
-	if err != nil {
-		return errwrap.Wrap(err, "createVM failed")
-	}
-	return nil
-}
-
-func (s *OpsManagerGCP) SpinDown(filter iaas.Filter) (*compute.Instance, error) {
-	vmInfo, err := s.client.GetVMInfo(filter)
-
-	if err != nil {
-		return nil, errwrap.Wrap(err, "GetVMInfo failed")
-	}
-	err = s.stopVM(vmInfo.Name)
-
-	if err != nil {
-		return nil, errwrap.Wrap(err, "stopVM failed")
-	}
-	return vmInfo, nil
-}
-
-func (s *OpsManagerGCP) CleanUp(filter iaas.Filter) error {
-	vmInfo, err := s.client.GetVMInfo(filter)
-	if err != nil {
-		return errwrap.Wrap(err, "GetVMInfo failed")
-	}
-
-	err = s.deleteVM(vmInfo.Name)
-	if err != nil {
-		return errwrap.Wrap(err, "GetVMInfo failed")
-	}
-
-	return nil
-}
-
-func (s *OpsManagerGCP) deleteVM(instanceName string) error {
-	err := s.client.DeleteVM(instanceName)
-	if err != nil {
-		return errwrap.Wrap(err, "DeleteVM failed")
-	}
-
-	return nil
-}
-
-func (s *OpsManagerGCP) stopVM(vmName string) error {
-	err := s.client.StopVM(vmName)
-	if err != nil {
-		return errwrap.Wrap(err, "StopVM failed")
-	}
-
-	err = s.pollVMStatus(InstanceStatusStopped, vmName)
-	if err != nil {
-		return errwrap.Wrap(err, "polling VM Status failed")
-	}
-
-	return nil
-}
-
-func (s *OpsManagerGCP) createVM(vmInstance *compute.Instance) error {
 	err := s.client.CreateVM(*vmInstance)
 	if err != nil {
 		return errwrap.Wrap(err, "CreateVM call failed")
@@ -126,6 +67,40 @@ func (s *OpsManagerGCP) createVM(vmInstance *compute.Instance) error {
 	if err != nil {
 		return errwrap.Wrap(err, "polling VM Status failed")
 	}
+
+	return nil
+}
+
+func (s *OpsManagerGCP) SpinDown(filter iaas.Filter) (*compute.Instance, error) {
+	vmInfo, err := s.client.GetVMInfo(filter)
+
+	if err != nil {
+		return nil, errwrap.Wrap(err, "GetVMInfo failed")
+	}
+	err = s.client.StopVM(vmInfo.Name)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "StopVM failed")
+	}
+
+	err = s.pollVMStatus(InstanceStatusStopped, vmInfo.Name)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "polling VM Status failed")
+	}
+
+	return vmInfo, nil
+}
+
+func (s *OpsManagerGCP) CleanUp(filter iaas.Filter) error {
+	vmInfo, err := s.client.GetVMInfo(filter)
+	if err != nil {
+		return errwrap.Wrap(err, "GetVMInfo failed")
+	}
+
+	err = s.client.DeleteVM(vmInfo.Name)
+	if err != nil {
+		return errwrap.Wrap(err, "DeleteVM failed")
+	}
+
 	return nil
 }
 
