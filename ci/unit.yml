@@ -22,5 +22,5 @@ run:
     go get -u github.com/onsi/ginkgo/ginkgo
 
     cd go/src/github.com/c0-ops/cliaas
-      ginkgo -r -p -race -randomizeAllSpecs
+      ginkgo -r -p -race -randomizeAllSpecs -skipPackage=integration
     cd -
