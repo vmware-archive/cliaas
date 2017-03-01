@@ -85,24 +85,15 @@ jobs:
       - put: version
         params: {pre: rc}
 
-  - name: bump-patch
-    serial_groups: [version]
-    plan:
-    - get: version
-      params: {bump: patch, pre: rc}
-      passed: [create-rc]
-    - put: version
-      params: {file: version/version}
-
-  - name: patch-release
+  - name: create-patch-release
     serial_groups: [version]
     plan:
       - aggregate:
         - get: cliaas
-          trigger: true
-          passed: [test]
+          passed: [create-rc]
         - get: version
-          passed: [bump-patch]
+          passed: [create-rc]
+          params: {bump: patch, pre: rc}
       - task: install-dependencies
         file: cliaas/ci/install-dependencies.yml
       - task: build
@@ -118,24 +109,15 @@ jobs:
       - put: version
         params: {pre: rc}
 
-  - name: bump-minor
-    serial_groups: [version]
-    plan:
-    - get: version
-      params: {bump: minor, pre: rc}
-      passed: [create-rc]
-    - put: version
-      params: {file: version/version}
-
-  - name: minor-release
-    serial_groups: [version]
+  - name: create-minor-release
+    serial_groups: [test]
     plan:
       - aggregate:
         - get: cliaas
-          trigger: true
-          passed: [test]
+          passed: [create-rc]
         - get: version
-          passed: [bump-minor]
+          passed: [create-rc]
+          params: {bump: minor, pre: rc}
       - task: install-dependencies
         file: cliaas/ci/install-dependencies.yml
       - task: build
@@ -151,24 +133,15 @@ jobs:
       - put: version
         params: {pre: rc}
 
-  - name: bump-major
-    serial_groups: [version]
-    plan:
-    - get: version
-      params: {bump: major, pre: rc}
-      passed: [create-rc]
-    - put: version
-      params: {file: version/version}
-
-  - name: major-release
-    serial_groups: [version]
+  - name: create-major-release
+    serial_groups: [test]
     plan:
       - aggregate:
         - get: cliaas
-          trigger: true
-          passed: [test]
+          passed: [create-rc]
         - get: version
-          passed: [bump-major]
+          passed: [create-rc]
+          params: {bump: major, pre: rc}
       - task: install-dependencies
         file: cliaas/ci/install-dependencies.yml
       - task: build
