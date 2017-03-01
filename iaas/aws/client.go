@@ -1,12 +1,15 @@
 package aws
 
 import (
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	errwrap "github.com/pkg/errors"
+
+	iaasaws "github.com/aws/aws-sdk-go/aws"
 )
 
 //go:generate counterfeiter . Client
@@ -17,7 +20,7 @@ type Client interface {
 	GetVMInfo(name string) (*ec2.Instance, error)
 	StopVM(instance ec2.Instance) error
 	AssignPublicIP(instance ec2.Instance, ip string) error
-	WaitForStartedVM(instanceName string) error
+	WaitForStatus(instanceID string, status string) error
 }
 
 type client struct {
@@ -60,19 +63,34 @@ func Clock(clock clock.Clock) OptionFunc {
 	}
 }
 
-func (c *client) WaitForStartedVM(instanceName string) error {
+func (c *client) WaitForStatus(instanceID string, status string) error {
 	doneCh := make(chan struct{})
+
+	input := &ec2.DescribeInstanceStatusInput{
+		IncludeAllInstances: iaasaws.Bool(true),
+		InstanceIds: []*string{
+			iaasaws.String(instanceID),
+		},
+	}
+
+	var lastStatus string
 
 	go func() {
 		for {
 			<-c.clock.After(time.Second)
 
-			instance, err := c.GetVMInfo(instanceName)
+			output, err := c.awsClient.DescribeInstanceStatus(input)
 			if err != nil {
 				continue
 			}
 
-			if *instance.State.Name == ec2.InstanceStateNameRunning {
+			if len(output.InstanceStatuses) != 1 {
+				continue
+			}
+
+			lastStatus = *output.InstanceStatuses[0].InstanceState.Name
+
+			if lastStatus == status {
 				close(doneCh)
 				return
 			}
@@ -83,7 +101,7 @@ func (c *client) WaitForStartedVM(instanceName string) error {
 	case <-doneCh:
 		return nil
 	case <-c.clock.After(c.timeout):
-		return errwrap.New("polling for status timed out")
+		return errwrap.New(fmt.Sprintf("timed out waiting for instance to become %s (last status was %s)", status, lastStatus))
 	}
 }
 

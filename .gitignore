@@ -24,6 +24,7 @@ _testmain.go
 *.prof
 vendor
 ci/params.yml
+config.yml
 
 *.sw[op]
 .DS_Store

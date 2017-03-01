@@ -14,6 +14,8 @@ type AWSClient interface {
 	Delete(instanceID string) error
 	Create(ami, vmType, name, keyPairName, subnetID, securityGroupID string) (*ec2.Instance, error)
 	AssociateElasticIP(instanceID, elasticIP string) error
+	DescribeInstances(*ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error)
+	DescribeInstanceStatus(input *ec2.DescribeInstanceStatusInput) (*ec2.DescribeInstanceStatusOutput, error)
 }
 
 type awsClient struct {
@@ -123,4 +125,12 @@ func (c *awsClient) AssociateElasticIP(instanceID, elasticIP string) error {
 		PublicIp:   iaasaws.String(elasticIP),
 	})
 	return err
+}
+
+func (c *awsClient) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
+	return c.ec2.DescribeInstances(input)
+}
+
+func (c *awsClient) DescribeInstanceStatus(input *ec2.DescribeInstanceStatusInput) (*ec2.DescribeInstanceStatusOutput, error) {
+	return c.ec2.DescribeInstanceStatus(input)
 }

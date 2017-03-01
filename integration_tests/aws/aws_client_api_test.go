@@ -83,7 +83,7 @@ var _ = Describe("AwsClient", func() {
 
 			client := aws.NewClient(awsClient, vpc)
 
-			err := client.WaitForStartedVM(name)
+			err := client.WaitForStatus(*instance.InstanceId, ec2.InstanceStateNameRunning)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

@@ -57,12 +57,13 @@ type FakeClient struct {
 	assignPublicIPReturns struct {
 		result1 error
 	}
-	WaitForStartedVMStub        func(instanceName string) error
-	waitForStartedVMMutex       sync.RWMutex
-	waitForStartedVMArgsForCall []struct {
-		instanceName string
+	WaitForStatusStub        func(instanceID string, status string) error
+	waitForStatusMutex       sync.RWMutex
+	waitForStatusArgsForCall []struct {
+		instanceID string
+		status     string
 	}
-	waitForStartedVMReturns struct {
+	waitForStatusReturns struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -242,35 +243,36 @@ func (fake *FakeClient) AssignPublicIPReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) WaitForStartedVM(instanceName string) error {
-	fake.waitForStartedVMMutex.Lock()
-	fake.waitForStartedVMArgsForCall = append(fake.waitForStartedVMArgsForCall, struct {
-		instanceName string
-	}{instanceName})
-	fake.recordInvocation("WaitForStartedVM", []interface{}{instanceName})
-	fake.waitForStartedVMMutex.Unlock()
-	if fake.WaitForStartedVMStub != nil {
-		return fake.WaitForStartedVMStub(instanceName)
+func (fake *FakeClient) WaitForStatus(instanceID string, status string) error {
+	fake.waitForStatusMutex.Lock()
+	fake.waitForStatusArgsForCall = append(fake.waitForStatusArgsForCall, struct {
+		instanceID string
+		status     string
+	}{instanceID, status})
+	fake.recordInvocation("WaitForStatus", []interface{}{instanceID, status})
+	fake.waitForStatusMutex.Unlock()
+	if fake.WaitForStatusStub != nil {
+		return fake.WaitForStatusStub(instanceID, status)
 	} else {
-		return fake.waitForStartedVMReturns.result1
+		return fake.waitForStatusReturns.result1
 	}
 }
 
-func (fake *FakeClient) WaitForStartedVMCallCount() int {
-	fake.waitForStartedVMMutex.RLock()
-	defer fake.waitForStartedVMMutex.RUnlock()
-	return len(fake.waitForStartedVMArgsForCall)
+func (fake *FakeClient) WaitForStatusCallCount() int {
+	fake.waitForStatusMutex.RLock()
+	defer fake.waitForStatusMutex.RUnlock()
+	return len(fake.waitForStatusArgsForCall)
 }
 
-func (fake *FakeClient) WaitForStartedVMArgsForCall(i int) string {
-	fake.waitForStartedVMMutex.RLock()
-	defer fake.waitForStartedVMMutex.RUnlock()
-	return fake.waitForStartedVMArgsForCall[i].instanceName
+func (fake *FakeClient) WaitForStatusArgsForCall(i int) (string, string) {
+	fake.waitForStatusMutex.RLock()
+	defer fake.waitForStatusMutex.RUnlock()
+	return fake.waitForStatusArgsForCall[i].instanceID, fake.waitForStatusArgsForCall[i].status
 }
 
-func (fake *FakeClient) WaitForStartedVMReturns(result1 error) {
-	fake.WaitForStartedVMStub = nil
-	fake.waitForStartedVMReturns = struct {
+func (fake *FakeClient) WaitForStatusReturns(result1 error) {
+	fake.WaitForStatusStub = nil
+	fake.waitForStatusReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -288,8 +290,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.stopVMMutex.RUnlock()
 	fake.assignPublicIPMutex.RLock()
 	defer fake.assignPublicIPMutex.RUnlock()
-	fake.waitForStartedVMMutex.RLock()
-	defer fake.waitForStartedVMMutex.RUnlock()
+	fake.waitForStatusMutex.RLock()
+	defer fake.waitForStatusMutex.RUnlock()
 	return fake.invocations
 }
 

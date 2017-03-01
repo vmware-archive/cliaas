@@ -58,6 +58,24 @@ type FakeAWSClient struct {
 	associateElasticIPReturns struct {
 		result1 error
 	}
+	DescribeInstancesStub        func(*ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error)
+	describeInstancesMutex       sync.RWMutex
+	describeInstancesArgsForCall []struct {
+		arg1 *ec2.DescribeInstancesInput
+	}
+	describeInstancesReturns struct {
+		result1 *ec2.DescribeInstancesOutput
+		result2 error
+	}
+	DescribeInstanceStatusStub        func(input *ec2.DescribeInstanceStatusInput) (*ec2.DescribeInstanceStatusOutput, error)
+	describeInstanceStatusMutex       sync.RWMutex
+	describeInstanceStatusArgsForCall []struct {
+		input *ec2.DescribeInstanceStatusInput
+	}
+	describeInstanceStatusReturns struct {
+		result1 *ec2.DescribeInstanceStatusOutput
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -236,6 +254,74 @@ func (fake *FakeAWSClient) AssociateElasticIPReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeAWSClient) DescribeInstances(arg1 *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
+	fake.describeInstancesMutex.Lock()
+	fake.describeInstancesArgsForCall = append(fake.describeInstancesArgsForCall, struct {
+		arg1 *ec2.DescribeInstancesInput
+	}{arg1})
+	fake.recordInvocation("DescribeInstances", []interface{}{arg1})
+	fake.describeInstancesMutex.Unlock()
+	if fake.DescribeInstancesStub != nil {
+		return fake.DescribeInstancesStub(arg1)
+	} else {
+		return fake.describeInstancesReturns.result1, fake.describeInstancesReturns.result2
+	}
+}
+
+func (fake *FakeAWSClient) DescribeInstancesCallCount() int {
+	fake.describeInstancesMutex.RLock()
+	defer fake.describeInstancesMutex.RUnlock()
+	return len(fake.describeInstancesArgsForCall)
+}
+
+func (fake *FakeAWSClient) DescribeInstancesArgsForCall(i int) *ec2.DescribeInstancesInput {
+	fake.describeInstancesMutex.RLock()
+	defer fake.describeInstancesMutex.RUnlock()
+	return fake.describeInstancesArgsForCall[i].arg1
+}
+
+func (fake *FakeAWSClient) DescribeInstancesReturns(result1 *ec2.DescribeInstancesOutput, result2 error) {
+	fake.DescribeInstancesStub = nil
+	fake.describeInstancesReturns = struct {
+		result1 *ec2.DescribeInstancesOutput
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeAWSClient) DescribeInstanceStatus(input *ec2.DescribeInstanceStatusInput) (*ec2.DescribeInstanceStatusOutput, error) {
+	fake.describeInstanceStatusMutex.Lock()
+	fake.describeInstanceStatusArgsForCall = append(fake.describeInstanceStatusArgsForCall, struct {
+		input *ec2.DescribeInstanceStatusInput
+	}{input})
+	fake.recordInvocation("DescribeInstanceStatus", []interface{}{input})
+	fake.describeInstanceStatusMutex.Unlock()
+	if fake.DescribeInstanceStatusStub != nil {
+		return fake.DescribeInstanceStatusStub(input)
+	} else {
+		return fake.describeInstanceStatusReturns.result1, fake.describeInstanceStatusReturns.result2
+	}
+}
+
+func (fake *FakeAWSClient) DescribeInstanceStatusCallCount() int {
+	fake.describeInstanceStatusMutex.RLock()
+	defer fake.describeInstanceStatusMutex.RUnlock()
+	return len(fake.describeInstanceStatusArgsForCall)
+}
+
+func (fake *FakeAWSClient) DescribeInstanceStatusArgsForCall(i int) *ec2.DescribeInstanceStatusInput {
+	fake.describeInstanceStatusMutex.RLock()
+	defer fake.describeInstanceStatusMutex.RUnlock()
+	return fake.describeInstanceStatusArgsForCall[i].input
+}
+
+func (fake *FakeAWSClient) DescribeInstanceStatusReturns(result1 *ec2.DescribeInstanceStatusOutput, result2 error) {
+	fake.DescribeInstanceStatusStub = nil
+	fake.describeInstanceStatusReturns = struct {
+		result1 *ec2.DescribeInstanceStatusOutput
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -249,6 +335,10 @@ func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	defer fake.createMutex.RUnlock()
 	fake.associateElasticIPMutex.RLock()
 	defer fake.associateElasticIPMutex.RUnlock()
+	fake.describeInstancesMutex.RLock()
+	defer fake.describeInstancesMutex.RUnlock()
+	fake.describeInstanceStatusMutex.RLock()
+	defer fake.describeInstanceStatusMutex.RUnlock()
 	return fake.invocations
 }
 
