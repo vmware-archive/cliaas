@@ -9,7 +9,7 @@ import (
 )
 
 type FakeClient struct {
-	CreateVMStub        func(ami, instanceType, name, keyName, subnetID, securityGroupID string) (*ec2.Instance, error)
+	CreateVMStub        func(ami, instanceType, name, keyName, subnetID, securityGroupID string) (string, error)
 	createVMMutex       sync.RWMutex
 	createVMArgsForCall []struct {
 		ami             string
@@ -20,7 +20,7 @@ type FakeClient struct {
 		securityGroupID string
 	}
 	createVMReturns struct {
-		result1 *ec2.Instance
+		result1 string
 		result2 error
 	}
 	DeleteVMStub        func(instanceID string) error
@@ -70,7 +70,7 @@ type FakeClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) CreateVM(ami string, instanceType string, name string, keyName string, subnetID string, securityGroupID string) (*ec2.Instance, error) {
+func (fake *FakeClient) CreateVM(ami string, instanceType string, name string, keyName string, subnetID string, securityGroupID string) (string, error) {
 	fake.createVMMutex.Lock()
 	fake.createVMArgsForCall = append(fake.createVMArgsForCall, struct {
 		ami             string
@@ -101,10 +101,10 @@ func (fake *FakeClient) CreateVMArgsForCall(i int) (string, string, string, stri
 	return fake.createVMArgsForCall[i].ami, fake.createVMArgsForCall[i].instanceType, fake.createVMArgsForCall[i].name, fake.createVMArgsForCall[i].keyName, fake.createVMArgsForCall[i].subnetID, fake.createVMArgsForCall[i].securityGroupID
 }
 
-func (fake *FakeClient) CreateVMReturns(result1 *ec2.Instance, result2 error) {
+func (fake *FakeClient) CreateVMReturns(result1 string, result2 error) {
 	fake.CreateVMStub = nil
 	fake.createVMReturns = struct {
-		result1 *ec2.Instance
+		result1 string
 		result2 error
 	}{result1, result2}
 }

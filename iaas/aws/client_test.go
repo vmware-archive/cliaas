@@ -197,10 +197,9 @@ var _ = Describe("Client", func() {
 
 	Describe("Create", func() {
 		var (
-			createdInstance *ec2.Instance
-			newInstance     *ec2.Instance
-			err             error
-			apiErr          error
+			newInstanceID string
+			err           error
+			apiErr        error
 
 			name            = "some-instance-name"
 			ami             = "some-instance-ami"
@@ -210,19 +209,17 @@ var _ = Describe("Client", func() {
 			securityGroupID = "some-security-group-id"
 		)
 
-		BeforeEach(func() {
-			createdInstance = &ec2.Instance{}
-		})
-
 		JustBeforeEach(func() {
 			reservation := &ec2.Reservation{
 				Instances: []*ec2.Instance{
-					createdInstance,
+					&ec2.Instance{
+						InstanceId: iaasaws.String("some-instance-id"),
+					},
 				},
 			}
 
 			ec2Client.RunInstancesReturns(reservation, apiErr)
-			newInstance, err = client.CreateVM(
+			newInstanceID, err = client.CreateVM(
 				ami,
 				instanceType,
 				name,

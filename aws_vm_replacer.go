@@ -67,7 +67,7 @@ func (r *awsVMReplacer) Replace(identifier string) error {
 		securityGroupID = *instance.SecurityGroups[0].GroupId
 	}
 
-	newInstance, err := r.client.CreateVM(
+	instanceID, err := r.client.CreateVM(
 		r.ami,
 		*instance.InstanceType,
 		identifier,
@@ -79,10 +79,10 @@ func (r *awsVMReplacer) Replace(identifier string) error {
 		return err
 	}
 
-	err = r.client.WaitForStatus(*newInstance.InstanceId, "running")
+	err = r.client.WaitForStatus(instanceID, "running")
 	if err != nil {
 		return err
 	}
 
-	return r.client.AssignPublicIP(*newInstance.InstanceId, *instance.NetworkInterfaces[0].Association.PublicIp)
+	return r.client.AssignPublicIP(instanceID, *instance.NetworkInterfaces[0].Association.PublicIp)
 }

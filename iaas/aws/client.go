@@ -26,7 +26,7 @@ type EC2Client interface {
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (*ec2.Instance, error)
+	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (string, error)
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (*ec2.Instance, error)
 	StopVM(instance ec2.Instance) error
@@ -138,7 +138,7 @@ func (c *client) CreateVM(
 	keyName string,
 	subnetID string,
 	securityGroupID string,
-) (*ec2.Instance, error) {
+) (string, error) {
 	runInput := &ec2.RunInstancesInput{
 		ImageId:      iaasaws.String(ami),
 		InstanceType: iaasaws.String(instanceType),
@@ -157,7 +157,7 @@ func (c *client) CreateVM(
 
 	runResult, err := c.ec2Client.RunInstances(runInput)
 	if err != nil {
-		return nil, errwrap.Wrap(err, "run instances failed")
+		return "", errwrap.Wrap(err, "run instances failed")
 	}
 
 	_, err = c.ec2Client.CreateTags(&ec2.CreateTagsInput{
@@ -170,10 +170,10 @@ func (c *client) CreateVM(
 		},
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return runResult.Instances[0], nil
+	return *runResult.Instances[0].InstanceId, nil
 }
 
 func (c *client) DeleteVM(instanceID string) error {
