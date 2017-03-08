@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/c0-ops/cliaas"
+	"github.com/pivotal-cf/cliaas"
 )
 
 type ReplaceVMCommand struct {

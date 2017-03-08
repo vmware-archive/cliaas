@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/c0-ops/cliaas"
+	"github.com/pivotal-cf/cliaas"
 
 	yaml "gopkg.in/yaml.v2"
 )

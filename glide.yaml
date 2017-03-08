@@ -1,4 +1,4 @@
-package: github.com/c0-ops/cliaas
+package: github.com/pivotal-cf/cliaas
 import:
 - package: github.com/aws/aws-sdk-go
   version: ~1.6.18

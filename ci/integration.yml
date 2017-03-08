@@ -8,7 +8,7 @@ image_resource:
 
 inputs:
   - name: cliaas-with-dependencies
-    path: go/src/github.com/c0-ops/cliaas
+    path: go/src/github.com/pivotal-cf/cliaas
 
 run:
   path: sh
@@ -20,6 +20,6 @@ run:
 
       go get -u github.com/onsi/ginkgo/ginkgo
 
-      cd go/src/github.com/c0-ops/cliaas
+      cd go/src/github.com/pivotal-cf/cliaas
         ginkgo -r integration_tests/$IAAS
       cd -

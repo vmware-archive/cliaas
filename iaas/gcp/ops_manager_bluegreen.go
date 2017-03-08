@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/c0-ops/cliaas/iaas"
+	"github.com/pivotal-cf/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
 	compute "google.golang.org/api/compute/v1"
 )

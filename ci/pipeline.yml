@@ -5,7 +5,7 @@ resources:
 - name: cliaas
   type: git
   source:
-    uri: git@github.com:c0-ops/cliaas.git
+    uri: git@github.com:pivotal-cf/cliaas.git
     branch: master
     private_key: {{git_private_key}}
 
@@ -29,7 +29,7 @@ resources:
   type: semver
   source:
     driver: git
-    uri: git@github.com:c0-ops/cliaas.git
+    uri: git@github.com:pivotal-cf/cliaas.git
     branch: version
     file: version
     private_key: {{git_private_key}}

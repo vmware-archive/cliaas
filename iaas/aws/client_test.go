@@ -5,10 +5,10 @@ import (
 
 	iaasaws "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/c0-ops/cliaas/iaas/aws"
-	"github.com/c0-ops/cliaas/iaas/aws/awsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
 )
 
 var _ = Describe("Client", func() {

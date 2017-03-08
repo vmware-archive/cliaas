@@ -8,7 +8,7 @@ image_resource:
 
 inputs:
 - name: cliaas-with-dependencies
-  path: go/src/github.com/c0-ops/cliaas
+  path: go/src/github.com/pivotal-cf/cliaas
 - name: version
 
 outputs:
@@ -18,4 +18,4 @@ params:
   OUTPUT_PATH: linux-binary/cliaas-linux
 
 run:
-  path: go/src/github.com/c0-ops/cliaas/ci/build.sh
+  path: go/src/github.com/pivotal-cf/cliaas/ci/build.sh

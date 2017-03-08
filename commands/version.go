@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/c0-ops/cliaas"
+	"github.com/pivotal-cf/cliaas"
 )
 
 type VersionCommand struct {

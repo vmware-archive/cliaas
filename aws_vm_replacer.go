@@ -5,7 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/c0-ops/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 func NewAWSVMReplacer(

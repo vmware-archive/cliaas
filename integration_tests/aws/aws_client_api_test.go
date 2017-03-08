@@ -6,7 +6,7 @@ import (
 	"time"
 
 	iaasaws "github.com/aws/aws-sdk-go/aws"
-	"github.com/c0-ops/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"

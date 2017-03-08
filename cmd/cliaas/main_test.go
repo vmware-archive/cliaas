@@ -19,7 +19,7 @@ var _ = Describe("Main", func() {
 	})
 
 	It("builds", func() {
-		_, err := gexec.Build("github.com/c0-ops/cliaas/cmd/cliaas")
+		_, err := gexec.Build("github.com/pivotal-cf/cliaas/cmd/cliaas")
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

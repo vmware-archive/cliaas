@@ -4,7 +4,7 @@ package awsfakes
 import (
 	"sync"
 
-	"github.com/c0-ops/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 type FakeClient struct {

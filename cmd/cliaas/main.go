@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/c0-ops/cliaas/commands"
 	flags "github.com/jessevdk/go-flags"
+	"github.com/pivotal-cf/cliaas/commands"
 )
 
 func main() {

@@ -3,11 +3,11 @@ package gcp_test
 import (
 	"fmt"
 
-	"github.com/c0-ops/cliaas/iaas"
-	. "github.com/c0-ops/cliaas/iaas/gcp"
-	"github.com/c0-ops/cliaas/iaas/gcp/gcpfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/cliaas/iaas"
+	. "github.com/pivotal-cf/cliaas/iaas/gcp"
+	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 	errwrap "github.com/pkg/errors"
 	compute "google.golang.org/api/compute/v1"
 )

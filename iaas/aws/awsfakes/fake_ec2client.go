@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/c0-ops/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 type FakeEC2Client struct {

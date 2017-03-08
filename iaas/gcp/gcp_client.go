@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/c0-ops/cliaas/iaas"
+	"github.com/pivotal-cf/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"

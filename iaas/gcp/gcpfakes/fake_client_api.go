@@ -4,8 +4,8 @@ package gcpfakes
 import (
 	"sync"
 
-	"github.com/c0-ops/cliaas/iaas"
-	"github.com/c0-ops/cliaas/iaas/gcp"
+	"github.com/pivotal-cf/cliaas/iaas"
+	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	compute "google.golang.org/api/compute/v1"
 )
 
