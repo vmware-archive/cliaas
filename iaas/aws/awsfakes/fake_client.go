@@ -4,7 +4,6 @@ package awsfakes
 import (
 	"sync"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/c0-ops/cliaas/iaas/aws"
 )
 
@@ -31,13 +30,13 @@ type FakeClient struct {
 	deleteVMReturns struct {
 		result1 error
 	}
-	GetVMInfoStub        func(name string) (*ec2.Instance, error)
+	GetVMInfoStub        func(name string) (aws.VMInfo, error)
 	getVMInfoMutex       sync.RWMutex
 	getVMInfoArgsForCall []struct {
 		name string
 	}
 	getVMInfoReturns struct {
-		result1 *ec2.Instance
+		result1 aws.VMInfo
 		result2 error
 	}
 	StopVMStub        func(instanceID string) error
@@ -142,7 +141,7 @@ func (fake *FakeClient) DeleteVMReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) GetVMInfo(name string) (*ec2.Instance, error) {
+func (fake *FakeClient) GetVMInfo(name string) (aws.VMInfo, error) {
 	fake.getVMInfoMutex.Lock()
 	fake.getVMInfoArgsForCall = append(fake.getVMInfoArgsForCall, struct {
 		name string
@@ -168,10 +167,10 @@ func (fake *FakeClient) GetVMInfoArgsForCall(i int) string {
 	return fake.getVMInfoArgsForCall[i].name
 }
 
-func (fake *FakeClient) GetVMInfoReturns(result1 *ec2.Instance, result2 error) {
+func (fake *FakeClient) GetVMInfoReturns(result1 aws.VMInfo, result2 error) {
 	fake.GetVMInfoStub = nil
 	fake.getVMInfoReturns = struct {
-		result1 *ec2.Instance
+		result1 aws.VMInfo
 		result2 error
 	}{result1, result2}
 }

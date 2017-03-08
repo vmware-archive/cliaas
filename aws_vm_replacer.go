@@ -37,43 +37,28 @@ type awsVMReplacer struct {
 }
 
 func (r *awsVMReplacer) Replace(identifier string) error {
-	instance, err := r.client.GetVMInfo(identifier + "*")
+	vmInfo, err := r.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err
 	}
 
-	err = r.client.StopVM(*instance.InstanceId)
+	err = r.client.StopVM(vmInfo.InstanceID)
 	if err != nil {
 		return err
 	}
 
-	err = r.client.WaitForStatus(*instance.InstanceId, "stopped")
+	err = r.client.WaitForStatus(vmInfo.InstanceID, "stopped")
 	if err != nil {
 		return err
-	}
-
-	var keyName string
-	if instance.KeyName != nil {
-		keyName = *instance.KeyName
-	}
-
-	var subnetID string
-	if instance.SubnetId != nil {
-		subnetID = *instance.SubnetId
-	}
-
-	var securityGroupID string
-	if len(instance.SecurityGroups) > 0 {
-		securityGroupID = *instance.SecurityGroups[0].GroupId
 	}
 
 	instanceID, err := r.client.CreateVM(
 		r.ami,
-		*instance.InstanceType,
+		vmInfo.InstanceType,
 		identifier,
-		keyName,
-		subnetID,
-		securityGroupID,
+		vmInfo.KeyName,
+		vmInfo.SubnetID,
+		vmInfo.SecurityGroupIDs[0],
 	)
 	if err != nil {
 		return err
@@ -84,5 +69,5 @@ func (r *awsVMReplacer) Replace(identifier string) error {
 		return err
 	}
 
-	return r.client.AssignPublicIP(instanceID, *instance.NetworkInterfaces[0].Association.PublicIp)
+	return r.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
 }

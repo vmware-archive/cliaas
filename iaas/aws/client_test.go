@@ -26,7 +26,7 @@ var _ = Describe("Client", func() {
 	Describe("GetVMInfo", func() {
 		var (
 			instances []*ec2.Instance
-			instance  *ec2.Instance
+			vmInfo    aws.VMInfo
 			err       error
 			apiErr    error
 		)
@@ -40,19 +40,46 @@ var _ = Describe("Client", func() {
 				},
 			}
 			ec2Client.DescribeInstancesReturns(output, apiErr)
-			instance, err = client.GetVMInfo("some-identifier")
+			vmInfo, err = client.GetVMInfo("some-identifier")
 		})
 
 		Context("when a single instance is found", func() {
 			BeforeEach(func() {
 				instances = []*ec2.Instance{
-					&ec2.Instance{},
+					&ec2.Instance{
+						InstanceId:   iaasaws.String("some-instance-id"),
+						InstanceType: iaasaws.String("some-instance-type"),
+						KeyName:      iaasaws.String("some-key-name"),
+						SubnetId:     iaasaws.String("some-subnet-id"),
+						SecurityGroups: []*ec2.GroupIdentifier{
+							{
+								GroupId: iaasaws.String("some-group-id"),
+							},
+							{
+								GroupId: iaasaws.String("some-other-group-id"),
+							},
+						},
+						NetworkInterfaces: []*ec2.InstanceNetworkInterface{
+							{
+								Association: &ec2.InstanceNetworkInterfaceAssociation{
+									PublicIp: iaasaws.String("some-public-ip"),
+								},
+							},
+						},
+					},
 				}
 			})
 
-			It("returns the instance", func() {
+			It("returns vm info for the instance", func() {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(instance).To(Equal(instances[0]))
+				Expect(vmInfo).To(Equal(aws.VMInfo{
+					InstanceID:       "some-instance-id",
+					InstanceType:     "some-instance-type",
+					KeyName:          "some-key-name",
+					SubnetID:         "some-subnet-id",
+					SecurityGroupIDs: []string{"some-group-id", "some-other-group-id"},
+					PublicIP:         "some-public-ip",
+				}))
 			})
 		})
 

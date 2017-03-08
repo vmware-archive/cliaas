@@ -28,7 +28,7 @@ type EC2Client interface {
 type Client interface {
 	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (string, error)
 	DeleteVM(instanceID string) error
-	GetVMInfo(name string) (*ec2.Instance, error)
+	GetVMInfo(name string) (VMInfo, error)
 	StopVM(instanceID string) error
 	AssignPublicIP(instance, ip string) error
 	WaitForStatus(instanceID string, status string) error
@@ -207,7 +207,16 @@ func (c *client) StopVM(instanceID string) error {
 	return nil
 }
 
-func (c *client) GetVMInfo(name string) (*ec2.Instance, error) {
+type VMInfo struct {
+	InstanceID       string
+	InstanceType     string
+	KeyName          string
+	SubnetID         string
+	SecurityGroupIDs []string
+	PublicIP         string
+}
+
+func (c *client) GetVMInfo(name string) (VMInfo, error) {
 	params := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -226,7 +235,7 @@ func (c *client) GetVMInfo(name string) (*ec2.Instance, error) {
 	}
 	resp, err := c.ec2Client.DescribeInstances(params)
 	if err != nil {
-		return nil, errwrap.Wrap(err, "describe instances failed")
+		return VMInfo{}, errwrap.Wrap(err, "describe instances failed")
 	}
 
 	var list []*ec2.Instance
@@ -238,12 +247,28 @@ func (c *client) GetVMInfo(name string) (*ec2.Instance, error) {
 	}
 
 	if len(list) == 0 {
-		return nil, errwrap.New("no matching instances found")
+		return VMInfo{}, errwrap.New("no matching instances found")
 	}
 
 	if len(list) > 1 {
-		return nil, errwrap.New("more than one matching instance found")
+		return VMInfo{}, errwrap.New("more than one matching instance found")
 	}
 
-	return list[0], nil
+	instance := list[0]
+
+	var securityGroupIDs []string
+	for _, sg := range instance.SecurityGroups {
+		securityGroupIDs = append(securityGroupIDs, *sg.GroupId)
+	}
+
+	vmInfo := VMInfo{
+		InstanceID:       *instance.InstanceId,
+		InstanceType:     *instance.InstanceType,
+		KeyName:          *instance.KeyName,
+		SubnetID:         *instance.SubnetId,
+		SecurityGroupIDs: securityGroupIDs,
+		PublicIP:         *instance.NetworkInterfaces[0].Association.PublicIp,
+	}
+
+	return vmInfo, nil
 }
