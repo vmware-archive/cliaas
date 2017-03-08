@@ -171,9 +171,7 @@ var _ = Describe("Client", func() {
 
 		JustBeforeEach(func() {
 			ec2Client.AssociateAddressReturns(&ec2.AssociateAddressOutput{}, apiErr)
-			err = client.AssignPublicIP(ec2.Instance{
-				InstanceId: iaasaws.String("foo"),
-			}, "1.1.1.1")
+			err = client.AssignPublicIP("foo", "1.1.1.1")
 		})
 
 		It("tries to assign the public IP", func() {

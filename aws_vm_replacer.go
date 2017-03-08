@@ -84,5 +84,5 @@ func (r *awsVMReplacer) Replace(identifier string) error {
 		return err
 	}
 
-	return r.client.AssignPublicIP(*newInstance, *instance.NetworkInterfaces[0].Association.PublicIp)
+	return r.client.AssignPublicIP(*newInstance.InstanceId, *instance.NetworkInterfaces[0].Association.PublicIp)
 }

@@ -30,7 +30,7 @@ type Client interface {
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (*ec2.Instance, error)
 	StopVM(instance ec2.Instance) error
-	AssignPublicIP(instance ec2.Instance, ip string) error
+	AssignPublicIP(instance, ip string) error
 	WaitForStatus(instanceID string, status string) error
 }
 
@@ -118,9 +118,9 @@ func (c *client) WaitForStatus(instanceID string, status string) error {
 	}
 }
 
-func (c *client) AssignPublicIP(instance ec2.Instance, ip string) error {
+func (c *client) AssignPublicIP(instanceID, ip string) error {
 	_, err := c.ec2Client.AssociateAddress(&ec2.AssociateAddressInput{
-		InstanceId: iaasaws.String(*instance.InstanceId),
+		InstanceId: iaasaws.String(instanceID),
 		PublicIp:   iaasaws.String(ip),
 	})
 

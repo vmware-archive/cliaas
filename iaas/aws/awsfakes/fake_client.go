@@ -48,10 +48,10 @@ type FakeClient struct {
 	stopVMReturns struct {
 		result1 error
 	}
-	AssignPublicIPStub        func(instance ec2.Instance, ip string) error
+	AssignPublicIPStub        func(instance, ip string) error
 	assignPublicIPMutex       sync.RWMutex
 	assignPublicIPArgsForCall []struct {
-		instance ec2.Instance
+		instance string
 		ip       string
 	}
 	assignPublicIPReturns struct {
@@ -209,10 +209,10 @@ func (fake *FakeClient) StopVMReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) AssignPublicIP(instance ec2.Instance, ip string) error {
+func (fake *FakeClient) AssignPublicIP(instance string, ip string) error {
 	fake.assignPublicIPMutex.Lock()
 	fake.assignPublicIPArgsForCall = append(fake.assignPublicIPArgsForCall, struct {
-		instance ec2.Instance
+		instance string
 		ip       string
 	}{instance, ip})
 	fake.recordInvocation("AssignPublicIP", []interface{}{instance, ip})
@@ -230,7 +230,7 @@ func (fake *FakeClient) AssignPublicIPCallCount() int {
 	return len(fake.assignPublicIPArgsForCall)
 }
 
-func (fake *FakeClient) AssignPublicIPArgsForCall(i int) (ec2.Instance, string) {
+func (fake *FakeClient) AssignPublicIPArgsForCall(i int) (string, string) {
 	fake.assignPublicIPMutex.RLock()
 	defer fake.assignPublicIPMutex.RUnlock()
 	return fake.assignPublicIPArgsForCall[i].instance, fake.assignPublicIPArgsForCall[i].ip
