@@ -1,32 +1,32 @@
-package aws_test
+package cliaas_test
 
 import (
 	"errors"
 
-	iaasaws "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/cliaas/iaas/aws"
-	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
+	"github.com/pivotal-cf/cliaas"
+	"github.com/pivotal-cf/cliaas/cliaasfakes"
 )
 
-var _ = Describe("Client", func() {
+var _ = Describe("AWSClient", func() {
 	var (
-		client    aws.Client
-		ec2Client *awsfakes.FakeEC2Client
+		client    cliaas.AWSClient
+		ec2Client *cliaasfakes.FakeEC2Client
 	)
 
 	BeforeEach(func() {
-		ec2Client = new(awsfakes.FakeEC2Client)
+		ec2Client = new(cliaasfakes.FakeEC2Client)
 
-		client = aws.NewClient(ec2Client, "some vpc")
+		client = cliaas.NewAWSClient(ec2Client, "some vpc")
 	})
 
 	Describe("GetVMInfo", func() {
 		var (
 			instances []*ec2.Instance
-			vmInfo    aws.VMInfo
+			vmInfo    cliaas.VMInfo
 			err       error
 			apiErr    error
 		)
@@ -47,22 +47,22 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				instances = []*ec2.Instance{
 					&ec2.Instance{
-						InstanceId:   iaasaws.String("some-instance-id"),
-						InstanceType: iaasaws.String("some-instance-type"),
-						KeyName:      iaasaws.String("some-key-name"),
-						SubnetId:     iaasaws.String("some-subnet-id"),
+						InstanceId:   aws.String("some-instance-id"),
+						InstanceType: aws.String("some-instance-type"),
+						KeyName:      aws.String("some-key-name"),
+						SubnetId:     aws.String("some-subnet-id"),
 						SecurityGroups: []*ec2.GroupIdentifier{
 							{
-								GroupId: iaasaws.String("some-group-id"),
+								GroupId: aws.String("some-group-id"),
 							},
 							{
-								GroupId: iaasaws.String("some-other-group-id"),
+								GroupId: aws.String("some-other-group-id"),
 							},
 						},
 						NetworkInterfaces: []*ec2.InstanceNetworkInterface{
 							{
 								Association: &ec2.InstanceNetworkInterfaceAssociation{
-									PublicIp: iaasaws.String("some-public-ip"),
+									PublicIp: aws.String("some-public-ip"),
 								},
 							},
 						},
@@ -72,7 +72,7 @@ var _ = Describe("Client", func() {
 
 			It("returns vm info for the instance", func() {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(vmInfo).To(Equal(aws.VMInfo{
+				Expect(vmInfo).To(Equal(cliaas.VMInfo{
 					InstanceID:       "some-instance-id",
 					InstanceType:     "some-instance-type",
 					KeyName:          "some-key-name",
@@ -136,10 +136,10 @@ var _ = Describe("Client", func() {
 			input := ec2Client.StopInstancesArgsForCall(0)
 			Expect(*input).To(Equal(ec2.StopInstancesInput{
 				InstanceIds: []*string{
-					iaasaws.String("foo"),
+					aws.String("foo"),
 				},
-				DryRun: iaasaws.Bool(false),
-				Force:  iaasaws.Bool(true),
+				DryRun: aws.Bool(false),
+				Force:  aws.Bool(true),
 			}))
 		})
 
@@ -170,9 +170,9 @@ var _ = Describe("Client", func() {
 			input := ec2Client.TerminateInstancesArgsForCall(0)
 			Expect(*input).To(Equal(ec2.TerminateInstancesInput{
 				InstanceIds: []*string{
-					iaasaws.String("foo"),
+					aws.String("foo"),
 				},
-				DryRun: iaasaws.Bool(false),
+				DryRun: aws.Bool(false),
 			}))
 		})
 
@@ -203,8 +203,8 @@ var _ = Describe("Client", func() {
 			Expect(ec2Client.AssociateAddressCallCount()).To(Equal(1))
 			input := ec2Client.AssociateAddressArgsForCall(0)
 			Expect(*input).To(Equal(ec2.AssociateAddressInput{
-				InstanceId: iaasaws.String("foo"),
-				PublicIp:   iaasaws.String("1.1.1.1"),
+				InstanceId: aws.String("foo"),
+				PublicIp:   aws.String("1.1.1.1"),
 			}))
 		})
 
@@ -237,7 +237,7 @@ var _ = Describe("Client", func() {
 			reservation := &ec2.Reservation{
 				Instances: []*ec2.Instance{
 					&ec2.Instance{
-						InstanceId: iaasaws.String("some-instance-id"),
+						InstanceId: aws.String("some-instance-id"),
 					},
 				},
 			}
@@ -257,13 +257,13 @@ var _ = Describe("Client", func() {
 			Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
 			input := ec2Client.RunInstancesArgsForCall(0)
 			Expect(*input).To(Equal(ec2.RunInstancesInput{
-				ImageId:          iaasaws.String(ami),
-				InstanceType:     iaasaws.String(instanceType),
-				MinCount:         iaasaws.Int64(1),
-				MaxCount:         iaasaws.Int64(1),
-				KeyName:          iaasaws.String(keyName),
-				SubnetId:         iaasaws.String(subnetID),
-				SecurityGroupIds: iaasaws.StringSlice([]string{securityGroupID}),
+				ImageId:          aws.String(ami),
+				InstanceType:     aws.String(instanceType),
+				MinCount:         aws.Int64(1),
+				MaxCount:         aws.Int64(1),
+				KeyName:          aws.String(keyName),
+				SubnetId:         aws.String(subnetID),
+				SecurityGroupIds: aws.StringSlice([]string{securityGroupID}),
 			}))
 		})
 

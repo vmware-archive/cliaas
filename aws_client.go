@@ -1,4 +1,4 @@
-package aws
+package cliaas
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 
-	iaasaws "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	errwrap "github.com/pkg/errors"
 )
@@ -23,9 +23,9 @@ type EC2Client interface {
 	RunInstances(*ec2.RunInstancesInput) (*ec2.Reservation, error)
 }
 
-//go:generate counterfeiter . Client
+//go:generate counterfeiter . AWSClient
 
-type Client interface {
+type AWSClient interface {
 	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (string, error)
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (VMInfo, error)
@@ -41,11 +41,11 @@ type client struct {
 	clock     clock.Clock
 }
 
-func NewClient(
+func NewAWSClient(
 	ec2Client EC2Client,
 	vpcName string,
 	options ...OptionFunc,
-) Client {
+) AWSClient {
 	client := &client{
 		ec2Client: ec2Client,
 		vpcName:   vpcName,
@@ -78,9 +78,9 @@ func (c *client) WaitForStatus(instanceID string, status string) error {
 	doneCh := make(chan struct{})
 
 	input := &ec2.DescribeInstanceStatusInput{
-		IncludeAllInstances: iaasaws.Bool(true),
+		IncludeAllInstances: aws.Bool(true),
 		InstanceIds: []*string{
-			iaasaws.String(instanceID),
+			aws.String(instanceID),
 		},
 	}
 
@@ -120,8 +120,8 @@ func (c *client) WaitForStatus(instanceID string, status string) error {
 
 func (c *client) AssignPublicIP(instanceID, ip string) error {
 	_, err := c.ec2Client.AssociateAddress(&ec2.AssociateAddressInput{
-		InstanceId: iaasaws.String(instanceID),
-		PublicIp:   iaasaws.String(ip),
+		InstanceId: aws.String(instanceID),
+		PublicIp:   aws.String(ip),
 	})
 
 	if err != nil {
@@ -140,19 +140,19 @@ func (c *client) CreateVM(
 	securityGroupID string,
 ) (string, error) {
 	runInput := &ec2.RunInstancesInput{
-		ImageId:      iaasaws.String(ami),
-		InstanceType: iaasaws.String(instanceType),
-		MinCount:     iaasaws.Int64(1),
-		MaxCount:     iaasaws.Int64(1),
-		KeyName:      iaasaws.String(keyName),
+		ImageId:      aws.String(ami),
+		InstanceType: aws.String(instanceType),
+		MinCount:     aws.Int64(1),
+		MaxCount:     aws.Int64(1),
+		KeyName:      aws.String(keyName),
 	}
 
 	if subnetID != "" {
-		runInput.SubnetId = iaasaws.String(subnetID)
+		runInput.SubnetId = aws.String(subnetID)
 	}
 
 	if securityGroupID != "" {
-		runInput.SecurityGroupIds = iaasaws.StringSlice([]string{securityGroupID})
+		runInput.SecurityGroupIds = aws.StringSlice([]string{securityGroupID})
 	}
 
 	runResult, err := c.ec2Client.RunInstances(runInput)
@@ -164,8 +164,8 @@ func (c *client) CreateVM(
 		Resources: []*string{runResult.Instances[0].InstanceId},
 		Tags: []*ec2.Tag{
 			{
-				Key:   iaasaws.String("Name"),
-				Value: iaasaws.String(name),
+				Key:   aws.String("Name"),
+				Value: aws.String(name),
 			},
 		},
 	})
@@ -179,9 +179,9 @@ func (c *client) CreateVM(
 func (c *client) DeleteVM(instanceID string) error {
 	_, err := c.ec2Client.TerminateInstances(&ec2.TerminateInstancesInput{
 		InstanceIds: []*string{
-			iaasaws.String(instanceID),
+			aws.String(instanceID),
 		},
-		DryRun: iaasaws.Bool(false),
+		DryRun: aws.Bool(false),
 	})
 
 	if err != nil {
@@ -194,10 +194,10 @@ func (c *client) DeleteVM(instanceID string) error {
 func (c *client) StopVM(instanceID string) error {
 	_, err := c.ec2Client.StopInstances(&ec2.StopInstancesInput{
 		InstanceIds: []*string{
-			iaasaws.String(instanceID),
+			aws.String(instanceID),
 		},
-		DryRun: iaasaws.Bool(false),
-		Force:  iaasaws.Bool(true),
+		DryRun: aws.Bool(false),
+		Force:  aws.Bool(true),
 	})
 
 	if err != nil {
@@ -220,15 +220,15 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 	params := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: iaasaws.String("tag:Name"),
+				Name: aws.String("tag:Name"),
 				Values: []*string{
-					iaasaws.String(name),
+					aws.String(name),
 				},
 			},
 			{
-				Name: iaasaws.String("vpc-id"),
+				Name: aws.String("vpc-id"),
 				Values: []*string{
-					iaasaws.String(c.vpcName),
+					aws.String(c.vpcName),
 				},
 			},
 		},

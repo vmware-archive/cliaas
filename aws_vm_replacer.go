@@ -1,11 +1,10 @@
 package cliaas
 
 import (
-	iaasaws "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 func NewAWSVMReplacer(
@@ -20,19 +19,19 @@ func NewAWSVMReplacer(
 		return nil, err
 	}
 
-	ec2Client := ec2.New(sess, &iaasaws.Config{
+	ec2Client := ec2.New(sess, &aws.Config{
 		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
-		Region:      iaasaws.String(region),
+		Region:      aws.String(region),
 	})
 
 	return &awsVMReplacer{
-		client: aws.NewClient(ec2Client, vpc),
+		client: NewAWSClient(ec2Client, vpc),
 		ami:    ami,
 	}, nil
 }
 
 type awsVMReplacer struct {
-	client aws.Client
+	client AWSClient
 	ami    string
 }
 

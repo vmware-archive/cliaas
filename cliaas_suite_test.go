@@ -1,4 +1,4 @@
-package aws_test
+package cliaas_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAws(t *testing.T) {
+func TestCliaas(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Aws Suite")
+	RunSpecs(t, "Cliaas Suite")
 }
