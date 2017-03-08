@@ -42,7 +42,7 @@ func (r *awsVMReplacer) Replace(identifier string) error {
 		return err
 	}
 
-	err = r.client.StopVM(*instance)
+	err = r.client.StopVM(*instance.InstanceId)
 	if err != nil {
 		return err
 	}

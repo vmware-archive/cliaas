@@ -40,10 +40,10 @@ type FakeClient struct {
 		result1 *ec2.Instance
 		result2 error
 	}
-	StopVMStub        func(instance ec2.Instance) error
+	StopVMStub        func(instanceID string) error
 	stopVMMutex       sync.RWMutex
 	stopVMArgsForCall []struct {
-		instance ec2.Instance
+		instanceID string
 	}
 	stopVMReturns struct {
 		result1 error
@@ -176,15 +176,15 @@ func (fake *FakeClient) GetVMInfoReturns(result1 *ec2.Instance, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) StopVM(instance ec2.Instance) error {
+func (fake *FakeClient) StopVM(instanceID string) error {
 	fake.stopVMMutex.Lock()
 	fake.stopVMArgsForCall = append(fake.stopVMArgsForCall, struct {
-		instance ec2.Instance
-	}{instance})
-	fake.recordInvocation("StopVM", []interface{}{instance})
+		instanceID string
+	}{instanceID})
+	fake.recordInvocation("StopVM", []interface{}{instanceID})
 	fake.stopVMMutex.Unlock()
 	if fake.StopVMStub != nil {
-		return fake.StopVMStub(instance)
+		return fake.StopVMStub(instanceID)
 	} else {
 		return fake.stopVMReturns.result1
 	}
@@ -196,10 +196,10 @@ func (fake *FakeClient) StopVMCallCount() int {
 	return len(fake.stopVMArgsForCall)
 }
 
-func (fake *FakeClient) StopVMArgsForCall(i int) ec2.Instance {
+func (fake *FakeClient) StopVMArgsForCall(i int) string {
 	fake.stopVMMutex.RLock()
 	defer fake.stopVMMutex.RUnlock()
-	return fake.stopVMArgsForCall[i].instance
+	return fake.stopVMArgsForCall[i].instanceID
 }
 
 func (fake *FakeClient) StopVMReturns(result1 error) {

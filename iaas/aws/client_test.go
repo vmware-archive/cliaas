@@ -101,9 +101,7 @@ var _ = Describe("Client", func() {
 
 		JustBeforeEach(func() {
 			ec2Client.StopInstancesReturns(&ec2.StopInstancesOutput{}, apiErr)
-			err = client.StopVM(ec2.Instance{
-				InstanceId: iaasaws.String("foo"),
-			})
+			err = client.StopVM("foo")
 		})
 
 		It("tries to stop the instance", func() {

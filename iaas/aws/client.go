@@ -29,7 +29,7 @@ type Client interface {
 	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (string, error)
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (*ec2.Instance, error)
-	StopVM(instance ec2.Instance) error
+	StopVM(instanceID string) error
 	AssignPublicIP(instance, ip string) error
 	WaitForStatus(instanceID string, status string) error
 }
@@ -191,10 +191,10 @@ func (c *client) DeleteVM(instanceID string) error {
 	return nil
 }
 
-func (c *client) StopVM(instance ec2.Instance) error {
+func (c *client) StopVM(instanceID string) error {
 	_, err := c.ec2Client.StopInstances(&ec2.StopInstancesInput{
 		InstanceIds: []*string{
-			iaasaws.String(*instance.InstanceId),
+			iaasaws.String(instanceID),
 		},
 		DryRun: iaasaws.Bool(false),
 		Force:  iaasaws.Bool(true),
