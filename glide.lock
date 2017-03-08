@@ -1,5 +1,5 @@
-hash: 05173b120f11db7455ad49ebb0890c96d5200954995051d2e2cde9b242e6a153
-updated: 2017-02-27T10:41:28.905541929-08:00
+hash: 5eb1522cc7af26e972322f161ad39bad817858c4cf43e0fdb1e080eb8cde7b75
+updated: 2017-03-08T11:55:01.045113744-08:00
 imports:
 - name: cloud.google.com/go
   version: 0b87d14d90086b53a97dfbd66f3000f7f112b494
@@ -99,6 +99,8 @@ imports:
   - stats
   - tap
   - transport
+- name: gopkg.in/yaml.v2
+  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 testImports:
 - name: github.com/onsi/ginkgo
   version: 462326b1628e124b23f42e87a8f2750e3c4e2d24

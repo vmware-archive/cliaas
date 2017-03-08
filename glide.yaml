@@ -12,3 +12,4 @@ import:
 - package: github.com/jessevdk/go-flags
   version: ^1.2.0
 - package: code.cloudfoundry.org/clock
+- package: gopkg.in/yaml.v2
