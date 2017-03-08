@@ -92,7 +92,7 @@ var _ = Describe("AwsClient", func() {
 			}
 		})
 
-		It("it associates the elastic IP to the instance", func() {
+		It("associates the elastic IP to the instance", func() {
 			err := awsClient.AssignPublicIP(instanceID, "52.1.191.81")
 			Expect(err).NotTo(HaveOccurred())
 		})
