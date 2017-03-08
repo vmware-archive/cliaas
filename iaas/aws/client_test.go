@@ -14,13 +14,13 @@ import (
 var _ = Describe("Client", func() {
 	var (
 		client    aws.Client
-		awsClient *awsfakes.FakeAWSClient
+		ec2Client *awsfakes.FakeEC2Client
 	)
 
 	BeforeEach(func() {
-		awsClient = new(awsfakes.FakeAWSClient)
+		ec2Client = new(awsfakes.FakeEC2Client)
 
-		client = aws.NewClient(awsClient, "some vpc")
+		client = aws.NewClient(ec2Client, "some vpc")
 	})
 
 	Describe("GetVMInfo", func() {
@@ -28,11 +28,18 @@ var _ = Describe("Client", func() {
 			instances []*ec2.Instance
 			instance  *ec2.Instance
 			err       error
-			listErr   error
+			apiErr    error
 		)
 
 		JustBeforeEach(func() {
-			awsClient.ListReturns(instances, listErr)
+			output := &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: instances,
+					},
+				},
+			}
+			ec2Client.DescribeInstancesReturns(output, apiErr)
 			instance, err = client.GetVMInfo("some-identifier")
 		})
 
@@ -59,7 +66,7 @@ var _ = Describe("Client", func() {
 
 			It("returns an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Found more than one match"))
+				Expect(err.Error()).To(Equal("more than one matching instance found"))
 			})
 		})
 
@@ -70,44 +77,50 @@ var _ = Describe("Client", func() {
 
 			It("returns an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("No instance matches found"))
+				Expect(err.Error()).To(Equal("no matching instances found"))
 			})
 		})
 
-		Context("when there is an error listing instances", func() {
+		Context("when there is an api error", func() {
 			BeforeEach(func() {
-				listErr = errors.New("an error")
+				apiErr = errors.New("an error")
 			})
 
 			It("returns an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("call List on aws client failed: an error"))
+				Expect(err.Error()).To(Equal("describe instances failed: an error"))
 			})
 		})
 	})
 
 	Describe("Stop", func() {
 		var (
-			err     error
-			stopErr error
+			err    error
+			apiErr error
 		)
 
 		JustBeforeEach(func() {
-			awsClient.StopReturns(stopErr)
+			ec2Client.StopInstancesReturns(&ec2.StopInstancesOutput{}, apiErr)
 			err = client.StopVM(ec2.Instance{
 				InstanceId: iaasaws.String("foo"),
 			})
 		})
 
 		It("tries to stop the instance", func() {
-			Expect(awsClient.StopCallCount()).To(Equal(1))
-			instanceID := awsClient.StopArgsForCall(0)
-			Expect(instanceID).To(Equal("foo"))
+			Expect(ec2Client.StopInstancesCallCount()).To(Equal(1))
+			input := ec2Client.StopInstancesArgsForCall(0)
+			Expect(*input).To(Equal(ec2.StopInstancesInput{
+				InstanceIds: []*string{
+					iaasaws.String("foo"),
+				},
+				DryRun: iaasaws.Bool(false),
+				Force:  iaasaws.Bool(true),
+			}))
 		})
 
-		Context("when stop returns an error", func() {
+		Context("when there is an api error", func() {
 			BeforeEach(func() {
-				stopErr = errors.New("an error")
+				apiErr = errors.New("an error")
 			})
 
 			It("returns an error", func() {
@@ -118,61 +131,68 @@ var _ = Describe("Client", func() {
 
 	Describe("Delete", func() {
 		var (
-			err       error
-			deleteErr error
+			err    error
+			apiErr error
 		)
 
 		JustBeforeEach(func() {
-			awsClient.DeleteReturns(deleteErr)
+			ec2Client.TerminateInstancesReturns(&ec2.TerminateInstancesOutput{}, apiErr)
 			err = client.DeleteVM("foo")
 		})
 
 		It("tries to delete the instance", func() {
-			Expect(awsClient.DeleteCallCount()).To(Equal(1))
-			instanceID := awsClient.DeleteArgsForCall(0)
-			Expect(instanceID).To(Equal("foo"))
+			Expect(ec2Client.TerminateInstancesCallCount()).To(Equal(1))
+			input := ec2Client.TerminateInstancesArgsForCall(0)
+			Expect(*input).To(Equal(ec2.TerminateInstancesInput{
+				InstanceIds: []*string{
+					iaasaws.String("foo"),
+				},
+				DryRun: iaasaws.Bool(false),
+			}))
 		})
 
-		Context("when delete returns an error", func() {
+		Context("when there is an api error", func() {
 			BeforeEach(func() {
-				deleteErr = errors.New("an error")
+				apiErr = errors.New("an error")
 			})
 
 			It("returns an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("call delete on aws client failed: an error"))
+				Expect(err.Error()).To(Equal("terminate instances failed: an error"))
 			})
 		})
 	})
 
 	Describe("AssignPublicIP", func() {
 		var (
-			err          error
-			associateErr error
+			err    error
+			apiErr error
 		)
 
 		JustBeforeEach(func() {
-			awsClient.AssociateElasticIPReturns(associateErr)
+			ec2Client.AssociateAddressReturns(&ec2.AssociateAddressOutput{}, apiErr)
 			err = client.AssignPublicIP(ec2.Instance{
 				InstanceId: iaasaws.String("foo"),
 			}, "1.1.1.1")
 		})
 
 		It("tries to assign the public IP", func() {
-			Expect(awsClient.AssociateElasticIPCallCount()).To(Equal(1))
-			instanceID, ip := awsClient.AssociateElasticIPArgsForCall(0)
-			Expect(instanceID).To(Equal("foo"))
-			Expect(ip).To(Equal("1.1.1.1"))
+			Expect(ec2Client.AssociateAddressCallCount()).To(Equal(1))
+			input := ec2Client.AssociateAddressArgsForCall(0)
+			Expect(*input).To(Equal(ec2.AssociateAddressInput{
+				InstanceId: iaasaws.String("foo"),
+				PublicIp:   iaasaws.String("1.1.1.1"),
+			}))
 		})
 
-		Context("when assignment returns an error", func() {
+		Context("when there is an api error", func() {
 			BeforeEach(func() {
-				associateErr = errors.New("an error")
+				apiErr = errors.New("an error")
 			})
 
 			It("returns an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("call associateElasticIP on aws client failed: an error"))
+				Expect(err.Error()).To(Equal("associate address failed: an error"))
 			})
 		})
 	})
@@ -182,7 +202,7 @@ var _ = Describe("Client", func() {
 			createdInstance *ec2.Instance
 			newInstance     *ec2.Instance
 			err             error
-			createErr       error
+			apiErr          error
 
 			name            = "some-instance-name"
 			ami             = "some-instance-ami"
@@ -197,7 +217,13 @@ var _ = Describe("Client", func() {
 		})
 
 		JustBeforeEach(func() {
-			awsClient.CreateReturns(createdInstance, createErr)
+			reservation := &ec2.Reservation{
+				Instances: []*ec2.Instance{
+					createdInstance,
+				},
+			}
+
+			ec2Client.RunInstancesReturns(reservation, apiErr)
 			newInstance, err = client.CreateVM(
 				ami,
 				instanceType,
@@ -209,14 +235,17 @@ var _ = Describe("Client", func() {
 		})
 
 		It("tries to create the instance", func() {
-			Expect(awsClient.CreateCallCount()).To(Equal(1))
-			actualAMI, actualVMType, actualName, actualKeyPairName, actualSubnetID, actualSecurityGroupID := awsClient.CreateArgsForCall(0)
-			Expect(actualAMI).To(Equal(ami))
-			Expect(actualVMType).To(Equal(instanceType))
-			Expect(actualName).To(Equal(name))
-			Expect(actualKeyPairName).To(Equal(keyName))
-			Expect(actualSubnetID).To(Equal(subnetID))
-			Expect(actualSecurityGroupID).To(Equal(securityGroupID))
+			Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
+			input := ec2Client.RunInstancesArgsForCall(0)
+			Expect(*input).To(Equal(ec2.RunInstancesInput{
+				ImageId:          iaasaws.String(ami),
+				InstanceType:     iaasaws.String(instanceType),
+				MinCount:         iaasaws.Int64(1),
+				MaxCount:         iaasaws.Int64(1),
+				KeyName:          iaasaws.String(keyName),
+				SubnetId:         iaasaws.String(subnetID),
+				SecurityGroupIds: iaasaws.StringSlice([]string{securityGroupID}),
+			}))
 		})
 
 		Context("when no security groups are set", func() {
@@ -225,19 +254,20 @@ var _ = Describe("Client", func() {
 			})
 
 			It("should create an instance with a blank security group", func() {
-				_, _, _, _, _, securityGroupID := awsClient.CreateArgsForCall(0)
-				Expect(securityGroupID).To(Equal(""))
+				Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
+				input := ec2Client.RunInstancesArgsForCall(0)
+				Expect(input.SecurityGroupIds).To(BeEmpty())
 			})
 		})
 
 		Context("when creating the instance fails", func() {
 			BeforeEach(func() {
-				createErr = errors.New("an error")
+				apiErr = errors.New("an error")
 			})
 
 			It("returns an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("call create on aws client failed: an error"))
+				Expect(err.Error()).To(Equal("run instances failed: an error"))
 			})
 		})
 	})

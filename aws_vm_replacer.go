@@ -26,7 +26,7 @@ func NewAWSVMReplacer(
 	})
 
 	return &awsVMReplacer{
-		client: aws.NewClient(aws.NewAWSClient(ec2Client), vpc),
+		client: aws.NewClient(ec2Client, vpc),
 		ami:    ami,
 	}, nil
 }
