@@ -14,14 +14,14 @@ resources:
   source:
     release: false
     pre_release: true
-    user: c0-ops
+    user: pivotal-cf
     repository: cliaas
     access_token: {{github_token}}
 
 - name: github-release
   type: github-release
   source:
-    user: c0-ops
+    user: pivotal-cf
     repository: cliaas
     access_token: {{github_token}}
 
