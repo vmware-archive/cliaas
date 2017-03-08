@@ -259,13 +259,18 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 		securityGroupIDs = append(securityGroupIDs, *sg.GroupId)
 	}
 
+	var publicIP string
+	if len(instance.NetworkInterfaces) > 0 {
+		publicIP = *instance.NetworkInterfaces[0].Association.PublicIp
+	}
+
 	vmInfo := VMInfo{
 		InstanceID:       *instance.InstanceId,
 		InstanceType:     *instance.InstanceType,
 		KeyName:          *instance.KeyName,
 		SubnetID:         *instance.SubnetId,
 		SecurityGroupIDs: securityGroupIDs,
-		PublicIP:         *instance.NetworkInterfaces[0].Association.PublicIp,
+		PublicIP:         publicIP,
 	}
 
 	return vmInfo, nil
