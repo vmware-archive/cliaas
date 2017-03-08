@@ -240,10 +240,8 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 
 	var list []*ec2.Instance
 
-	for idx, _ := range resp.Reservations {
-		for _, inst := range resp.Reservations[idx].Instances {
-			list = append(list, inst)
-		}
+	for idx := range resp.Reservations {
+		list = append(list, resp.Reservations[idx].Instances...)
 	}
 
 	if len(list) == 0 {

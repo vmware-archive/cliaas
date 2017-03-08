@@ -222,9 +222,8 @@ var _ = Describe("Client", func() {
 
 	Describe("Create", func() {
 		var (
-			newInstanceID string
-			err           error
-			apiErr        error
+			err    error
+			apiErr error
 
 			name            = "some-instance-name"
 			ami             = "some-instance-ami"
@@ -244,7 +243,7 @@ var _ = Describe("Client", func() {
 			}
 
 			ec2Client.RunInstancesReturns(reservation, apiErr)
-			newInstanceID, err = client.CreateVM(
+			_, err = client.CreateVM(
 				ami,
 				instanceType,
 				name,
