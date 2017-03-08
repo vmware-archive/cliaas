@@ -13,7 +13,7 @@ inputs:
 run:
   path: sh
   args:
-    - -cx
+    - -exc
     - |
       export GOPATH=$PWD/go
       export PATH=$GOPATH/bin:$PATH
