@@ -36,7 +36,6 @@ resources:
 
 jobs:
   - name: test
-    serial_groups: [version]
     plan:
       - get: cliaas
         trigger: true
@@ -61,15 +60,14 @@ jobs:
             GCP_PROJECT: {{gcp_project}}
             GCP_ZONE: {{gcp_zone}}
 
-  - name: create-rc
+  - name: create-patch-rc
     serial_groups: [version]
     plan:
       - aggregate:
         - get: cliaas
-          trigger: true
           passed: [test]
         - get: version
-          params: {pre: rc}
+          params: {bump: patch, pre: rc}
       - task: install-dependencies
         file: cliaas/ci/install-dependencies.yml
       - task: build
@@ -83,40 +81,15 @@ jobs:
           globs:
           - linux-binary/*
       - put: version
-        params: {pre: rc}
+        params: {bump: patch, pre: rc}
 
-  - name: create-patch-release
+  - name: create-minor-rc
     serial_groups: [version]
     plan:
       - aggregate:
         - get: cliaas
-          passed: [create-rc]
+          passed: [test]
         - get: version
-          passed: [create-rc]
-          params: {bump: patch, pre: rc}
-      - task: install-dependencies
-        file: cliaas/ci/install-dependencies.yml
-      - task: build
-        file: cliaas/ci/build-linux.yml
-      - task: create-release-notes
-        file: cliaas/ci/create-release-notes.yml
-      - put: github-release
-        params:
-          name: release-notes/name
-          tag: release-notes/tag
-          globs:
-          - linux-binary/*
-      - put: version
-        params: {pre: rc}
-
-  - name: create-minor-release
-    serial_groups: [test]
-    plan:
-      - aggregate:
-        - get: cliaas
-          passed: [create-rc]
-        - get: version
-          passed: [create-rc]
           params: {bump: minor, pre: rc}
       - task: install-dependencies
         file: cliaas/ci/install-dependencies.yml
@@ -124,24 +97,47 @@ jobs:
         file: cliaas/ci/build-linux.yml
       - task: create-release-notes
         file: cliaas/ci/create-release-notes.yml
-      - put: github-release
+      - put: github-rc
         params:
           name: release-notes/name
           tag: release-notes/tag
           globs:
           - linux-binary/*
       - put: version
-        params: {pre: rc}
+        params: {bump: minor, pre: rc}
 
-  - name: create-major-release
-    serial_groups: [test]
+  - name: create-major-rc
+    serial_groups: [version]
     plan:
       - aggregate:
         - get: cliaas
-          passed: [create-rc]
+          passed: [test]
         - get: version
-          passed: [create-rc]
           params: {bump: major, pre: rc}
+      - task: install-dependencies
+        file: cliaas/ci/install-dependencies.yml
+      - task: build
+        file: cliaas/ci/build-linux.yml
+      - task: create-release-notes
+        file: cliaas/ci/create-release-notes.yml
+      - put: github-rc
+        params:
+          name: release-notes/name
+          tag: release-notes/tag
+          globs:
+          - linux-binary/*
+      - put: version
+        params: {bump: major, pre: rc}
+
+  - name: create-final-patch-release
+    serial_groups: [version]
+    plan:
+      - aggregate:
+        - get: cliaas
+          passed: [create-patch-rc]
+        - get: version
+          passed: [create-patch-rc]
+          params: {bump: final}
       - task: install-dependencies
         file: cliaas/ci/install-dependencies.yml
       - task: build
@@ -155,4 +151,52 @@ jobs:
           globs:
           - linux-binary/*
       - put: version
-        params: {pre: rc}
+        params: {bump: final}
+
+  - name: create-final-minor-release
+    serial_groups: [version]
+    plan:
+      - aggregate:
+        - get: cliaas
+          passed: [create-minor-rc]
+        - get: version
+          passed: [create-minor-rc]
+          params: {bump: final}
+      - task: install-dependencies
+        file: cliaas/ci/install-dependencies.yml
+      - task: build
+        file: cliaas/ci/build-linux.yml
+      - task: create-release-notes
+        file: cliaas/ci/create-release-notes.yml
+      - put: github-release
+        params:
+          name: release-notes/name
+          tag: release-notes/tag
+          globs:
+          - linux-binary/*
+      - put: version
+        params: {bump: final}
+
+  - name: create-final-major-release
+    serial_groups: [version]
+    plan:
+      - aggregate:
+        - get: cliaas
+          passed: [create-major-rc]
+        - get: version
+          passed: [create-major-rc]
+          params: {bump: final}
+      - task: install-dependencies
+        file: cliaas/ci/install-dependencies.yml
+      - task: build
+        file: cliaas/ci/build-linux.yml
+      - task: create-release-notes
+        file: cliaas/ci/create-release-notes.yml
+      - put: github-release
+        params:
+          name: release-notes/name
+          tag: release-notes/tag
+          globs:
+          - linux-binary/*
+      - put: version
+        params: {bump: final}
