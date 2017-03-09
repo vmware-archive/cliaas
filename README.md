@@ -1,58 +1,57 @@
 # cliaas
-a cli tool to help with iaas interactions (this is meant to be a single cli for
-all iaases, instead of pulling in each individual tool for each iaas)
 
+`cliaas` wraps multiple IaaS-specific libraries to perform some IaaS-agnostic
+functions. Presently it only supports upgrading a Pivotal Cloud Foundry
+Operations Manager VM.
 
-unit test status:
-[![concourse.customer0.io](https://concourse.customer0.io/api/v1/teams/pcfs/pipelines/cliaas-ci/jobs/unit-tests/badge)](https://concourse.customer0.io/teams/pcfs/pipelines/cliaas-ci)
+## Installing
 
-integration test status:
-[![concourse.customer0.io](https://concourse.customer0.io/api/v1/teams/pcfs/pipelines/cliaas-ci/jobs/integration-tests/badge)](https://concourse.customer0.io/teams/pcfs/pipelines/cliaas-ci)
+Download the [latest release](https://github.com/pivotal-cf/cliaas/releases/latest).
 
-## Configuration
+### Install from source
 
-The cliaas tool takes configuration in the form of environment variables.
-The following must be set depending on which IaaS provider you wish to target:
+Requirements:
 
-### AWS
-
-  - `AWS_ACCESS_KEY`
-  - `AWS_SECRET_KEY`
-  - `AWS_REGION`
-  - `AWS_VPC`
-
-#### CLI ####
-```
-aws command options]
-          --accesskey=    aws access key [$AWS_ACCESSKEY]
-          --secretkey=    aws secret access key [$AWS_SECRETKEY]
-          --region=       aws region (default: us-east-1) [$AWS_REGION]
-          --vpc=          aws VPC id [$AWS_VPC]
-          --name=         aws name tag for vm [$AWS_NAME]
-          --ami=          aws ami to provision [$AWS_AMI]
-          --instanceType= aws instance type to provision [$AWS_INSTANCE_TYPE]
-          --elastic-ip=   aws elastic ip to associate to provisioned VM [$AWS_ELASTIC_IP]
-```
-
-### GCP
-
- - `GCP_CREDS` - String representation of the creds file
- - `GCP_PROJECT`
- - `GCP_ZONE`
-
-## CI Pipeline
-
-The `integration-tests` job can read GCP credentials through a params file or
-can be passed in via the command line as follows to avoid copying data from the
-credentials JSON:
-
+* [glide](https://github.com/masterminds/glide)
+* [go](https://golang.org)
 
 ```
-fly -t c0 set-pipeline -p cliaas-ci -c ci/pipeline.yml -l ci/params.yml --var
-gcp_creds="$(cat /path/to/creds.json)"
+go get github.com/pivotal-cf/cliaas
+cd $GOPATH/src/github.com/pivotal-cf/cliaas
+glide install
+go install github.com/pivotal-cf/cliaas/cmd/cliaas
 ```
 
-### Integration Tests
+## Usage
 
-The `IAAS` environment variable can be used to target a specific providers
-integration tests when running `integration_tests/task.yml`.
+`cliaas -c config.yml replace-vm -i vm-identifier`
+
+### Config
+
+The `-c, --config=` flag is for specifying a YAML file with IaaS-specific configuration options to use when running a command. The config should only contain the configuration for a single IaaS for now.
+
+#### AWS-specific Config
+
+```
+cat > config.yml <<EOF
+  aws:
+    access_key_id: example-access-key-id
+    secret_access_key: example-secret-access-key
+    region: us-east-1
+    vpc: vpc-12345678
+    ami: ami-019e4617
+EOF
+```
+
+* `access_key_id`: The AWS_ACCESS_KEY_ID to use. Must have the ability to stop VM, start VM, and associate an IP address.
+* `secret_access_key`: The AWS_SECRET_ACCESS_KEY to use. Must have the ability to stop VM, start VM, and associate an IP address.
+* `region`: The AWS region to use.
+* `vpc`: The AWS vpc to use.
+* `ami`: A Pivotal Cloud Foundry Operations Manager AMI, for the new VM in `replace-vm`.
+
+## Developing
+
+```
+go install github.com/onsi/ginkgo/ginkgo
+ginkgo -r -p -race -skipPackage integration
+```
