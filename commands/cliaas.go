@@ -32,8 +32,10 @@ func (c *ConfigFilePath) UnmarshalFlag(value string) error {
 type CliaasCommand struct {
 	Config cliaas.Config
 
-	ConfigFile ConfigFilePath   `short:"c" long:"config" required:"true" description:"Path to config file"`
-	ReplaceVM  ReplaceVMCommand `command:"replace-vm" description:"Create a new VM with the old VM's IP"`
+	ConfigFile ConfigFilePath `short:"c" long:"config" required:"true" description:"Path to config file"`
+
+	ReplaceVM ReplaceVMCommand `command:"replace-vm" description:"Create a new VM with the old VM's IP"`
+	DeleteVM  DeleteVMCommand  `command:"delete-vm" description:"Delete the VM that has the specified identifier"`
 }
 
 var Cliaas CliaasCommand
