@@ -10,13 +10,19 @@ type VMReplacer interface {
 
 func NewVMReplacer(config Config) (VMReplacer, error) {
 	if config.AWS.AccessKeyID != "" {
-		return NewAWSVMReplacer(
+		ec2Client, err := NewEC2Client(
 			config.AWS.AccessKeyID,
 			config.AWS.SecretAccessKey,
 			config.AWS.Region,
-			config.AWS.VPC,
-			config.AWS.AMI,
 		)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewAWSVMReplacer(
+			NewAWSClient(ec2Client, config.AWS.VPC),
+			config.AWS.AMI,
+		), nil
 	}
 
 	return nil, errors.New("no vm replacer exists for provided config")

@@ -1,18 +1,8 @@
 package cliaas
 
-func NewAWSVMDeleter(
-	accessKeyID string,
-	secretAccessKey string,
-	region string,
-	vpc string,
-) (VMDeleter, error) {
-	ec2Client, err := NewEC2Client(accessKeyID, secretAccessKey, region)
-	if err != nil {
-		return nil, err
-	}
-
+func NewAWSVMDeleter(awsClient AWSClient) (VMDeleter, error) {
 	return &awsVMDeleter{
-		client: NewAWSClient(ec2Client, vpc),
+		client: awsClient,
 	}, nil
 }
 

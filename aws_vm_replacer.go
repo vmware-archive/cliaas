@@ -1,21 +1,10 @@
 package cliaas
 
-func NewAWSVMReplacer(
-	accessKeyID string,
-	secretAccessKey string,
-	region string,
-	vpc string,
-	ami string,
-) (VMReplacer, error) {
-	ec2Client, err := NewEC2Client(accessKeyID, secretAccessKey, region)
-	if err != nil {
-		return nil, err
-	}
-
+func NewAWSVMReplacer(awsClient AWSClient, ami string) VMReplacer {
 	return &awsVMReplacer{
-		client: NewAWSClient(ec2Client, vpc),
+		client: awsClient,
 		ami:    ami,
-	}, nil
+	}
 }
 
 type awsVMReplacer struct {

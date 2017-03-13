@@ -10,11 +10,17 @@ type VMDeleter interface {
 
 func NewVMDeleter(config Config) (VMDeleter, error) {
 	if config.AWS.AccessKeyID != "" {
-		return NewAWSVMDeleter(
+		ec2Client, err := NewEC2Client(
 			config.AWS.AccessKeyID,
 			config.AWS.SecretAccessKey,
 			config.AWS.Region,
-			config.AWS.VPC,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewAWSVMDeleter(
+			NewAWSClient(ec2Client, config.AWS.VPC),
 		)
 	}
 
