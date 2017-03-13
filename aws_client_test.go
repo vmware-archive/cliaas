@@ -24,25 +24,9 @@ var _ = Describe("AWSClient", func() {
 	})
 
 	Describe("GetVMInfo", func() {
-		var (
-			instances []*ec2.Instance
-			apiErr    error
-		)
-
-		JustBeforeEach(func() {
-			output := &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: instances,
-					},
-				},
-			}
-			ec2Client.DescribeInstancesReturns(output, apiErr)
-		})
-
 		Context("when a single instance is found", func() {
 			BeforeEach(func() {
-				instances = []*ec2.Instance{
+				instances := []*ec2.Instance{
 					&ec2.Instance{
 						InstanceId:   aws.String("some-instance-id"),
 						InstanceType: aws.String("some-instance-type"),
@@ -65,6 +49,14 @@ var _ = Describe("AWSClient", func() {
 						},
 					},
 				}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
 			})
 
 			It("returns vm info for the instance", func() {
@@ -83,10 +75,17 @@ var _ = Describe("AWSClient", func() {
 
 		Context("when more than one instance is found", func() {
 			BeforeEach(func() {
-				instances = []*ec2.Instance{
+				instances := []*ec2.Instance{
 					&ec2.Instance{},
 					&ec2.Instance{},
 				}
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
 			})
 
 			It("returns an error", func() {
@@ -98,7 +97,15 @@ var _ = Describe("AWSClient", func() {
 
 		Context("when no instances are found", func() {
 			BeforeEach(func() {
-				instances = []*ec2.Instance{}
+				instances := []*ec2.Instance{}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
 			})
 
 			It("returns an error", func() {
@@ -110,7 +117,7 @@ var _ = Describe("AWSClient", func() {
 
 		Context("when there is an api error", func() {
 			BeforeEach(func() {
-				apiErr = errors.New("an error")
+				ec2Client.DescribeInstancesReturns(nil, errors.New("an error"))
 			})
 
 			It("returns an error", func() {
