@@ -5,7 +5,7 @@ type Config struct {
 		AccessKeyID     string `yaml:"access_key_id"`
 		SecretAccessKey string `yaml:"secret_access_key"`
 		Region          string `yaml:"region"`
-		VPC             string `yaml:"vpc"`
+		VPCID           string `yaml:"vpc_id"`
 		AMI             string `yaml:"ami"`
 	} `yaml:"aws"`
 }

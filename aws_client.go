@@ -24,19 +24,19 @@ type AWSClient interface {
 
 type client struct {
 	ec2Client EC2Client
-	vpcName   string
+	vpcID     string
 	timeout   time.Duration
 	clock     clock.Clock
 }
 
 func NewAWSClient(
 	ec2Client EC2Client,
-	vpcName string,
+	vpcID string,
 	options ...OptionFunc,
 ) AWSClient {
 	client := &client{
 		ec2Client: ec2Client,
-		vpcName:   vpcName,
+		vpcID:     vpcID,
 		timeout:   60 * time.Second,
 		clock:     clock.NewClock(),
 	}
@@ -216,7 +216,7 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 			{
 				Name: aws.String("vpc-id"),
 				Values: []*string{
-					aws.String(c.vpcName),
+					aws.String(c.vpcID),
 				},
 			},
 		},

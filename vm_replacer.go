@@ -20,7 +20,7 @@ func NewVMReplacer(config Config) (VMReplacer, error) {
 		}
 
 		return NewAWSVMReplacer(
-			NewAWSClient(ec2Client, config.AWS.VPC),
+			NewAWSClient(ec2Client, config.AWS.VPCID),
 			config.AWS.AMI,
 		), nil
 	}

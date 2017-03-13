@@ -20,7 +20,7 @@ func NewVMDeleter(config Config) (VMDeleter, error) {
 		}
 
 		return NewAWSVMDeleter(
-			NewAWSClient(ec2Client, config.AWS.VPC),
+			NewAWSClient(ec2Client, config.AWS.VPCID),
 		)
 	}
 
