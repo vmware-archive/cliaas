@@ -251,19 +251,13 @@ var _ = Describe("AWSClient", func() {
 			}))
 		})
 
-		Context("when no security groups are set", func() {
-			BeforeEach(func() {
-				securityGroupID = ""
-			})
+		It("tries to create an instance with a blank security group when no security groups are set", func() {
+			_, err := client.CreateVM(ami, instanceType, name, keyName, subnetID, "")
+			Expect(err).NotTo(HaveOccurred())
 
-			It("should create an instance with a blank security group", func() {
-				_, err := client.CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
-				input := ec2Client.RunInstancesArgsForCall(0)
-				Expect(input.SecurityGroupIds).To(BeEmpty())
-			})
+			Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
+			input := ec2Client.RunInstancesArgsForCall(0)
+			Expect(input.SecurityGroupIds).To(BeEmpty())
 		})
 
 		Context("when creating the instance fails", func() {
