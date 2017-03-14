@@ -3,6 +3,8 @@ package cliaas
 import (
 	"errors"
 	"reflect"
+
+	errwrap "github.com/pkg/errors"
 )
 
 type Config struct {
@@ -12,7 +14,12 @@ type Config struct {
 
 type ValidConfig interface {
 	IsValidChecker
+	ReplacerDeleter
+}
+
+type ReplacerDeleter interface {
 	DeleterCreater
+	ReplacerCreator
 }
 
 type IsValidChecker interface {
@@ -23,7 +30,7 @@ type DeleterCreater interface {
 	NewDeleter() (VMDeleter, error)
 }
 
-type ValidReplacer interface {
+type ReplacerCreator interface {
 	NewReplacer() (VMReplacer, error)
 }
 
@@ -32,22 +39,38 @@ type ConfigParser struct {
 }
 
 func (s ConfigParser) NewVMDeleter() (VMDeleter, error) {
-	var deleterCreaters = make([]DeleterCreater, 0)
+	deleter, err := s.newVMReplacerDeleter()
+	if err != nil {
+		return nil, errwrap.Wrap(err, "error in calling newVMReplacerDeleter")
+	}
+	return deleter.NewDeleter()
+}
+
+func (s ConfigParser) NewVMReplacer() (VMReplacer, error) {
+	replacer, err := s.newVMReplacerDeleter()
+	if err != nil {
+		return nil, errwrap.Wrap(err, "error in calling newVMReplacerDeleter")
+	}
+	return replacer.NewReplacer()
+}
+
+func (s ConfigParser) newVMReplacerDeleter() (ReplacerDeleter, error) {
+	var replacerDeleters = make([]ReplacerDeleter, 0)
 	var configReflect = reflect.ValueOf(s.Config)
 
 	for i := 0; i < configReflect.NumField(); i++ {
 		if iaasElement, ok := configReflect.Field(i).Interface().(ValidConfig); ok {
 			if iaasElement.IsValid() {
-				deleterCreaters = append(deleterCreaters, iaasElement)
+				replacerDeleters = append(replacerDeleters, iaasElement)
 			}
 		}
 	}
-	if len(deleterCreaters) == 0 {
+	if len(replacerDeleters) == 0 {
 		return nil, errors.New("Couldn't find any IaaS objects in your config")
 	}
 
-	if len(deleterCreaters) > 1 {
+	if len(replacerDeleters) > 1 {
 		return nil, errors.New("Found more than one IaaS object in your config")
 	}
-	return deleterCreaters[0].NewDeleter()
+	return replacerDeleters[0], nil
 }

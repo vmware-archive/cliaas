@@ -25,6 +25,24 @@ func (c GCP) IsValid() bool {
 }
 
 func (c GCP) NewDeleter() (VMDeleter, error) {
+	gcpClientAPI, err := c.newGCPClient()
+	if err != nil {
+		return nil, errwrap.Wrap(err, "Failed to create new GCP API client")
+	}
+
+	return NewGCPVMDeleter(gcpClientAPI)
+}
+
+func (c GCP) NewReplacer() (VMReplacer, error) {
+	gcpClientAPI, err := c.newGCPClient()
+	if err != nil {
+		return nil, errwrap.Wrap(err, "Failed to create new GCP API client")
+	}
+
+	return NewGCPVMReplacer(gcpClientAPI)
+}
+
+func (c GCP) newGCPClient() (*gcp.GCPClientAPI, error) {
 	gcpClient, err := gcp.NewDefaultGoogleComputeClient(c.CredfilePath)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "failed to create gcp default client")
@@ -38,6 +56,5 @@ func (c GCP) NewDeleter() (VMDeleter, error) {
 	if err != nil {
 		return nil, errwrap.Wrap(err, "failed to create gcp client api")
 	}
-
-	return NewGCPVMDeleter(gcpClientAPI)
+	return gcpClientAPI, nil
 }

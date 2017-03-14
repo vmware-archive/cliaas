@@ -13,5 +13,3 @@ type awsVMDeleter struct {
 func (d *awsVMDeleter) Delete(identifier string) error {
 	return d.client.DeleteVM(identifier)
 }
-
-func (d *awsVMDeleter) AWSVMDeleter() {}

@@ -18,6 +18,47 @@ var _ = Describe("GCP", func() {
 		}
 	})
 
+	Describe("NewReplacer", func() {
+		var vmReplacer VMReplacer
+		var err error
+
+		JustBeforeEach(func() {
+			vmReplacer, err = validGCPConfig.NewReplacer()
+		})
+
+		Context("when called on a complete config with a valid cred file", func() {
+
+			It("should return a valid VMReplacer", func() {
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(vmReplacer).ShouldNot(BeNil())
+			})
+		})
+
+		Context("when called on an incomplete config", func() {
+
+			BeforeEach(func() {
+				validGCPConfig.Zone = ""
+			})
+
+			It("should return an error", func() {
+				Expect(err).Should(HaveOccurred())
+				Expect(vmReplacer).Should(BeNil())
+			})
+		})
+
+		Context("when using an invalid cred file", func() {
+
+			BeforeEach(func() {
+				validGCPConfig.CredfilePath = "/tmp/notafile"
+			})
+
+			It("should return an error", func() {
+				Expect(err).Should(HaveOccurred())
+				Expect(vmReplacer).Should(BeNil())
+			})
+		})
+	})
+
 	Describe("NewDeleter", func() {
 		var vmDeleter VMDeleter
 		var err error

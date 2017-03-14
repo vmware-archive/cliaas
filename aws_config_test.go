@@ -19,6 +19,36 @@ var _ = Describe("AWS", func() {
 		}
 	})
 
+	Describe("NewReplacer", func() {
+		var vmReplacer VMReplacer
+		var err error
+
+		JustBeforeEach(func() {
+			vmReplacer, err = validAWSConfig.NewReplacer()
+		})
+
+		Context("when called on a valid aws config", func() {
+
+			It("should return a valid VMReplacer", func() {
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(vmReplacer).ShouldNot(BeNil())
+			})
+		})
+
+		Context("when called on an incomplete config", func() {
+
+			BeforeEach(func() {
+				validAWSConfig.AccessKeyID = ""
+			})
+
+			It("should return an error", func() {
+				Expect(err).Should(HaveOccurred())
+				Expect(err).Should(BeAssignableToTypeOf(InvalidConfigErr{}))
+				Expect(vmReplacer).Should(BeNil())
+			})
+		})
+	})
+
 	Describe("NewDeleter", func() {
 		var vmDeleter VMDeleter
 		var err error
@@ -27,7 +57,7 @@ var _ = Describe("AWS", func() {
 			vmDeleter, err = validAWSConfig.NewDeleter()
 		})
 
-		Context("when called on a complete config with a valid cred file", func() {
+		Context("when called on a valid aws config", func() {
 
 			It("should return a valid VMDeleter", func() {
 				Expect(err).ShouldNot(HaveOccurred())
@@ -43,6 +73,7 @@ var _ = Describe("AWS", func() {
 
 			It("should return an error", func() {
 				Expect(err).Should(HaveOccurred())
+				Expect(err).Should(BeAssignableToTypeOf(InvalidConfigErr{}))
 				Expect(vmDeleter).Should(BeNil())
 			})
 		})

@@ -15,5 +15,3 @@ type gcpVMDeleter struct {
 func (d *gcpVMDeleter) Delete(identifier string) error {
 	return d.client.DeleteVM(identifier)
 }
-
-func (d *gcpVMDeleter) GCPVMDeleter() {}
