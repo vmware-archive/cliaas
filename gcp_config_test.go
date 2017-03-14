@@ -49,7 +49,7 @@ var _ = Describe("GCP", func() {
 		Context("when using an invalid cred file", func() {
 
 			BeforeEach(func() {
-				validGCPConfig.CredfilePath = ""
+				validGCPConfig.CredfilePath = "/tmp/notafile"
 			})
 
 			It("should return an error", func() {
