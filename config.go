@@ -10,13 +10,20 @@ type Config struct {
 	GCP GCP `yaml:"gcp"`
 }
 
-type ValidDeleter interface {
+type ValidConfig interface {
+	IsValidChecker
+	DeleterCreater
+}
+
+type IsValidChecker interface {
 	IsValid() bool
+}
+
+type DeleterCreater interface {
 	NewDeleter() (VMDeleter, error)
 }
 
 type ValidReplacer interface {
-	IsValid() bool
 	NewReplacer() (VMReplacer, error)
 }
 
@@ -24,17 +31,23 @@ type ConfigParser struct {
 	Config Config
 }
 
-func (s ConfigParser) GetValidDeleters() ([]ValidDeleter, error) {
-	var validDeleters = make([]ValidDeleter, 0)
+func (s ConfigParser) NewVMDeleter() (VMDeleter, error) {
+	var deleterCreaters = make([]DeleterCreater, 0)
 	var configReflect = reflect.ValueOf(s.Config)
 
 	for i := 0; i < configReflect.NumField(); i++ {
-		if iaasElement, ok := configReflect.Field(i).Interface().(ValidDeleter); ok {
-			validDeleters = append(validDeleters, iaasElement)
+		if iaasElement, ok := configReflect.Field(i).Interface().(ValidConfig); ok {
+			if iaasElement.IsValid() {
+				deleterCreaters = append(deleterCreaters, iaasElement)
+			}
 		}
 	}
-	if len(validDeleters) == 0 {
+	if len(deleterCreaters) == 0 {
 		return nil, errors.New("Couldn't find any IaaS objects in your config")
 	}
-	return validDeleters, nil
+
+	if len(deleterCreaters) > 1 {
+		return nil, errors.New("Found more than one IaaS object in your config")
+	}
+	return deleterCreaters[0].NewDeleter()
 }
