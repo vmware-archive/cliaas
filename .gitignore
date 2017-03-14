@@ -28,3 +28,4 @@ config.yml
 
 *.sw[op]
 .DS_Store
+coverage.out

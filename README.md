@@ -49,6 +49,23 @@ EOF
 * `vpc`: The AWS vpc to use.
 * `ami`: A Pivotal Cloud Foundry Operations Manager AMI, for the new VM in `replace-vm`.
 
+#### GCP-specific Config
+
+```
+cat > config.yml <<EOF
+  gcp:
+    credfile: /tmp/gcp-creds.json 
+    zone: us-east-1 
+    project: my-gcp-projectname 
+    disk_image_url: ops-manager-us/pcf-gcp-1.10.0-rc4.tar.gz
+EOF
+```
+
+* `credfile`: The path of your credentials json file issued by gcp.
+* `zone`: the zone in gcp your deployments are in.
+* `project`: the name of the gcp project you're using.
+* `disk_image_url`: the disk image url you wish to replace the existing vm with.
+
 ## Developing
 
 ```
