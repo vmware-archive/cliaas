@@ -21,12 +21,12 @@ type ValidReplacer interface {
 }
 
 type ConfigParser struct {
-	config Config
+	Config Config
 }
 
 func (s ConfigParser) GetValidDeleters() ([]ValidDeleter, error) {
 	var validDeleters = make([]ValidDeleter, 0)
-	var configReflect = reflect.ValueOf(s.config)
+	var configReflect = reflect.ValueOf(s.Config)
 
 	for i := 0; i < configReflect.NumField(); i++ {
 		if iaasElement, ok := configReflect.Field(i).Interface().(ValidDeleter); ok {

@@ -11,7 +11,7 @@ type VMDeleter interface {
 }
 
 func NewVMDeleter(config Config) (VMDeleter, error) {
-	var configParser = ConfigParser{config: config}
+	var configParser = ConfigParser{Config: config}
 	var iaasConfigs, err = configParser.GetValidDeleters()
 	if err != nil {
 		return nil, errwrap.Wrap(err, "attempt to get iaas related config elements failed")
