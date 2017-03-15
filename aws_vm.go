@@ -1,5 +1,7 @@
 package cliaas
 
+import "fmt"
+
 func NewAWSVMReplacer(awsClient AWSClient, ami string) VMReplacer {
 	return &awsVM{
 		client: awsClient,
@@ -26,6 +28,10 @@ func (v *awsVM) Replace(identifier string) error {
 	vmInfo, err := v.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err
+	}
+
+	if vmInfo.PublicIP == "" {
+		return fmt.Errorf("instance %s does not have an elastic ip", vmInfo.InstanceID)
 	}
 
 	err = v.client.StopVM(vmInfo.InstanceID)

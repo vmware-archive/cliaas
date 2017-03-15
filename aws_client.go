@@ -249,7 +249,10 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 
 	var publicIP string
 	if len(instance.NetworkInterfaces) > 0 {
-		publicIP = *instance.NetworkInterfaces[0].Association.PublicIp
+		association := instance.NetworkInterfaces[0].Association
+		if association != nil {
+			publicIP = *association.PublicIp
+		}
 	}
 
 	vmInfo := VMInfo{
