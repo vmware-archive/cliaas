@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/pivotal-cf/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
@@ -32,6 +33,7 @@ type GCPClientAPI struct {
 	projectName  string
 	zoneName     string
 	googleClient GoogleComputeClient
+	timeout      time.Duration
 }
 
 //NewDefaultGoogleComputeClient -- builds a gcp client which connects to your gcp using `GOOGLE_APPLICATION_CREDENTIALS`
@@ -56,6 +58,7 @@ func NewDefaultGoogleComputeClient(credpath string) (GoogleComputeClient, error)
 
 func NewGCPClientAPI(configs ...func(*GCPClientAPI) error) (*GCPClientAPI, error) {
 	gcpClient := new(GCPClientAPI)
+	gcpClient.timeout = 60 * time.Second
 
 	for _, cfg := range configs {
 		err := cfg(gcpClient)
@@ -76,6 +79,13 @@ func NewGCPClientAPI(configs ...func(*GCPClientAPI) error) (*GCPClientAPI, error
 		return nil, fmt.Errorf("You have an incomplete GCPClientAPI.projectName")
 	}
 	return gcpClient, nil
+}
+
+func ConfigTimeout(value time.Duration) func(*GCPClientAPI) error {
+	return func(gcpClient *GCPClientAPI) error {
+		gcpClient.timeout = value * time.Second
+		return nil
+	}
 }
 
 func ConfigGoogleClient(value GoogleComputeClient) func(*GCPClientAPI) error {
@@ -160,6 +170,31 @@ func (s *GCPClientAPI) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) 
 		}
 	}
 	return nil, fmt.Errorf("No instance matches found")
+}
+
+func (s *GCPClientAPI) WaitForStatus(vmName string, desiredStatus string) error {
+	errChannel := make(chan error)
+	go func() {
+		for {
+			vmInfo, err := s.GetVMInfo(iaas.Filter{NameRegexString: vmName})
+			if err != nil {
+				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
+				return
+			}
+
+			if vmInfo.Status == desiredStatus {
+				errChannel <- nil
+				return
+			}
+		}
+	}()
+	select {
+	case res := <-errChannel:
+		return res
+	case <-time.After(s.timeout):
+		return fmt.Errorf("polling for status timed out")
+	}
+	return fmt.Errorf("polling for status failed")
 }
 
 type googleComputeClientWrapper struct {
