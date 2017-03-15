@@ -30,10 +30,10 @@ func (c AWS) NewReplacer() (VMReplacer, error) {
 		return nil, errwrap.Wrap(err, "get EC2 client failed")
 	}
 
-	return NewAWSVMReplacer(
-		NewAWSClient(ec2Client, c.VPCID),
-		c.AMI,
-	), nil
+	return &awsVM{
+		client: NewAWSClient(ec2Client, c.VPCID),
+		ami:    c.AMI,
+	}, nil
 }
 
 func (c AWS) NewDeleter() (VMDeleter, error) {
@@ -41,9 +41,10 @@ func (c AWS) NewDeleter() (VMDeleter, error) {
 	if err != nil {
 		return nil, errwrap.Wrap(err, "get EC2 client failed")
 	}
-	return NewAWSVMDeleter(
-		NewAWSClient(ec2Client, c.VPCID),
-	)
+
+	return &awsVM{
+		client: NewAWSClient(ec2Client, c.VPCID),
+	}, nil
 }
 
 func (c AWS) getClient() (EC2Client, error) {

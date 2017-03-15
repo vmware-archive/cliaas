@@ -2,19 +2,6 @@ package cliaas
 
 import "fmt"
 
-func NewAWSVMReplacer(awsClient AWSClient, ami string) VMReplacer {
-	return &awsVM{
-		client: awsClient,
-		ami:    ami,
-	}
-}
-
-func NewAWSVMDeleter(awsClient AWSClient) (VMDeleter, error) {
-	return &awsVM{
-		client: awsClient,
-	}, nil
-}
-
 type awsVM struct {
 	client AWSClient
 	ami    string
