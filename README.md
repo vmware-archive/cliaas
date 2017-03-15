@@ -57,7 +57,7 @@ cat > config.yml <<EOF
     credfile: /tmp/gcp-creds.json 
     zone: us-east-1 
     project: my-gcp-projectname 
-    disk_image_url: ops-manager-us/pcf-gcp-1.10.0-rc4.tar.gz
+    disk_image_url: https://storage.googleapis.com/ops-manager-us/pcf-gcp-1.9.3.tar.gz
 EOF
 ```
 
