@@ -8,7 +8,6 @@ type Config struct {
 }
 
 func (c Config) NewVMDeleter() (VMDeleter, error) {
-
 	switch {
 	case c.AWS.IsValid() && c.GCP.IsValid():
 		return nil, errors.New("You've given a config which defines more than one iaas. This is not allowed")
@@ -24,7 +23,6 @@ func (c Config) NewVMDeleter() (VMDeleter, error) {
 }
 
 func (c Config) NewVMReplacer() (VMReplacer, error) {
-
 	switch {
 	case c.AWS.IsValid() && c.GCP.IsValid():
 		return nil, errors.New("You've given a config which defines more than one iaas. This is not allowed")
