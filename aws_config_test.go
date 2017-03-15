@@ -45,7 +45,7 @@ var _ = Describe("AWS", func() {
 
 			It("should return an error", func() {
 				Expect(err).Should(HaveOccurred())
-				Expect(errwrap.Cause(err)).Should(Equal(InvalidConfigErr))
+				Expect(errwrap.Cause(err)).Should(Equal(ErrInvalidConfig))
 				Expect(vmReplacer).Should(BeNil())
 			})
 		})
@@ -75,7 +75,7 @@ var _ = Describe("AWS", func() {
 
 			It("should return an error", func() {
 				Expect(err).Should(HaveOccurred())
-				Expect(errwrap.Cause(err)).Should(Equal(InvalidConfigErr))
+				Expect(errwrap.Cause(err)).Should(Equal(ErrInvalidConfig))
 				Expect(vmDeleter).Should(BeNil())
 			})
 		})

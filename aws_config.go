@@ -6,6 +6,8 @@ import (
 	errwrap "github.com/pkg/errors"
 )
 
+var ErrInvalidConfig = errors.New("invalid configuration")
+
 type AWS struct {
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key"`
@@ -46,13 +48,12 @@ func (c AWS) NewDeleter() (VMDeleter, error) {
 
 func (c AWS) getClient() (EC2Client, error) {
 	if c.IsValid() == false {
-		return nil, InvalidConfigErr
+		return nil, ErrInvalidConfig
 	}
+
 	return NewEC2Client(
 		c.AccessKeyID,
 		c.SecretAccessKey,
 		c.Region,
 	)
 }
-
-var InvalidConfigErr = errors.New("invalid configuration")
