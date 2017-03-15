@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/pivotal-cf/cliaas"
+
+	errwrap "github.com/pkg/errors"
 )
 
 var _ = Describe("AWS", func() {
@@ -43,7 +45,7 @@ var _ = Describe("AWS", func() {
 
 			It("should return an error", func() {
 				Expect(err).Should(HaveOccurred())
-				Expect(err).Should(BeAssignableToTypeOf(InvalidConfigErr{}))
+				Expect(errwrap.Cause(err)).Should(Equal(InvalidConfigErr))
 				Expect(vmReplacer).Should(BeNil())
 			})
 		})
@@ -73,7 +75,7 @@ var _ = Describe("AWS", func() {
 
 			It("should return an error", func() {
 				Expect(err).Should(HaveOccurred())
-				Expect(err).Should(BeAssignableToTypeOf(InvalidConfigErr{}))
+				Expect(errwrap.Cause(err)).Should(Equal(InvalidConfigErr))
 				Expect(vmDeleter).Should(BeNil())
 			})
 		})

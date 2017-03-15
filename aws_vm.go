@@ -1,18 +1,28 @@
 package cliaas
 
 func NewAWSVMReplacer(awsClient AWSClient, ami string) VMReplacer {
-	return &awsVMReplacer{
+	return &awsVM{
 		client: awsClient,
 		ami:    ami,
 	}
 }
 
-type awsVMReplacer struct {
+func NewAWSVMDeleter(awsClient AWSClient) (VMDeleter, error) {
+	return &awsVM{
+		client: awsClient,
+	}, nil
+}
+
+type awsVM struct {
 	client AWSClient
 	ami    string
 }
 
-func (r *awsVMReplacer) Replace(identifier string) error {
+func (d *awsVM) Delete(identifier string) error {
+	return d.client.DeleteVM(identifier)
+}
+
+func (r *awsVM) Replace(identifier string) error {
 	vmInfo, err := r.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err

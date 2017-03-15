@@ -1,6 +1,10 @@
 package cliaas
 
-import errwrap "github.com/pkg/errors"
+import (
+	"errors"
+
+	errwrap "github.com/pkg/errors"
+)
 
 type AWS struct {
 	AccessKeyID     string `yaml:"access_key_id"`
@@ -19,17 +23,9 @@ func (c AWS) IsValid() bool {
 }
 
 func (c AWS) NewReplacer() (VMReplacer, error) {
-	if c.IsValid() == false {
-		return nil, InvalidConfigErr{s: "invalid aws config"}
-	}
-
-	ec2Client, err := NewEC2Client(
-		c.AccessKeyID,
-		c.SecretAccessKey,
-		c.Region,
-	)
+	ec2Client, err := c.getClient()
 	if err != nil {
-		return nil, errwrap.Wrap(err, "NewEC2Client creation failed")
+		return nil, errwrap.Wrap(err, "get EC2 client failed")
 	}
 
 	return NewAWSVMReplacer(
@@ -39,29 +35,24 @@ func (c AWS) NewReplacer() (VMReplacer, error) {
 }
 
 func (c AWS) NewDeleter() (VMDeleter, error) {
-	if c.IsValid() == false {
-		return nil, InvalidConfigErr{s: "invalid aws config"}
-	}
-	ec2Client, err := NewEC2Client(
-		c.AccessKeyID,
-		c.SecretAccessKey,
-		c.Region,
-	)
+	ec2Client, err := c.getClient()
 	if err != nil {
-		return nil, errwrap.Wrap(err, "unable to create NewEC2Client")
+		return nil, errwrap.Wrap(err, "get EC2 client failed")
 	}
-
 	return NewAWSVMDeleter(
 		NewAWSClient(ec2Client, c.VPCID),
 	)
 }
 
-type InvalidConfigErr struct {
-	s string
-	error
+func (c AWS) getClient() (EC2Client, error) {
+	if c.IsValid() == false {
+		return nil, InvalidConfigErr
+	}
+	return NewEC2Client(
+		c.AccessKeyID,
+		c.SecretAccessKey,
+		c.Region,
+	)
 }
 
-func (e InvalidConfigErr) Error() string {
-	return e.s
-}
-func (e InvalidConfigErr) IsInvalidConfig() {}
+var InvalidConfigErr = errors.New("invalid configuration")

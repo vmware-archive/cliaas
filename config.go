@@ -1,76 +1,40 @@
 package cliaas
 
-import (
-	"errors"
-	"reflect"
-
-	errwrap "github.com/pkg/errors"
-)
+import "errors"
 
 type Config struct {
 	AWS AWS `yaml:"aws"`
 	GCP GCP `yaml:"gcp"`
 }
 
-type ValidConfig interface {
-	IsValidChecker
-	ReplacerDeleter
-}
+func (c Config) NewVMDeleter() (VMDeleter, error) {
 
-type ReplacerDeleter interface {
-	DeleterCreater
-	ReplacerCreator
-}
+	switch {
+	case c.AWS.IsValid() && c.GCP.IsValid():
+		return nil, errors.New("You've given a config which defines more than one iaas. This is not allowed")
 
-type IsValidChecker interface {
-	IsValid() bool
-}
+	case c.AWS.IsValid():
+		return c.AWS.NewDeleter()
 
-type DeleterCreater interface {
-	NewDeleter() (VMDeleter, error)
-}
-
-type ReplacerCreator interface {
-	NewReplacer() (VMReplacer, error)
-}
-
-type ConfigParser struct {
-	Config Config
-}
-
-func (s ConfigParser) NewVMDeleter() (VMDeleter, error) {
-	deleter, err := s.newVMReplacerDeleter()
-	if err != nil {
-		return nil, errwrap.Wrap(err, "error in calling newVMReplacerDeleter")
-	}
-	return deleter.NewDeleter()
-}
-
-func (s ConfigParser) NewVMReplacer() (VMReplacer, error) {
-	replacer, err := s.newVMReplacerDeleter()
-	if err != nil {
-		return nil, errwrap.Wrap(err, "error in calling newVMReplacerDeleter")
-	}
-	return replacer.NewReplacer()
-}
-
-func (s ConfigParser) newVMReplacerDeleter() (ReplacerDeleter, error) {
-	var replacerDeleters = make([]ReplacerDeleter, 0)
-	var configReflect = reflect.ValueOf(s.Config)
-
-	for i := 0; i < configReflect.NumField(); i++ {
-		if iaasElement, ok := configReflect.Field(i).Interface().(ValidConfig); ok {
-			if iaasElement.IsValid() {
-				replacerDeleters = append(replacerDeleters, iaasElement)
-			}
-		}
-	}
-	if len(replacerDeleters) == 0 {
-		return nil, errors.New("Couldn't find any IaaS objects in your config")
+	case c.GCP.IsValid():
+		return c.GCP.NewDeleter()
 	}
 
-	if len(replacerDeleters) > 1 {
-		return nil, errors.New("Found more than one IaaS object in your config")
+	return nil, errors.New("no vm deleter exists for provided config")
+}
+
+func (c Config) NewVMReplacer() (VMReplacer, error) {
+
+	switch {
+	case c.AWS.IsValid() && c.GCP.IsValid():
+		return nil, errors.New("You've given a config which defines more than one iaas. This is not allowed")
+
+	case c.AWS.IsValid():
+		return c.AWS.NewReplacer()
+
+	case c.GCP.IsValid():
+		return c.GCP.NewReplacer()
 	}
-	return replacerDeleters[0], nil
+
+	return nil, errors.New("no vm replacer exists for provided config")
 }
