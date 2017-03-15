@@ -47,7 +47,7 @@ func (c AWS) NewDeleter() (VMDeleter, error) {
 }
 
 func (c AWS) getClient() (EC2Client, error) {
-	if c.IsValid() == false {
+	if !c.IsValid() {
 		return nil, ErrInvalidConfig
 	}
 
