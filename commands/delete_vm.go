@@ -5,10 +5,10 @@ type DeleteVMCommand struct {
 }
 
 func (c *DeleteVMCommand) Execute([]string) error {
-	deleter, err := Cliaas.Config.NewVMDeleter()
+	client, err := Cliaas.Config.NewClient()
 	if err != nil {
 		return err
 	}
 
-	return deleter.Delete(c.Identifier)
+	return client.Delete(c.Identifier)
 }

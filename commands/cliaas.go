@@ -18,13 +18,23 @@ func (c *ConfigFilePath) UnmarshalFlag(value string) error {
 		return fmt.Errorf("failed to read config: %s", err)
 	}
 
-	var config cliaas.Config
-	err = yaml.Unmarshal(bs, &config)
+	var multiConfig cliaas.MultiConfig
+	err = yaml.Unmarshal(bs, &multiConfig)
 	if err != nil {
 		log.Fatalf("failed to unmarshal config: %s", err)
 	}
 
-	Cliaas.Config = config
+	completeConfigs := multiConfig.CompleteConfigs()
+
+	if len(completeConfigs) == 0 {
+		log.Fatalf("zero iaas configurations exists in config")
+	}
+
+	if len(completeConfigs) > 1 {
+		log.Fatalf("more than one iaas configuration exists in config")
+	}
+
+	Cliaas.Config = completeConfigs[0]
 
 	return nil
 }

@@ -6,10 +6,10 @@ type ReplaceVMCommand struct {
 }
 
 func (r *ReplaceVMCommand) Execute([]string) error {
-	replacer, err := Cliaas.Config.NewVMReplacer()
+	client, err := Cliaas.Config.NewClient()
 	if err != nil {
 		return err
 	}
 
-	return replacer.Replace(r.Identifier, r.Image)
+	return client.Replace(r.Identifier, r.Image)
 }
