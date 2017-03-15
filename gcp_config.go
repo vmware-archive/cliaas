@@ -16,9 +16,11 @@ type GCP struct {
 
 func (c GCP) IsValid() bool {
 	_, err := os.Stat(c.CredfilePath)
+	if err != nil {
+		return false
+	}
+
 	return c.CredfilePath != "" &&
-		err == nil &&
-		!os.IsNotExist(err) &&
 		c.Zone != "" &&
 		c.Project != "" &&
 		c.DiskImageURL != ""
