@@ -7,7 +7,7 @@ type Config struct {
 	GCP GCP `yaml:"gcp"`
 }
 
-func (c Config) NewVMDeleter() (VMDeleter, error) {
+func (c *Config) NewVMDeleter() (VMDeleter, error) {
 	switch {
 	case c.AWS.IsValid() && c.GCP.IsValid():
 		return nil, errors.New("You've given a config which defines more than one iaas. This is not allowed")
@@ -22,7 +22,7 @@ func (c Config) NewVMDeleter() (VMDeleter, error) {
 	return nil, errors.New("no vm deleter exists for provided config")
 }
 
-func (c Config) NewVMReplacer() (VMReplacer, error) {
+func (c *Config) NewVMReplacer() (VMReplacer, error) {
 	switch {
 	case c.AWS.IsValid() && c.GCP.IsValid():
 		return nil, errors.New("You've given a config which defines more than one iaas. This is not allowed")

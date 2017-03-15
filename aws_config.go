@@ -15,14 +15,14 @@ type AWS struct {
 	VPCID           string `yaml:"vpc_id"`
 }
 
-func (c AWS) IsValid() bool {
+func (c *AWS) IsValid() bool {
 	return c.AccessKeyID != "" &&
 		c.SecretAccessKey != "" &&
 		c.VPCID != "" &&
 		c.Region != ""
 }
 
-func (c AWS) NewReplacer() (VMReplacer, error) {
+func (c *AWS) NewReplacer() (VMReplacer, error) {
 	ec2Client, err := c.getClient()
 	if err != nil {
 		return nil, errwrap.Wrap(err, "get EC2 client failed")
@@ -33,7 +33,7 @@ func (c AWS) NewReplacer() (VMReplacer, error) {
 	}, nil
 }
 
-func (c AWS) NewDeleter() (VMDeleter, error) {
+func (c *AWS) NewDeleter() (VMDeleter, error) {
 	ec2Client, err := c.getClient()
 	if err != nil {
 		return nil, errwrap.Wrap(err, "get EC2 client failed")
@@ -44,7 +44,7 @@ func (c AWS) NewDeleter() (VMDeleter, error) {
 	}, nil
 }
 
-func (c AWS) getClient() (EC2Client, error) {
+func (c *AWS) getClient() (EC2Client, error) {
 	if !c.IsValid() {
 		return nil, ErrInvalidConfig
 	}

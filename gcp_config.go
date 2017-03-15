@@ -14,7 +14,7 @@ type GCP struct {
 	DiskImageURL string `yaml:"disk_image_url"`
 }
 
-func (c GCP) IsValid() bool {
+func (c *GCP) IsValid() bool {
 	_, err := os.Stat(c.CredfilePath)
 	if err != nil {
 		return false
@@ -26,7 +26,7 @@ func (c GCP) IsValid() bool {
 		c.DiskImageURL != ""
 }
 
-func (c GCP) NewDeleter() (VMDeleter, error) {
+func (c *GCP) NewDeleter() (VMDeleter, error) {
 	gcpClientAPI, err := c.newGCPClient()
 	if err != nil {
 		return nil, errwrap.Wrap(err, "Failed to create new GCP API client")
@@ -37,7 +37,7 @@ func (c GCP) NewDeleter() (VMDeleter, error) {
 	}, nil
 }
 
-func (c GCP) NewReplacer() (VMReplacer, error) {
+func (c *GCP) NewReplacer() (VMReplacer, error) {
 	gcpClientAPI, err := c.newGCPClient()
 	if err != nil {
 		return nil, errwrap.Wrap(err, "Failed to create new GCP API client")
@@ -48,7 +48,7 @@ func (c GCP) NewReplacer() (VMReplacer, error) {
 	}, nil
 }
 
-func (c GCP) newGCPClient() (*gcp.GCPClientAPI, error) {
+func (c *GCP) newGCPClient() (*gcp.GCPClientAPI, error) {
 	gcpClient, err := gcp.NewDefaultGoogleComputeClient(c.CredfilePath)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "failed to create gcp default client")
