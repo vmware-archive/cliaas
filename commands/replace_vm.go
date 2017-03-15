@@ -1,7 +1,8 @@
 package commands
 
 type ReplaceVMCommand struct {
-	Identifier string `short:"i" long:"identifier" required:"true" description:"Identifier of the VM that is being replaced"`
+	Identifier string `long:"identifier" required:"true" description:"Identifier of the VM that is being replaced"`
+	Image      string `long:"image" required:"true" description:"Image to use for the new VM"`
 }
 
 func (r *ReplaceVMCommand) Execute([]string) error {
@@ -10,5 +11,5 @@ func (r *ReplaceVMCommand) Execute([]string) error {
 		return err
 	}
 
-	return replacer.Replace(r.Identifier)
+	return replacer.Replace(r.Identifier, r.Image)
 }

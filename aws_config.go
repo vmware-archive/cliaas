@@ -13,13 +13,11 @@ type AWS struct {
 	SecretAccessKey string `yaml:"secret_access_key"`
 	Region          string `yaml:"region"`
 	VPCID           string `yaml:"vpc_id"`
-	AMI             string `yaml:"ami"`
 }
 
 func (c AWS) IsValid() bool {
 	return c.AccessKeyID != "" &&
 		c.SecretAccessKey != "" &&
-		c.AMI != "" &&
 		c.VPCID != "" &&
 		c.Region != ""
 }
@@ -32,7 +30,6 @@ func (c AWS) NewReplacer() (VMReplacer, error) {
 
 	return &awsVM{
 		client: NewAWSClient(ec2Client, c.VPCID),
-		ami:    c.AMI,
 	}, nil
 }
 

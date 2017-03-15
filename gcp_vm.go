@@ -11,19 +11,6 @@ import (
 	errwrap "github.com/pkg/errors"
 )
 
-func NewGCPVMDeleter(gcpClientAPI *gcp.GCPClientAPI) (VMDeleter, error) {
-	return &gcpVM{
-		client: gcpClientAPI,
-	}, nil
-}
-
-func NewGCPVMReplacer(gcpClientAPI *gcp.GCPClientAPI, sourceImageTarballURL string) (VMReplacer, error) {
-	return &gcpVM{
-		client:                gcpClientAPI,
-		sourceImageTarballURL: sourceImageTarballURL,
-	}, nil
-}
-
 type gcpVM struct {
 	client                *gcp.GCPClientAPI
 	sourceImageTarballURL string
@@ -33,7 +20,7 @@ func (s *gcpVM) Delete(identifier string) error {
 	return s.client.DeleteVM(identifier)
 }
 
-func (s *gcpVM) Replace(identifier string) error {
+func (s *gcpVM) Replace(identifier string, sourceImageTarballURL string) error {
 	vmInstance, err := s.client.GetVMInfo(iaas.Filter{
 		NameRegexString: identifier + "*",
 	})
@@ -54,7 +41,7 @@ func (s *gcpVM) Replace(identifier string) error {
 	vmInstance.Name = fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02_15-04-05"))
 	vmInstance.Disks = []*compute.AttachedDisk{
 		&compute.AttachedDisk{
-			Source: s.sourceImageTarballURL,
+			Source: sourceImageTarballURL,
 		},
 	}
 	err = s.client.CreateVM(*vmInstance)

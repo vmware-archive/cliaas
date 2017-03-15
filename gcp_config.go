@@ -30,7 +30,9 @@ func (c GCP) NewDeleter() (VMDeleter, error) {
 		return nil, errwrap.Wrap(err, "Failed to create new GCP API client")
 	}
 
-	return NewGCPVMDeleter(gcpClientAPI)
+	return &gcpVM{
+		client: gcpClientAPI,
+	}, nil
 }
 
 func (c GCP) NewReplacer() (VMReplacer, error) {
@@ -39,7 +41,9 @@ func (c GCP) NewReplacer() (VMReplacer, error) {
 		return nil, errwrap.Wrap(err, "Failed to create new GCP API client")
 	}
 
-	return NewGCPVMReplacer(gcpClientAPI, c.DiskImageURL)
+	return &gcpVM{
+		client: gcpClientAPI,
+	}, nil
 }
 
 func (c GCP) newGCPClient() (*gcp.GCPClientAPI, error) {

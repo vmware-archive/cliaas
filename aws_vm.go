@@ -4,14 +4,13 @@ import "fmt"
 
 type awsVM struct {
 	client AWSClient
-	ami    string
 }
 
 func (v *awsVM) Delete(identifier string) error {
 	return v.client.DeleteVM(identifier)
 }
 
-func (v *awsVM) Replace(identifier string) error {
+func (v *awsVM) Replace(identifier string, ami string) error {
 	vmInfo, err := v.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err
@@ -32,7 +31,7 @@ func (v *awsVM) Replace(identifier string) error {
 	}
 
 	instanceID, err := v.client.CreateVM(
-		v.ami,
+		ami,
 		vmInfo.InstanceType,
 		identifier,
 		vmInfo.KeyName,

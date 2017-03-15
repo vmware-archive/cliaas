@@ -17,7 +17,6 @@ var _ = Describe("AWS", func() {
 			SecretAccessKey: "--",
 			Region:          "--",
 			VPCID:           "--",
-			AMI:             "--",
 		}
 	})
 
@@ -123,15 +122,6 @@ var _ = Describe("AWS", func() {
 		Context("when not passed a valid vpcid", func() {
 			BeforeEach(func() {
 				validAWSConfig.VPCID = ""
-			})
-			It("should not pass the is valid test", func() {
-				Expect(isValidResult).Should(BeFalse())
-			})
-		})
-
-		Context("when not passed a valid AMI", func() {
-			BeforeEach(func() {
-				validAWSConfig.AMI = ""
 			})
 			It("should not pass the is valid test", func() {
 				Expect(isValidResult).Should(BeFalse())

@@ -1,9 +1,9 @@
 package cliaas
 
 type VMDeleter interface {
-	Delete(identifier string) error
+	Delete(vmIdentifier string) error
 }
 
 type VMReplacer interface {
-	Replace(identifier string) error
+	Replace(vmIdentifier string, imageIdentifier string) error
 }

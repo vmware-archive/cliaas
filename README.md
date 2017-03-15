@@ -24,7 +24,7 @@ go install github.com/pivotal-cf/cliaas/cmd/cliaas
 
 ## Usage
 
-`cliaas -c config.yml replace-vm -i vm-identifier`
+`cliaas -c config.yml replace-vm --identifier vm-identifier --image some-image`
 
 ### Config
 
@@ -39,7 +39,6 @@ cat > config.yml <<EOF
     secret_access_key: example-secret-access-key
     region: us-east-1
     vpc: vpc-12345678
-    ami: ami-019e4617
 EOF
 ```
 
@@ -54,17 +53,24 @@ EOF
 ```
 cat > config.yml <<EOF
   gcp:
-    credfile: /tmp/gcp-creds.json 
-    zone: us-east-1 
-    project: my-gcp-projectname 
-    disk_image_url: https://storage.googleapis.com/ops-manager-us/pcf-gcp-1.9.3.tar.gz
+    credfile: /tmp/gcp-creds.json
+    zone: us-east-1
+    project: my-gcp-projectname
 EOF
 ```
 
 * `credfile`: The path of your credentials json file issued by gcp.
 * `zone`: the zone in gcp your deployments are in.
 * `project`: the name of the gcp project you're using.
-* `disk_image_url`: the disk image url you wish to replace the existing vm with.
+
+#### Identifiers
+
+The VM identifier is used to find the VM by name in the IaaS.
+
+#### Images
+
+* For AWS, the image is an AMI, e.g. ami-019e4617
+* For GCP, the image is a disk image url, e.g. https://storage.googleapis.com/ops-manager-us/pcf-gcp-1.9.3.tar.gz
 
 ## Developing
 
