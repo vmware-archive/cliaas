@@ -18,28 +18,28 @@ type awsVM struct {
 	ami    string
 }
 
-func (d *awsVM) Delete(identifier string) error {
-	return d.client.DeleteVM(identifier)
+func (v *awsVM) Delete(identifier string) error {
+	return v.client.DeleteVM(identifier)
 }
 
-func (r *awsVM) Replace(identifier string) error {
-	vmInfo, err := r.client.GetVMInfo(identifier + "*")
+func (v *awsVM) Replace(identifier string) error {
+	vmInfo, err := v.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err
 	}
 
-	err = r.client.StopVM(vmInfo.InstanceID)
+	err = v.client.StopVM(vmInfo.InstanceID)
 	if err != nil {
 		return err
 	}
 
-	err = r.client.WaitForStatus(vmInfo.InstanceID, "stopped")
+	err = v.client.WaitForStatus(vmInfo.InstanceID, "stopped")
 	if err != nil {
 		return err
 	}
 
-	instanceID, err := r.client.CreateVM(
-		r.ami,
+	instanceID, err := v.client.CreateVM(
+		v.ami,
 		vmInfo.InstanceType,
 		identifier,
 		vmInfo.KeyName,
@@ -50,10 +50,10 @@ func (r *awsVM) Replace(identifier string) error {
 		return err
 	}
 
-	err = r.client.WaitForStatus(instanceID, "running")
+	err = v.client.WaitForStatus(instanceID, "running")
 	if err != nil {
 		return err
 	}
 
-	return r.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
+	return v.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
 }
