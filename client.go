@@ -29,10 +29,6 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 		return err
 	}
 
-	if vmInfo.PublicIP == "" {
-		return fmt.Errorf("instance %s does not have an elastic ip", vmInfo.InstanceID)
-	}
-
 	err = v.client.StopVM(vmInfo.InstanceID)
 	if err != nil {
 		return err
@@ -60,7 +56,11 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 		return err
 	}
 
-	return v.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
+	if vmInfo.PublicIP != "" {
+		return v.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
+	}
+
+	return nil
 }
 
 type gcpClient struct {
