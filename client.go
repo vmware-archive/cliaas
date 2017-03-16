@@ -64,8 +64,7 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 }
 
 type gcpClient struct {
-	client                *gcp.GCPClientAPI
-	sourceImageTarballURL string
+	client *gcp.GCPClientAPI
 }
 
 func (c *gcpClient) Delete(identifier string) error {
