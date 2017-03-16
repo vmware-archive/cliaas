@@ -2,7 +2,6 @@ package cliaas
 
 import (
 	"os"
-	"reflect"
 
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
@@ -18,26 +17,32 @@ type MultiConfig struct {
 	GCP *GCPConfig `yaml:"gcp"`
 }
 
-func (c *MultiConfig) CompleteConfigs() []Config {
-	typ := reflect.ValueOf(c)
+func (c *MultiConfig) Configs() []Config {
+	var configs []Config
 
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
+	if c.AWS != nil {
+		configs = append(configs, c.AWS)
 	}
 
-	configs := []Config{}
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-		iface := field.Interface()
-
-		if config, ok := iface.(Config); ok {
-			if !field.IsNil() && config.Complete() {
-				configs = append(configs, config)
-			}
-		}
+	if c.GCP != nil {
+		configs = append(configs, c.GCP)
 	}
 
 	return configs
+
+}
+
+func (c *MultiConfig) CompleteConfigs() []Config {
+	configs := c.Configs()
+
+	var completeConfigs []Config
+	for i := range configs {
+		if configs[i].Complete() {
+			completeConfigs = append(completeConfigs, configs[i])
+		}
+	}
+
+	return completeConfigs
 }
 
 type AWSConfig struct {

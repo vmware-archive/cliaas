@@ -15,8 +15,8 @@ var _ = Describe("Config", func() {
 			multiConfig = cliaas.MultiConfig{}
 		})
 
-		It("returns an empty slice when no configs are set", func() {
-			Expect(multiConfig.CompleteConfigs()).To(Equal([]cliaas.Config{}))
+		It("returns nil when no configs are set", func() {
+			Expect(multiConfig.CompleteConfigs()).To(BeNil())
 		})
 
 		Context("when the multi config has a complete AWS config", func() {
