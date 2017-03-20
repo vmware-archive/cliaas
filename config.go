@@ -3,6 +3,8 @@ package cliaas
 import (
 	"os"
 
+	"code.cloudfoundry.org/clock"
+
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
 )
@@ -66,7 +68,7 @@ func (c *AWSConfig) NewClient() (Client, error) {
 	}
 
 	return &awsClient{
-		client: NewAWSClient(ec2Client, c.VPCID),
+		client: NewAWSClient(ec2Client, c.VPCID, clock.NewClock()),
 	}, nil
 }
 

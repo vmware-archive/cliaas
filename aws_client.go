@@ -33,34 +33,16 @@ type client struct {
 func NewAWSClient(
 	ec2Client EC2Client,
 	vpcID string,
-	options ...OptionFunc,
+	clock clock.Clock,
 ) AWSClient {
 	client := &client{
 		ec2Client: ec2Client,
 		vpcID:     vpcID,
 		timeout:   60 * time.Second,
-		clock:     clock.NewClock(),
-	}
-
-	for _, option := range options {
-		option(client)
+		clock:     clock,
 	}
 
 	return client
-}
-
-type OptionFunc func(*client)
-
-func Timeout(timeout time.Duration) OptionFunc {
-	return func(c *client) {
-		c.timeout = timeout
-	}
-}
-
-func Clock(clock clock.Clock) OptionFunc {
-	return func(c *client) {
-		c.clock = clock
-	}
 }
 
 func (c *client) WaitForStatus(instanceID string, status string) error {

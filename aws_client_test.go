@@ -2,6 +2,9 @@ package cliaas_test
 
 import (
 	"errors"
+	"time"
+
+	"code.cloudfoundry.org/clock/fakeclock"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -19,8 +22,9 @@ var _ = Describe("AWSClient", func() {
 
 	BeforeEach(func() {
 		ec2Client = new(cliaasfakes.FakeEC2Client)
+		clock := fakeclock.NewFakeClock(time.Now())
 
-		client = cliaas.NewAWSClient(ec2Client, "some vpc")
+		client = cliaas.NewAWSClient(ec2Client, "some vpc", clock)
 	})
 
 	Describe("GetVMInfo", func() {
