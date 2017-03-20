@@ -39,6 +39,14 @@ type FakeAWSClient struct {
 		result1 cliaas.VMInfo
 		result2 error
 	}
+	StartVMStub        func(instanceID string) error
+	startVMMutex       sync.RWMutex
+	startVMArgsForCall []struct {
+		instanceID string
+	}
+	startVMReturns struct {
+		result1 error
+	}
 	StopVMStub        func(instanceID string) error
 	stopVMMutex       sync.RWMutex
 	stopVMArgsForCall []struct {
@@ -175,6 +183,39 @@ func (fake *FakeAWSClient) GetVMInfoReturns(result1 cliaas.VMInfo, result2 error
 	}{result1, result2}
 }
 
+func (fake *FakeAWSClient) StartVM(instanceID string) error {
+	fake.startVMMutex.Lock()
+	fake.startVMArgsForCall = append(fake.startVMArgsForCall, struct {
+		instanceID string
+	}{instanceID})
+	fake.recordInvocation("StartVM", []interface{}{instanceID})
+	fake.startVMMutex.Unlock()
+	if fake.StartVMStub != nil {
+		return fake.StartVMStub(instanceID)
+	} else {
+		return fake.startVMReturns.result1
+	}
+}
+
+func (fake *FakeAWSClient) StartVMCallCount() int {
+	fake.startVMMutex.RLock()
+	defer fake.startVMMutex.RUnlock()
+	return len(fake.startVMArgsForCall)
+}
+
+func (fake *FakeAWSClient) StartVMArgsForCall(i int) string {
+	fake.startVMMutex.RLock()
+	defer fake.startVMMutex.RUnlock()
+	return fake.startVMArgsForCall[i].instanceID
+}
+
+func (fake *FakeAWSClient) StartVMReturns(result1 error) {
+	fake.StartVMStub = nil
+	fake.startVMReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeAWSClient) StopVM(instanceID string) error {
 	fake.stopVMMutex.Lock()
 	fake.stopVMArgsForCall = append(fake.stopVMArgsForCall, struct {
@@ -285,6 +326,8 @@ func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	defer fake.deleteVMMutex.RUnlock()
 	fake.getVMInfoMutex.RLock()
 	defer fake.getVMInfoMutex.RUnlock()
+	fake.startVMMutex.RLock()
+	defer fake.startVMMutex.RUnlock()
 	fake.stopVMMutex.RLock()
 	defer fake.stopVMMutex.RUnlock()
 	fake.assignPublicIPMutex.RLock()

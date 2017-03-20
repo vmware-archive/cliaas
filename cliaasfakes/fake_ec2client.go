@@ -54,6 +54,15 @@ type FakeEC2Client struct {
 		result1 *ec2.StopInstancesOutput
 		result2 error
 	}
+	StartInstancesStub        func(*ec2.StartInstancesInput) (*ec2.StartInstancesOutput, error)
+	startInstancesMutex       sync.RWMutex
+	startInstancesArgsForCall []struct {
+		arg1 *ec2.StartInstancesInput
+	}
+	startInstancesReturns struct {
+		result1 *ec2.StartInstancesOutput
+		result2 error
+	}
 	CreateTagsStub        func(*ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error)
 	createTagsMutex       sync.RWMutex
 	createTagsArgsForCall []struct {
@@ -246,6 +255,40 @@ func (fake *FakeEC2Client) StopInstancesReturns(result1 *ec2.StopInstancesOutput
 	}{result1, result2}
 }
 
+func (fake *FakeEC2Client) StartInstances(arg1 *ec2.StartInstancesInput) (*ec2.StartInstancesOutput, error) {
+	fake.startInstancesMutex.Lock()
+	fake.startInstancesArgsForCall = append(fake.startInstancesArgsForCall, struct {
+		arg1 *ec2.StartInstancesInput
+	}{arg1})
+	fake.recordInvocation("StartInstances", []interface{}{arg1})
+	fake.startInstancesMutex.Unlock()
+	if fake.StartInstancesStub != nil {
+		return fake.StartInstancesStub(arg1)
+	} else {
+		return fake.startInstancesReturns.result1, fake.startInstancesReturns.result2
+	}
+}
+
+func (fake *FakeEC2Client) StartInstancesCallCount() int {
+	fake.startInstancesMutex.RLock()
+	defer fake.startInstancesMutex.RUnlock()
+	return len(fake.startInstancesArgsForCall)
+}
+
+func (fake *FakeEC2Client) StartInstancesArgsForCall(i int) *ec2.StartInstancesInput {
+	fake.startInstancesMutex.RLock()
+	defer fake.startInstancesMutex.RUnlock()
+	return fake.startInstancesArgsForCall[i].arg1
+}
+
+func (fake *FakeEC2Client) StartInstancesReturns(result1 *ec2.StartInstancesOutput, result2 error) {
+	fake.StartInstancesStub = nil
+	fake.startInstancesReturns = struct {
+		result1 *ec2.StartInstancesOutput
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeEC2Client) CreateTags(arg1 *ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error) {
 	fake.createTagsMutex.Lock()
 	fake.createTagsArgsForCall = append(fake.createTagsArgsForCall, struct {
@@ -327,6 +370,8 @@ func (fake *FakeEC2Client) Invocations() map[string][][]interface{} {
 	defer fake.terminateInstancesMutex.RUnlock()
 	fake.stopInstancesMutex.RLock()
 	defer fake.stopInstancesMutex.RUnlock()
+	fake.startInstancesMutex.RLock()
+	defer fake.startInstancesMutex.RUnlock()
 	fake.createTagsMutex.RLock()
 	defer fake.createTagsMutex.RUnlock()
 	fake.runInstancesMutex.RLock()

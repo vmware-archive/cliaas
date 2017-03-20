@@ -17,6 +17,7 @@ type AWSClient interface {
 	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (string, error)
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (VMInfo, error)
+	StartVM(instanceID string) error
 	StopVM(instanceID string) error
 	AssignPublicIP(instance, ip string) error
 	WaitForStatus(instanceID string, status string) error
@@ -190,6 +191,21 @@ func (c *client) StopVM(instanceID string) error {
 
 	if err != nil {
 		return errwrap.Wrap(err, "stop instances failed")
+	}
+
+	return nil
+}
+
+func (c *client) StartVM(instanceID string) error {
+	_, err := c.ec2Client.StartInstances(&ec2.StartInstancesInput{
+		InstanceIds: []*string{
+			aws.String(instanceID),
+		},
+		DryRun: aws.Bool(false),
+	})
+
+	if err != nil {
+		return errwrap.Wrap(err, "start instances failed")
 	}
 
 	return nil

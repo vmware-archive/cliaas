@@ -31,11 +31,13 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 
 	err = v.client.StopVM(vmInfo.InstanceID)
 	if err != nil {
+		_ = v.client.StartVM(vmInfo.InstanceID)
 		return err
 	}
 
 	err = v.client.WaitForStatus(vmInfo.InstanceID, "stopped")
 	if err != nil {
+		_ = v.client.StartVM(vmInfo.InstanceID)
 		return err
 	}
 
@@ -48,16 +50,24 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 		vmInfo.SecurityGroupIDs[0],
 	)
 	if err != nil {
+		_ = v.client.StartVM(vmInfo.InstanceID)
 		return err
 	}
 
 	err = v.client.WaitForStatus(instanceID, "running")
 	if err != nil {
+		_ = v.client.DeleteVM(instanceID)
 		return err
 	}
 
 	if vmInfo.PublicIP != "" {
-		return v.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
+		err = v.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
+		if err != nil {
+			_ = v.client.DeleteVM(instanceID)
+			_ = v.client.AssignPublicIP(vmInfo.InstanceID, vmInfo.PublicIP)
+			_ = v.client.StartVM(vmInfo.InstanceID)
+			return err
+		}
 	}
 
 	return nil

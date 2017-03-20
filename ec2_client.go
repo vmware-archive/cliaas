@@ -15,6 +15,7 @@ type EC2Client interface {
 	AssociateAddress(*ec2.AssociateAddressInput) (*ec2.AssociateAddressOutput, error)
 	TerminateInstances(*ec2.TerminateInstancesInput) (*ec2.TerminateInstancesOutput, error)
 	StopInstances(*ec2.StopInstancesInput) (*ec2.StopInstancesOutput, error)
+	StartInstances(*ec2.StartInstancesInput) (*ec2.StartInstancesOutput, error)
 	CreateTags(*ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error)
 	RunInstances(*ec2.RunInstancesInput) (*ec2.Reservation, error)
 }
