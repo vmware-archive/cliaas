@@ -24,7 +24,7 @@ var _ = Describe("GCPCLientAPI", func() {
 		var project = os.Getenv("GCP_PROJECT")
 		var zone = os.Getenv("GCP_ZONE")
 		var credFile *os.File
-		var gcpClientAPI *GCPClientAPI
+		var gcpClientAPI *Client
 		var instanceNameGUID string
 		BeforeEach(func() {
 			var err error
@@ -39,7 +39,7 @@ var _ = Describe("GCPCLientAPI", func() {
 			Expect(err).NotTo(HaveOccurred())
 			gcpClient, err := NewDefaultGoogleComputeClient(credFile.Name())
 			Expect(err).ShouldNot(HaveOccurred())
-			gcpClientAPI, err = NewGCPClientAPI(
+			gcpClientAPI, err = NewClient(
 				ConfigGoogleClient(gcpClient),
 				ConfigZoneName(zone),
 				ConfigProjectName(project),

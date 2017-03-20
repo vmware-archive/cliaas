@@ -29,7 +29,7 @@ type ClientAPI interface {
 	StopVM(instanceName string) error
 }
 
-type GCPClientAPI struct {
+type Client struct {
 	projectName  string
 	zoneName     string
 	googleClient GoogleComputeClient
@@ -56,8 +56,8 @@ func NewDefaultGoogleComputeClient(credpath string) (GoogleComputeClient, error)
 	return &googleComputeClientWrapper{instanceService: c.Instances}, nil
 }
 
-func NewGCPClientAPI(configs ...func(*GCPClientAPI) error) (*GCPClientAPI, error) {
-	gcpClient := new(GCPClientAPI)
+func NewClient(configs ...func(*Client) error) (*Client, error) {
+	gcpClient := new(Client)
 	gcpClient.timeout = 60 * time.Second
 
 	for _, cfg := range configs {
@@ -81,35 +81,35 @@ func NewGCPClientAPI(configs ...func(*GCPClientAPI) error) (*GCPClientAPI, error
 	return gcpClient, nil
 }
 
-func ConfigTimeout(value time.Duration) func(*GCPClientAPI) error {
-	return func(gcpClient *GCPClientAPI) error {
+func ConfigTimeout(value time.Duration) func(*Client) error {
+	return func(gcpClient *Client) error {
 		gcpClient.timeout = value * time.Second
 		return nil
 	}
 }
 
-func ConfigGoogleClient(value GoogleComputeClient) func(*GCPClientAPI) error {
-	return func(gcpClient *GCPClientAPI) error {
+func ConfigGoogleClient(value GoogleComputeClient) func(*Client) error {
+	return func(gcpClient *Client) error {
 		gcpClient.googleClient = value
 		return nil
 	}
 }
 
-func ConfigZoneName(value string) func(*GCPClientAPI) error {
-	return func(gcpClient *GCPClientAPI) error {
+func ConfigZoneName(value string) func(*Client) error {
+	return func(gcpClient *Client) error {
 		gcpClient.zoneName = value
 		return nil
 	}
 }
 
-func ConfigProjectName(value string) func(*GCPClientAPI) error {
-	return func(gcpClient *GCPClientAPI) error {
+func ConfigProjectName(value string) func(*Client) error {
+	return func(gcpClient *Client) error {
 		gcpClient.projectName = value
 		return nil
 	}
 }
 
-func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
+func (s *Client) CreateVM(instance compute.Instance) error {
 	operation, err := s.googleClient.Insert(s.projectName, s.zoneName, &instance)
 	if err != nil {
 		return errwrap.Wrap(err, "call to googleclient.Insert yielded error")
@@ -122,7 +122,7 @@ func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
 	return nil
 }
 
-func (s *GCPClientAPI) DeleteVM(instanceName string) error {
+func (s *Client) DeleteVM(instanceName string) error {
 	operation, err := s.googleClient.Delete(s.projectName, s.zoneName, instanceName)
 	if err != nil {
 		return errwrap.Wrap(err, "call to googleclient.Delete yielded error")
@@ -136,7 +136,7 @@ func (s *GCPClientAPI) DeleteVM(instanceName string) error {
 }
 
 //StopVM - will try to stop the VM with the given name
-func (s *GCPClientAPI) StopVM(instanceName string) error {
+func (s *Client) StopVM(instanceName string) error {
 	operation, err := s.googleClient.Stop(s.projectName, s.zoneName, instanceName)
 	if err != nil {
 		return errwrap.Wrap(err, "call to googleclient.Stop yielded error")
@@ -152,7 +152,7 @@ func (s *GCPClientAPI) StopVM(instanceName string) error {
 //GetVMInfo - gets the information on the first VM to match the given filter argument
 // currently filter will only do a regex on teh tag||name regex fields against
 // the List's result set
-func (s *GCPClientAPI) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) {
+func (s *Client) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) {
 	list, err := s.googleClient.List(s.projectName, s.zoneName)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call List on google client failed")
@@ -172,7 +172,7 @@ func (s *GCPClientAPI) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) 
 	return nil, fmt.Errorf("No instance matches found")
 }
 
-func (s *GCPClientAPI) WaitForStatus(vmName string, desiredStatus string) error {
+func (s *Client) WaitForStatus(vmName string, desiredStatus string) error {
 	errChannel := make(chan error)
 	go func() {
 		for {

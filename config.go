@@ -95,7 +95,7 @@ func (c *GCPConfig) NewClient() (Client, error) {
 		return nil, errwrap.Wrap(err, "failed to create gcp default client")
 	}
 
-	gcpClientAPI, err := gcp.NewGCPClientAPI(
+	gcpClientAPI, err := gcp.NewClient(
 		gcp.ConfigGoogleClient(computeClient),
 		gcp.ConfigZoneName(c.Zone),
 		gcp.ConfigProjectName(c.Project),
