@@ -1,6 +1,7 @@
 package gcp
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -29,7 +30,6 @@ type ClientAPI interface {
 }
 
 type GCPClientAPI struct {
-	credPath     string
 	projectName  string
 	zoneName     string
 	googleClient GoogleComputeClient
@@ -116,7 +116,7 @@ func (s *GCPClientAPI) CreateVM(instance compute.Instance) error {
 	}
 
 	if operation.Error != nil {
-		return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
+		return errors.New("unexpected errors from operation response from google client")
 	}
 
 	return nil
@@ -129,7 +129,7 @@ func (s *GCPClientAPI) DeleteVM(instanceName string) error {
 	}
 
 	if operation.Error != nil {
-		return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
+		return errors.New("unexpected errors from operation response from google client")
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func (s *GCPClientAPI) StopVM(instanceName string) error {
 	}
 
 	if operation.Error != nil {
-		return fmt.Errorf("unexpected errors from operation response from google client:", operation.Error)
+		return errors.New("unexpected errors from operation response from google client")
 	}
 
 	return nil
@@ -165,7 +165,7 @@ func (s *GCPClientAPI) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) 
 		tagMatch := validID.MatchString(taglist)
 		nameMatch := validName.MatchString(item.Name)
 
-		if tagMatch == true && nameMatch == true {
+		if tagMatch && nameMatch {
 			return item, nil
 		}
 	}
@@ -192,9 +192,8 @@ func (s *GCPClientAPI) WaitForStatus(vmName string, desiredStatus string) error 
 	case res := <-errChannel:
 		return res
 	case <-time.After(s.timeout):
-		return fmt.Errorf("polling for status timed out")
+		return errors.New("polling for status timed out")
 	}
-	return fmt.Errorf("polling for status failed")
 }
 
 type googleComputeClientWrapper struct {

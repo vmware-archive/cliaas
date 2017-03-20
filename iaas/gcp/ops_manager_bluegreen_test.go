@@ -17,11 +17,10 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 		opsManager *OpsManagerGCP
 		fakeClient *gcpfakes.FakeClientAPI
 
-		controlFilter              iaas.Filter
-		controlDiskImageURL        string
-		controlGetVMInfoInstance   compute.Instance
-		controlStartVMInfoInstance compute.Instance
-		controlDeployInstance      compute.Instance
+		controlFilter            iaas.Filter
+		controlDiskImageURL      string
+		controlGetVMInfoInstance compute.Instance
+		controlDeployInstance    compute.Instance
 	)
 
 	BeforeEach(func() {
@@ -32,7 +31,6 @@ var _ = Describe("OpsManager struct and a valid client", func() {
 		}
 		controlDiskImageURL = "some/good/version.img"
 		controlGetVMInfoInstance = createFakeInstance(InstanceStatusStopped, controlDiskImageURL)
-		controlStartVMInfoInstance = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
 		controlDeployInstance = createFakeInstance(InstanceStatusRunning, controlDiskImageURL)
 
 		var err error

@@ -59,7 +59,7 @@ var _ = Describe("AwsClient", func() {
 
 		AfterEach(func() {
 			if instanceID != "" {
-				awsClient.DeleteVM(instanceID)
+				_ = awsClient.DeleteVM(instanceID)
 			}
 		})
 
@@ -88,7 +88,7 @@ var _ = Describe("AwsClient", func() {
 
 		AfterEach(func() {
 			if instanceID != "" {
-				awsClient.DeleteVM(instanceID)
+				_ = awsClient.DeleteVM(instanceID)
 			}
 		})
 

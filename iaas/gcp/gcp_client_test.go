@@ -16,7 +16,6 @@ var _ = Describe("GCPClientAPI", func() {
 
 	Describe("GCPClientAPI", func() {
 		var client *GCPClientAPI
-		var err error
 		var controlZone = "zone"
 		var controlProject = "prj"
 		var controlInstanceName = "blah"
@@ -34,7 +33,7 @@ var _ = Describe("GCPClientAPI", func() {
 					fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.InsertReturns(fakeOperation, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -68,7 +67,7 @@ var _ = Describe("GCPClientAPI", func() {
 					}
 					fakeGoogleClient.InsertReturns(fakeOperation, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -87,7 +86,7 @@ var _ = Describe("GCPClientAPI", func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.InsertReturns(nil, controlErr)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -111,7 +110,7 @@ var _ = Describe("GCPClientAPI", func() {
 					fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.DeleteReturns(fakeOperation, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -144,7 +143,7 @@ var _ = Describe("GCPClientAPI", func() {
 					}
 					fakeGoogleClient.DeleteReturns(fakeOperation, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -162,7 +161,7 @@ var _ = Describe("GCPClientAPI", func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.DeleteReturns(nil, controlErr)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -186,7 +185,7 @@ var _ = Describe("GCPClientAPI", func() {
 					fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.StopReturns(fakeOperation, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -218,7 +217,7 @@ var _ = Describe("GCPClientAPI", func() {
 					}
 					fakeGoogleClient.StopReturns(fakeOperation, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -236,7 +235,7 @@ var _ = Describe("GCPClientAPI", func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.StopReturns(nil, controlErr)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -257,7 +256,7 @@ var _ = Describe("GCPClientAPI", func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.ListReturns(controlInstanceList, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -279,7 +278,7 @@ var _ = Describe("GCPClientAPI", func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.ListReturns(createInstanceList("nothing-to-match", "nothing-to-match"), nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),
@@ -298,7 +297,7 @@ var _ = Describe("GCPClientAPI", func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.ListReturns(&compute.InstanceList{}, nil)
 
-					client, err = NewGCPClientAPI(
+					client, _ = NewGCPClientAPI(
 						ConfigGoogleClient(fakeGoogleClient),
 						ConfigZoneName(controlZone),
 						ConfigProjectName(controlProject),

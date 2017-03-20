@@ -126,5 +126,4 @@ func (s *OpsManagerGCP) pollVMStatus(desiredStatus string, vmName string) error 
 	case <-time.After(time.Second * time.Duration(s.clientTimeoutSeconds)):
 		return fmt.Errorf("polling for status timed out")
 	}
-	return fmt.Errorf("polling for status failed")
 }

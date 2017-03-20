@@ -25,13 +25,18 @@ var _ = Describe("GCPCLientAPI", func() {
 		var zone = os.Getenv("GCP_ZONE")
 		var credFile *os.File
 		var gcpClientAPI *GCPClientAPI
-		var instanceNameGUID, err = newUUID()
+		var instanceNameGUID string
 		BeforeEach(func() {
 			var err error
+			instanceNameGUID, err = newUUID()
+			Expect(err).NotTo(HaveOccurred())
 			credFile, err = ioutil.TempFile("/tmp", "gcpCred")
-			defer credFile.Close()
 			Expect(err).ShouldNot(HaveOccurred())
-			credFile.Write([]byte(credContents))
+			defer func() {
+				_ = credFile.Close()
+			}()
+			_, err = credFile.Write([]byte(credContents))
+			Expect(err).NotTo(HaveOccurred())
 			gcpClient, err := NewDefaultGoogleComputeClient(credFile.Name())
 			Expect(err).ShouldNot(HaveOccurred())
 			gcpClientAPI, err = NewGCPClientAPI(
@@ -51,7 +56,7 @@ var _ = Describe("GCPCLientAPI", func() {
 				deleteDisk(instanceNameGUID, project, zone)
 			}
 
-			os.Remove(credFile.Name())
+			_ = os.Remove(credFile.Name())
 		})
 		Context("when calling CreateVM with valid arguments", func() {
 			var instanceNameGUIDCreate string
@@ -76,7 +81,7 @@ var _ = Describe("GCPCLientAPI", func() {
 		Context("when calling DeleteVM with valid arguments for a running instance", func() {
 			It("then the specified instance should not longer exist in GCP", func() {
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
-				err = gcpClientAPI.DeleteVM(instanceNameGUID)
+				err := gcpClientAPI.DeleteVM(instanceNameGUID)
 				Expect(err).ShouldNot(HaveOccurred())
 				waitForDelete(instanceNameGUID, project, zone, instanceExists)
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeFalse())
@@ -122,7 +127,7 @@ var _ = Describe("GCPCLientAPI", func() {
 			It("then the specified instance should have been stopped in GCP", func() {
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				err = gcpClientAPI.StopVM(instanceNameGUID)
+				err := gcpClientAPI.StopVM(instanceNameGUID)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue(), "does the instance exist?")
 				Eventually(func() bool {

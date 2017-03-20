@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 
 	flags "github.com/jessevdk/go-flags"
 	"github.com/pivotal-cf/cliaas/commands"
@@ -14,7 +13,6 @@ func main() {
 
 	_, err := parser.Parse()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		os.Exit(1)
+		log.Fatalf("error: %s", err)
 	}
 }
