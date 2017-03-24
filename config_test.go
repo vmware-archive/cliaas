@@ -60,5 +60,21 @@ var _ = Describe("Config", func() {
 				Expect(multiConfig.CompleteConfigs()).To(Equal([]cliaas.Config{gcpConfig}))
 			})
 		})
+
+		XContext("when the multi config has a complete Azure config", func() {
+			var azureConfig *cliaas.AzureConfig
+
+			BeforeEach(func() {
+				azureConfig = &cliaas.AzureConfig{}
+
+				multiConfig = cliaas.MultiConfig{
+					Azure: azureConfig,
+				}
+			})
+
+			It("returns a slice of the Azure config", func() {
+				Expect(multiConfig.CompleteConfigs()).To(Equal([]cliaas.Config{azureConfig}))
+			})
+		})
 	})
 })

@@ -1,6 +1,7 @@
 package cliaas
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -71,6 +72,16 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 	}
 
 	return nil
+}
+
+type azureClient struct{}
+
+func (c *azureClient) Delete(identifier string) error {
+	return errors.New("not yet implemented")
+}
+
+func (c *azureClient) Replace(identifier string, sourceImageTarballURL string) error {
+	return errors.New("not yet implemented")
 }
 
 type gcpClient struct {

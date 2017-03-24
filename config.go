@@ -1,6 +1,7 @@
 package cliaas
 
 import (
+	"errors"
 	"os"
 
 	"code.cloudfoundry.org/clock"
@@ -15,8 +16,9 @@ type Config interface {
 }
 
 type MultiConfig struct {
-	AWS *AWSConfig `yaml:"aws"`
-	GCP *GCPConfig `yaml:"gcp"`
+	AWS   *AWSConfig   `yaml:"aws"`
+	GCP   *GCPConfig   `yaml:"gcp"`
+	Azure *AzureConfig `yaml:"azure"`
 }
 
 func (c *MultiConfig) Configs() []Config {
@@ -30,6 +32,9 @@ func (c *MultiConfig) Configs() []Config {
 		configs = append(configs, c.GCP)
 	}
 
+	if c.Azure != nil {
+		configs = append(configs, c.Azure)
+	}
 	return configs
 
 }
@@ -45,6 +50,16 @@ func (c *MultiConfig) CompleteConfigs() []Config {
 	}
 
 	return completeConfigs
+}
+
+type AzureConfig struct{}
+
+func (c *AzureConfig) Complete() bool {
+	return false
+}
+
+func (c *AzureConfig) NewClient() (Client, error) {
+	return nil, errors.New("not yet implemented")
 }
 
 type AWSConfig struct {
