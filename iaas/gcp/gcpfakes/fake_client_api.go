@@ -4,7 +4,6 @@ package gcpfakes
 import (
 	"sync"
 
-	"github.com/pivotal-cf/cliaas/iaas"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	compute "google.golang.org/api/compute/v1"
 )
@@ -26,10 +25,10 @@ type FakeClientAPI struct {
 	deleteVMReturns struct {
 		result1 error
 	}
-	GetVMInfoStub        func(filter iaas.Filter) (*compute.Instance, error)
+	GetVMInfoStub        func(filter gcp.Filter) (*compute.Instance, error)
 	getVMInfoMutex       sync.RWMutex
 	getVMInfoArgsForCall []struct {
-		filter iaas.Filter
+		filter gcp.Filter
 	}
 	getVMInfoReturns struct {
 		result1 *compute.Instance
@@ -109,10 +108,10 @@ func (fake *FakeClientAPI) DeleteVMReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClientAPI) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) {
+func (fake *FakeClientAPI) GetVMInfo(filter gcp.Filter) (*compute.Instance, error) {
 	fake.getVMInfoMutex.Lock()
 	fake.getVMInfoArgsForCall = append(fake.getVMInfoArgsForCall, struct {
-		filter iaas.Filter
+		filter gcp.Filter
 	}{filter})
 	fake.getVMInfoMutex.Unlock()
 	if fake.GetVMInfoStub != nil {
@@ -128,7 +127,7 @@ func (fake *FakeClientAPI) GetVMInfoCallCount() int {
 	return len(fake.getVMInfoArgsForCall)
 }
 
-func (fake *FakeClientAPI) GetVMInfoArgsForCall(i int) iaas.Filter {
+func (fake *FakeClientAPI) GetVMInfoArgsForCall(i int) gcp.Filter {
 	fake.getVMInfoMutex.RLock()
 	defer fake.getVMInfoMutex.RUnlock()
 	return fake.getVMInfoArgsForCall[i].filter

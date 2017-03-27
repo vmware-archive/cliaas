@@ -1,4 +1,4 @@
-package iaas
+package gcp
 
 type Filter struct {
 	TagRegexString  string

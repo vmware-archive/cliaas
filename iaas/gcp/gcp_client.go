@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pivotal-cf/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
@@ -25,7 +24,7 @@ type GoogleComputeClient interface {
 type ClientAPI interface {
 	CreateVM(instance compute.Instance) error
 	DeleteVM(instanceName string) error
-	GetVMInfo(filter iaas.Filter) (*compute.Instance, error)
+	GetVMInfo(filter Filter) (*compute.Instance, error)
 	StopVM(instanceName string) error
 }
 
@@ -152,7 +151,7 @@ func (s *Client) StopVM(instanceName string) error {
 //GetVMInfo - gets the information on the first VM to match the given filter argument
 // currently filter will only do a regex on teh tag||name regex fields against
 // the List's result set
-func (s *Client) GetVMInfo(filter iaas.Filter) (*compute.Instance, error) {
+func (s *Client) GetVMInfo(filter Filter) (*compute.Instance, error) {
 	list, err := s.googleClient.List(s.projectName, s.zoneName)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call List on google client failed")
@@ -176,7 +175,7 @@ func (s *Client) WaitForStatus(vmName string, desiredStatus string) error {
 	errChannel := make(chan error)
 	go func() {
 		for {
-			vmInfo, err := s.GetVMInfo(iaas.Filter{NameRegexString: vmName})
+			vmInfo, err := s.GetVMInfo(Filter{NameRegexString: vmName})
 			if err != nil {
 				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
 				return

@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/cliaas/iaas"
 	. "github.com/pivotal-cf/cliaas/iaas/gcp"
 	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 	errwrap "github.com/pkg/errors"
@@ -264,7 +263,7 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 
 				It("then it should yield the matching gcp instance", func() {
-					inst, err := client.GetVMInfo(iaas.Filter{NameRegexString: controlInstanceName, TagRegexString: controlInstanceTag})
+					inst, err := client.GetVMInfo(Filter{NameRegexString: controlInstanceName, TagRegexString: controlInstanceTag})
 					Expect(inst).ShouldNot(BeNil())
 					Expect(controlInstanceList.Items).To(HaveLen(1))
 					Expect(inst).Should(Equal(controlInstanceList.Items[0]))
@@ -286,7 +285,7 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 
 				It("then it should give an error", func() {
-					inst, err := client.GetVMInfo(iaas.Filter{NameRegexString: "bbb", TagRegexString: "ddd"})
+					inst, err := client.GetVMInfo(Filter{NameRegexString: "bbb", TagRegexString: "ddd"})
 					Expect(inst).Should(BeNil())
 					Expect(err).Should(HaveOccurred())
 				})
@@ -305,7 +304,7 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 
 				It("then it should give an error", func() {
-					inst, err := client.GetVMInfo(iaas.Filter{})
+					inst, err := client.GetVMInfo(Filter{})
 					Expect(inst).Should(BeNil())
 					Expect(err).Should(HaveOccurred())
 				})

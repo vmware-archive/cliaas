@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pivotal-cf/cliaas/iaas"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
 	compute "google.golang.org/api/compute/v1"
@@ -93,7 +92,7 @@ func (c *gcpClient) Delete(identifier string) error {
 }
 
 func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string) error {
-	vmInstance, err := c.client.GetVMInfo(iaas.Filter{
+	vmInstance, err := c.client.GetVMInfo(gcp.Filter{
 		NameRegexString: identifier + "*",
 	})
 	if err != nil {
