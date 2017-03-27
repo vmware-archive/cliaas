@@ -108,5 +108,5 @@ func randSeq(n int) string {
 	for i := 0; i < n; i++ {
 		result[i] = chars[rand.Intn(len(chars))]
 	}
-	return string(result)
+	return "aws_integration_test_" + string(result)
 }
