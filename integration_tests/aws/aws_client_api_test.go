@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/clock"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -43,8 +43,7 @@ var _ = Describe("AwsClient", func() {
 			Region:      aws.String(region),
 		})
 
-		clock := fakeclock.NewFakeClock(time.Now())
-		awsClient = cliaas.NewAWSClient(ec2Client, vpc, clock)
+		awsClient = cliaas.NewAWSClient(ec2Client, vpc, clock.NewClock())
 		Expect(awsClient).NotTo(BeNil())
 
 		name = randSeq(10)
@@ -83,8 +82,7 @@ var _ = Describe("AwsClient", func() {
 			instanceID, createErr = awsClient.CreateVM(ami, vmType, name, keyPairName, subnetID, securityGroupID)
 			Expect(createErr).NotTo(HaveOccurred())
 
-			clock := fakeclock.NewFakeClock(time.Now())
-			client := cliaas.NewAWSClient(ec2Client, vpc, clock)
+			client := cliaas.NewAWSClient(ec2Client, vpc, clock.NewClock())
 
 			err := client.WaitForStatus(instanceID, ec2.InstanceStateNameRunning)
 			Expect(err).NotTo(HaveOccurred())
