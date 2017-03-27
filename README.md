@@ -73,6 +73,7 @@ cat > config.yml <<EOF
     client_secret: xxxxx
     tenant_id: xxxxx
     resource_group_name: xxxxx
+    resource_manager_endpoint: xxxxx
 EOF
 ```
 
@@ -81,6 +82,7 @@ EOF
 * `client_secret`: xxxxx //this is the password given as a param to the $ azure ad sp create
 * `tenant_id`: xxxxx //$ azure account show | grep "Tenant ID"
 * `resource_group_name`: xxxxx /// this is just the resource group name we wish to target
+* `resource_manager_endpoint`: xxxx /// this is an option value. defaults to https://management.azure.com/
 
 #### Identifiers
 

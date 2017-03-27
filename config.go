@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 
+	"github.com/pivotal-cf/cliaas/iaas/azure"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
 )
@@ -53,11 +54,12 @@ func (c *MultiConfig) CompleteConfigs() []Config {
 }
 
 type AzureConfig struct {
-	SubscriptionID    string `yaml:"subscription_id"`
-	ClientID          string `yaml:"client_id"`
-	ClientSecret      string `yaml:"client_secret"`
-	TenantID          string `yaml:"tenant_id"`
-	ResourceGroupName string `yaml:"resource_group_name"`
+	SubscriptionID          string `yaml:"subscription_id"`
+	ClientID                string `yaml:"client_id"`
+	ClientSecret            string `yaml:"client_secret"`
+	TenantID                string `yaml:"tenant_id"`
+	ResourceGroupName       string `yaml:"resource_group_name"`
+	ResourceManagerEndpoint string `yaml:"resource_manager_endpoint"`
 }
 
 func (c *AzureConfig) Complete() bool {
@@ -69,7 +71,12 @@ func (c *AzureConfig) Complete() bool {
 }
 
 func (c *AzureConfig) NewClient() (Client, error) {
-	return nil, errors.New("not yet implemented")
+	client, err := azure.NewClient(c.SubscriptionID, c.ClientID, c.ClientSecret, c.TenantID, c.ResourceGroupName, c.ResourceManagerEndpoint)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "azure newclient failed to create a client")
+	}
+
+	return client, errors.New("not yet implemented")
 }
 
 type AWSConfig struct {

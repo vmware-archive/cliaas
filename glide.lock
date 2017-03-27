@@ -1,5 +1,5 @@
 hash: 13253348b17f1b8d6b2be0c64de82cb262b14f458c5e47b2ba2582b5b050ea87
-updated: 2017-03-13T16:43:08.265174301-04:00
+updated: 2017-03-27T16:36:25.259106693-04:00
 imports:
 - name: cloud.google.com/go
   version: 0b87d14d90086b53a97dfbd66f3000f7f112b494
@@ -8,6 +8,8 @@ imports:
   - internal
 - name: code.cloudfoundry.org/clock
   version: 07af930eb5e50f99b6e7b413774d1a6b1cc8e598
+  subpackages:
+  - fakeclock
 - name: github.com/aws/aws-sdk-go
   version: 00fb2125993965df739fa3398b03bef3eb2e198f
   subpackages:
@@ -36,6 +38,20 @@ imports:
   - private/waiter
   - service/ec2
   - service/sts
+- name: github.com/Azure/azure-sdk-for-go
+  version: 8e625d1702a32d01cef05a9252198d231c4af113
+  subpackages:
+  - arm/compute
+- name: github.com/Azure/go-autorest
+  version: 92e199ed6a4b8b81c5d7536915af3616c2cd9fff
+  subpackages:
+  - autorest
+  - autorest/azure
+  - autorest/date
+  - autorest/to
+  - autorest/validation
+- name: github.com/dgrijalva/jwt-go
+  version: 2268707a8f0843315e2004ee4f1d021dc08baedf
 - name: github.com/go-ini/ini
   version: 6f66b0e091edb3c7b380f7c4f0f884274d550b67
 - name: github.com/golang/protobuf
