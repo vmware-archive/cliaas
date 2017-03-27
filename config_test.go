@@ -61,19 +61,40 @@ var _ = Describe("Config", func() {
 			})
 		})
 
-		XContext("when the multi config has a complete Azure config", func() {
+		Describe("Azure Config", func() {
 			var azureConfig *cliaas.AzureConfig
-
-			BeforeEach(func() {
-				azureConfig = &cliaas.AzureConfig{}
-
+			JustBeforeEach(func() {
 				multiConfig = cliaas.MultiConfig{
 					Azure: azureConfig,
 				}
 			})
 
-			It("returns a slice of the Azure config", func() {
-				Expect(multiConfig.CompleteConfigs()).To(Equal([]cliaas.Config{azureConfig}))
+			Context("when the multi config has a complete Azure config", func() {
+
+				BeforeEach(func() {
+					azureConfig = &cliaas.AzureConfig{
+						SubscriptionID:    "asdfasd",
+						ClientID:          "klasdjfas",
+						ClientSecret:      "asdfas",
+						TenantID:          "asdfasd",
+						ResourceGroupName: "asdfasd",
+					}
+				})
+
+				It("returns a slice of the Azure config", func() {
+					Expect(multiConfig.CompleteConfigs()).To(Equal([]cliaas.Config{azureConfig}))
+				})
+			})
+
+			Context("when the multi config DOES NOT have a complete Azure config", func() {
+
+				BeforeEach(func() {
+					azureConfig = &cliaas.AzureConfig{}
+				})
+
+				It("returns a slice of the Azure config", func() {
+					Expect(multiConfig.CompleteConfigs()).ToNot(Equal([]cliaas.Config{azureConfig}))
+				})
 			})
 		})
 	})

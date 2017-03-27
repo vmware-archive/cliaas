@@ -63,6 +63,25 @@ EOF
 * `zone`: the zone in gcp your deployments are in.
 * `project`: the name of the gcp project you're using.
 
+#### Azure-specific Config
+
+```
+cat > config.yml <<EOF
+  azure:
+    subscription_id: xxxxxx 
+    client_id: xxxxx
+    client_secret: xxxxx
+    tenant_id: xxxxx
+    resource_group_name: xxxxx
+EOF
+```
+
+* `subscription_id`: xxxxxx //$ azure account show | grep "data: ID" 
+* `client_id`: xxxxx //this is the appID output of azure ad app create
+* `client_secret`: xxxxx //this is the password given as a param to the $ azure ad sp create
+* `tenant_id`: xxxxx //$ azure account show | grep "Tenant ID"
+* `resource_group_name`: xxxxx /// this is just the resource group name we wish to target
+
 #### Identifiers
 
 The VM identifier is used to find the VM by name in the IaaS.

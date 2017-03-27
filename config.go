@@ -52,10 +52,20 @@ func (c *MultiConfig) CompleteConfigs() []Config {
 	return completeConfigs
 }
 
-type AzureConfig struct{}
+type AzureConfig struct {
+	SubscriptionID    string `yaml:"subscription_id"`
+	ClientID          string `yaml:"client_id"`
+	ClientSecret      string `yaml:"client_secret"`
+	TenantID          string `yaml:"tenant_id"`
+	ResourceGroupName string `yaml:"resource_group_name"`
+}
 
 func (c *AzureConfig) Complete() bool {
-	return false
+	return c.SubscriptionID != "" &&
+		c.ClientID != "" &&
+		c.ClientSecret != "" &&
+		c.TenantID != "" &&
+		c.ResourceGroupName != ""
 }
 
 func (c *AzureConfig) NewClient() (Client, error) {

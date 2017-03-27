@@ -79,7 +79,7 @@ func (c *azureClient) Delete(identifier string) error {
 	return errors.New("not yet implemented")
 }
 
-func (c *azureClient) Replace(identifier string, sourceImageTarballURL string) error {
+func (c *azureClient) Replace(identifier string, vhdURL string) error {
 	return errors.New("not yet implemented")
 }
 
