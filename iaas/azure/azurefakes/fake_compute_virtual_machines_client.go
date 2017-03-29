@@ -10,6 +10,22 @@ import (
 )
 
 type FakeComputeVirtualMachinesClient struct {
+	CreateOrUpdateStub        func(resourceGroupName string, vmName string, parameters compute.VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error)
+	createOrUpdateMutex       sync.RWMutex
+	createOrUpdateArgsForCall []struct {
+		resourceGroupName string
+		vmName            string
+		parameters        compute.VirtualMachine
+		cancel            <-chan struct{}
+	}
+	createOrUpdateReturns struct {
+		result1 autorest.Response
+		result2 error
+	}
+	createOrUpdateReturnsOnCall map[int]struct {
+		result1 autorest.Response
+		result2 error
+	}
 	DeleteStub        func(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -55,6 +71,60 @@ type FakeComputeVirtualMachinesClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeComputeVirtualMachinesClient) CreateOrUpdate(resourceGroupName string, vmName string, parameters compute.VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error) {
+	fake.createOrUpdateMutex.Lock()
+	ret, specificReturn := fake.createOrUpdateReturnsOnCall[len(fake.createOrUpdateArgsForCall)]
+	fake.createOrUpdateArgsForCall = append(fake.createOrUpdateArgsForCall, struct {
+		resourceGroupName string
+		vmName            string
+		parameters        compute.VirtualMachine
+		cancel            <-chan struct{}
+	}{resourceGroupName, vmName, parameters, cancel})
+	fake.recordInvocation("CreateOrUpdate", []interface{}{resourceGroupName, vmName, parameters, cancel})
+	fake.createOrUpdateMutex.Unlock()
+	if fake.CreateOrUpdateStub != nil {
+		return fake.CreateOrUpdateStub(resourceGroupName, vmName, parameters, cancel)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createOrUpdateReturns.result1, fake.createOrUpdateReturns.result2
+}
+
+func (fake *FakeComputeVirtualMachinesClient) CreateOrUpdateCallCount() int {
+	fake.createOrUpdateMutex.RLock()
+	defer fake.createOrUpdateMutex.RUnlock()
+	return len(fake.createOrUpdateArgsForCall)
+}
+
+func (fake *FakeComputeVirtualMachinesClient) CreateOrUpdateArgsForCall(i int) (string, string, compute.VirtualMachine, <-chan struct{}) {
+	fake.createOrUpdateMutex.RLock()
+	defer fake.createOrUpdateMutex.RUnlock()
+	return fake.createOrUpdateArgsForCall[i].resourceGroupName, fake.createOrUpdateArgsForCall[i].vmName, fake.createOrUpdateArgsForCall[i].parameters, fake.createOrUpdateArgsForCall[i].cancel
+}
+
+func (fake *FakeComputeVirtualMachinesClient) CreateOrUpdateReturns(result1 autorest.Response, result2 error) {
+	fake.CreateOrUpdateStub = nil
+	fake.createOrUpdateReturns = struct {
+		result1 autorest.Response
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeComputeVirtualMachinesClient) CreateOrUpdateReturnsOnCall(i int, result1 autorest.Response, result2 error) {
+	fake.CreateOrUpdateStub = nil
+	if fake.createOrUpdateReturnsOnCall == nil {
+		fake.createOrUpdateReturnsOnCall = make(map[int]struct {
+			result1 autorest.Response
+			result2 error
+		})
+	}
+	fake.createOrUpdateReturnsOnCall[i] = struct {
+		result1 autorest.Response
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeComputeVirtualMachinesClient) Delete(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error) {
@@ -217,6 +287,8 @@ func (fake *FakeComputeVirtualMachinesClient) ListReturnsOnCall(i int, result1 c
 func (fake *FakeComputeVirtualMachinesClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.createOrUpdateMutex.RLock()
+	defer fake.createOrUpdateMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	fake.deallocateMutex.RLock()
