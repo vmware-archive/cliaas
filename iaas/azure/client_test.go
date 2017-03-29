@@ -15,6 +15,36 @@ import (
 
 var _ = Describe("Azure", func() {
 	Describe("Client", func() {
+		Describe("Replace()", func() {
+			/*
+				given a call to replace with a valid identifier and a valid vhdURL
+				when there is a single match on a identifier regex
+				then it should spin down the matching vm and
+					copy its config and
+					apply its config to a new vm object and
+					replace the new vm objects Disk image with the given vhdURL and
+					start the new instance of the vm with a name using a standard convention
+			*/
+
+			Context("when there is a single match on a identifier regex", func() {
+				It("it should spin down the matching vm instance", func() {
+					//Expect()
+				})
+				It("it should copy the existing vms config into the new vm instance's config ", func() {})
+				It("it should replace the disk image on the new vm instance's config with the given new version", func() {})
+				It("it should apply a new unique name to the new vm instance's config", func() {})
+				It("it should start a vm using the new vm instance's config", func() {})
+			})
+
+			XContext("when there are no matches for the identifier regex", func() {
+
+			})
+
+			XContext("when there are multiple matches for the identifier regex", func() {
+
+			})
+		})
+
 		Describe("Delete()", func() {
 			var azureClient *azure.Client
 			var err error
@@ -24,6 +54,12 @@ var _ = Describe("Azure", func() {
 			JustBeforeEach(func() {
 				azureClient.VirtualMachinesClient = fakeVirtualMachinesClient
 				err = azureClient.Delete(identifier)
+			})
+
+			XContext("when azure running VMs list returns more than a single page of results", func() {
+				It("then we should properly walk through all pages to apply our regex", func() {
+					Expect(true).Should(BeFalse())
+				})
 			})
 
 			Context("when given an identifier with a single match of VM name on our regex", func() {
@@ -36,18 +72,18 @@ var _ = Describe("Azure", func() {
 						Name: &controlName,
 					})
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
-					fakeVirtualMachinesClient.DeallocateReturns(autorest.Response{}, nil)
+					fakeVirtualMachinesClient.DeleteReturns(autorest.Response{}, nil)
 					azureClient = new(azure.Client)
 					identifier = controlRegex
 				})
 				It("should delete the VM instance", func() {
 					Expect(err).ShouldNot(HaveOccurred())
-					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(1))
-					_, vmName, _ := fakeVirtualMachinesClient.DeallocateArgsForCall(0)
+					Expect(fakeVirtualMachinesClient.DeleteCallCount()).Should(Equal(1))
+					_, vmName, _ := fakeVirtualMachinesClient.DeleteArgsForCall(0)
 					Expect(vmName).Should(MatchRegexp(controlRegex))
-					var deallocateErr error
-					fakeVirtualMachinesClient.DeallocateReturnsOnCall(1, autorest.Response{}, deallocateErr)
-					Expect(deallocateErr).ShouldNot(HaveOccurred())
+					var deleteErr error
+					fakeVirtualMachinesClient.DeleteReturnsOnCall(1, autorest.Response{}, deleteErr)
+					Expect(deleteErr).ShouldNot(HaveOccurred())
 				})
 			})
 
@@ -60,7 +96,7 @@ var _ = Describe("Azure", func() {
 					identifier = "ops-manager"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
-					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(0), "the number of times deallocate gets called should be zero")
+					Expect(fakeVirtualMachinesClient.DeleteCallCount()).Should(Equal(0), "the number of times deletes gets called should be zero")
 					Expect(err).Should(HaveOccurred())
 					Expect(errwrap.Cause(err)).Should(Equal(controlErr))
 				})
@@ -75,7 +111,7 @@ var _ = Describe("Azure", func() {
 					identifier = "ops-manager"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
-					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(0), "the number of times deallocate gets called should be zero")
+					Expect(fakeVirtualMachinesClient.DeleteCallCount()).Should(Equal(0), "the number of times deletes gets called should be zero")
 					Expect(err).Should(HaveOccurred())
 					Expect(errwrap.Cause(err)).Should(Equal(azure.NoMatchesErr))
 				})
@@ -94,7 +130,7 @@ var _ = Describe("Azure", func() {
 					identifier = "ops-manager"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
-					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(0), "the number of times deallocate gets called should be zero")
+					Expect(fakeVirtualMachinesClient.DeleteCallCount()).Should(Equal(0), "the number of times deletes gets called should be zero")
 					Expect(err).Should(HaveOccurred())
 					Expect(errwrap.Cause(err)).Should(Equal(azure.NoMatchesErr))
 				})
@@ -116,7 +152,7 @@ var _ = Describe("Azure", func() {
 					identifier = "ops*"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
-					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(0), "the number of times deallocate gets called should be zero")
+					Expect(fakeVirtualMachinesClient.DeleteCallCount()).Should(Equal(0), "the number of times deletes gets called should be zero")
 					Expect(err).Should(HaveOccurred())
 					Expect(errwrap.Cause(err)).Should(Equal(azure.MultipleMatchesErr))
 				})

@@ -19,6 +19,7 @@ type Client struct {
 }
 
 type ComputeVirtualMachinesClient interface {
+	Delete(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
 	Deallocate(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
 	List(resourceGroupName string) (result compute.VirtualMachineListResult, err error)
 }
@@ -77,7 +78,7 @@ func (s *Client) Delete(identifier string) error {
 	case 0:
 		return NoMatchesErr
 	case 1:
-		_, err = s.VirtualMachinesClient.Deallocate(s.resourceGroupName, matchingInstances[0], nil)
+		_, err = s.VirtualMachinesClient.Delete(s.resourceGroupName, matchingInstances[0], nil)
 		return err
 	default:
 		return MultipleMatchesErr
@@ -85,7 +86,32 @@ func (s *Client) Delete(identifier string) error {
 }
 
 func (s *Client) Replace(identifier string, vhdURL string) error {
+	_ = s.deallocate(identifier)
 	return errors.New("not yet implemented")
+}
+
+func (s *Client) deallocate(identifier string) error {
+	vmsList, err := s.VirtualMachinesClient.List(s.resourceGroupName)
+	if err != nil {
+		return errwrap.Wrap(err, "error in getting list of VMs from azure")
+	}
+	var matchingInstances = make([]string, 0)
+	var vmNameFilter = regexp.MustCompile(identifier)
+	for _, instance := range *vmsList.Value {
+		if vmNameFilter.MatchString(*instance.Name) {
+			matchingInstances = append(matchingInstances, *instance.Name)
+		}
+	}
+
+	switch len(matchingInstances) {
+	case 0:
+		return NoMatchesErr
+	case 1:
+		_, err = s.VirtualMachinesClient.Deallocate(s.resourceGroupName, matchingInstances[0], nil)
+		return err
+	default:
+		return MultipleMatchesErr
+	}
 }
 
 func checkEnvVar(envVars map[string]string) error {
