@@ -16,24 +16,74 @@ import (
 var _ = Describe("Azure", func() {
 	Describe("Client", func() {
 		Describe("Replace()", func() {
-			/*
-				given a call to replace with a valid identifier and a valid vhdURL
-				when there is a single match on a identifier regex
-				then it should spin down the matching vm and
-					copy its config and
-					apply its config to a new vm object and
-					replace the new vm objects Disk image with the given vhdURL and
-					start the new instance of the vm with a name using a standard convention
-			*/
+			var azureClient *azure.Client
+			var err error
+			var identifier string
+			var fakeVirtualMachinesClient *azurefakes.FakeComputeVirtualMachinesClient
+			var controlNewImageURL = "asdf"
+
+			JustBeforeEach(func() {
+				azureClient.VirtualMachinesClient = fakeVirtualMachinesClient
+				err = azureClient.Replace(identifier, controlNewImageURL)
+			})
 
 			Context("when there is a single match on a identifier regex", func() {
-				It("it should spin down the matching vm instance", func() {
-					//Expect()
+				controlID := "blah"
+				controlOldImageURL := "blah"
+				controlOldName := "ops-manager"
+				controlNewNameRegex := controlOldName + "....*"
+				controlRegex := "ops*"
+				BeforeEach(func() {
+					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
+					controlValue := make([]compute.VirtualMachine, 0)
+					controlValue = append(controlValue, compute.VirtualMachine{
+						ID:   &controlID,
+						Name: &controlOldName,
+						VirtualMachineProperties: &compute.VirtualMachineProperties{
+							StorageProfile: &compute.StorageProfile{
+								OsDisk: &compute.OSDisk{
+									Image: &compute.VirtualHardDisk{
+										URI: &controlOldImageURL,
+									},
+								},
+							},
+						},
+					})
+					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
+					fakeVirtualMachinesClient.DeallocateReturns(autorest.Response{}, nil)
+					azureClient = new(azure.Client)
+					identifier = controlRegex
 				})
-				It("it should copy the existing vms config into the new vm instance's config ", func() {})
-				It("it should replace the disk image on the new vm instance's config with the given new version", func() {})
-				It("it should apply a new unique name to the new vm instance's config", func() {})
-				It("it should start a vm using the new vm instance's config", func() {})
+				It("it should not return an error", func() {
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+				It("it should spin down the matching vm instance", func() {
+					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(1), "we should call deallocate exactly once")
+					_, vmName, _ := fakeVirtualMachinesClient.DeallocateArgsForCall(0)
+					Expect(vmName).Should(MatchRegexp(controlRegex))
+					var deallocateErr error
+					fakeVirtualMachinesClient.DeallocateReturnsOnCall(1, autorest.Response{}, deallocateErr)
+					Expect(deallocateErr).ShouldNot(HaveOccurred())
+				})
+				It("it should copy the existing vms config into the new vm instance's config ", func() {
+					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
+					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
+					Expect(*parameters.ID).Should(Equal(controlID))
+				})
+				It("it should replace the disk image on the new vm instance's config with the given new version", func() {
+					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
+					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
+					var imageURL = *parameters.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI
+					Expect(imageURL).ShouldNot(Equal(controlOldImageURL))
+					Expect(imageURL).Should(Equal(controlNewImageURL))
+				})
+				It("it should apply a new unique name to the new vm instance's config", func() {
+					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
+					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
+					var name = *parameters.Name
+					Expect(name).ShouldNot(Equal(controlOldName))
+					Expect(name).Should(MatchRegexp(controlNewNameRegex))
+				})
 			})
 
 			XContext("when there are no matches for the identifier regex", func() {
