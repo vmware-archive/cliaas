@@ -1,10 +1,10 @@
 package cliaas
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/pivotal-cf/cliaas/iaas/azure"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
 	compute "google.golang.org/api/compute/v1"
@@ -73,14 +73,16 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 	return nil
 }
 
-type azureClient struct{}
+type azureClient struct {
+	client *azure.Client
+}
 
 func (c *azureClient) Delete(identifier string) error {
-	return errors.New("not yet implemented")
+	return c.client.Delete(identifier)
 }
 
 func (c *azureClient) Replace(identifier string, vhdURL string) error {
-	return errors.New("not yet implemented")
+	return c.client.Replace(identifier, vhdURL)
 }
 
 type gcpClient struct {
