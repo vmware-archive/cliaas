@@ -10,6 +10,21 @@ import (
 )
 
 type FakeComputeVirtualMachinesClient struct {
+	DeleteStub        func(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct {
+		resourceGroupName string
+		vmName            string
+		cancel            <-chan struct{}
+	}
+	deleteReturns struct {
+		result1 autorest.Response
+		result2 error
+	}
+	deleteReturnsOnCall map[int]struct {
+		result1 autorest.Response
+		result2 error
+	}
 	DeallocateStub        func(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
 	deallocateMutex       sync.RWMutex
 	deallocateArgsForCall []struct {
@@ -40,6 +55,59 @@ type FakeComputeVirtualMachinesClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeComputeVirtualMachinesClient) Delete(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	fake.deleteMutex.Lock()
+	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
+		resourceGroupName string
+		vmName            string
+		cancel            <-chan struct{}
+	}{resourceGroupName, vmName, cancel})
+	fake.recordInvocation("Delete", []interface{}{resourceGroupName, vmName, cancel})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub(resourceGroupName, vmName, cancel)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.deleteReturns.result1, fake.deleteReturns.result2
+}
+
+func (fake *FakeComputeVirtualMachinesClient) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeComputeVirtualMachinesClient) DeleteArgsForCall(i int) (string, string, <-chan struct{}) {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return fake.deleteArgsForCall[i].resourceGroupName, fake.deleteArgsForCall[i].vmName, fake.deleteArgsForCall[i].cancel
+}
+
+func (fake *FakeComputeVirtualMachinesClient) DeleteReturns(result1 autorest.Response, result2 error) {
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 autorest.Response
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeComputeVirtualMachinesClient) DeleteReturnsOnCall(i int, result1 autorest.Response, result2 error) {
+	fake.DeleteStub = nil
+	if fake.deleteReturnsOnCall == nil {
+		fake.deleteReturnsOnCall = make(map[int]struct {
+			result1 autorest.Response
+			result2 error
+		})
+	}
+	fake.deleteReturnsOnCall[i] = struct {
+		result1 autorest.Response
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeComputeVirtualMachinesClient) Deallocate(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error) {
@@ -149,6 +217,8 @@ func (fake *FakeComputeVirtualMachinesClient) ListReturnsOnCall(i int, result1 c
 func (fake *FakeComputeVirtualMachinesClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
 	fake.deallocateMutex.RLock()
 	defer fake.deallocateMutex.RUnlock()
 	fake.listMutex.RLock()
