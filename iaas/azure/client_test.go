@@ -21,10 +21,20 @@ var _ = Describe("Azure", func() {
 			var identifier string
 			var fakeVirtualMachinesClient *azurefakes.FakeComputeVirtualMachinesClient
 			var controlNewImageURL = "asdf"
+			var controlRegex = "ops*"
+			var controlValue []compute.VirtualMachine
 
 			JustBeforeEach(func() {
+				fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
+				fakeVirtualMachinesClient.DeallocateReturns(autorest.Response{}, nil)
+				azureClient = new(azure.Client)
+				identifier = controlRegex
 				azureClient.VirtualMachinesClient = fakeVirtualMachinesClient
 				err = azureClient.Replace(identifier, controlNewImageURL)
+			})
+
+			BeforeEach(func() {
+				controlValue = make([]compute.VirtualMachine, 0)
 			})
 
 			Context("when there is a single match on a identifier regex", func() {
@@ -32,27 +42,10 @@ var _ = Describe("Azure", func() {
 				controlOldImageURL := "blah"
 				controlOldName := "ops-manager"
 				controlNewNameRegex := controlOldName + "....*"
-				controlRegex := "ops*"
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
-					controlValue := make([]compute.VirtualMachine, 0)
-					controlValue = append(controlValue, compute.VirtualMachine{
-						ID:   &controlID,
-						Name: &controlOldName,
-						VirtualMachineProperties: &compute.VirtualMachineProperties{
-							StorageProfile: &compute.StorageProfile{
-								OsDisk: &compute.OSDisk{
-									Image: &compute.VirtualHardDisk{
-										URI: &controlOldImageURL,
-									},
-								},
-							},
-						},
-					})
-					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
-					fakeVirtualMachinesClient.DeallocateReturns(autorest.Response{}, nil)
-					azureClient = new(azure.Client)
-					identifier = controlRegex
+					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
+					controlValue = append(controlValue, vm)
 				})
 				It("it should not return an error", func() {
 					Expect(err).ShouldNot(HaveOccurred())
@@ -86,12 +79,32 @@ var _ = Describe("Azure", func() {
 				})
 			})
 
-			XContext("when there are no matches for the identifier regex", func() {
-
+			Context("when there are no matches for the identifier regex", func() {
+				BeforeEach(func() {
+					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
+				})
+				It("should not try to deallocate anything and exit in error", func() {
+					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(0), "we should never call deallocate without a matching VM")
+					Expect(err).Should(HaveOccurred())
+					Expect(errwrap.Cause(err)).Should(Equal(azure.NoMatchesErr))
+				})
 			})
 
-			XContext("when there are multiple matches for the identifier regex", func() {
+			Context("when there are multiple matches for the identifier regex", func() {
+				controlID := "blah"
+				controlOldImageURL := "blah"
+				controlOldName := "ops-manager"
+				BeforeEach(func() {
+					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
+					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
+					controlValue = append(controlValue, vm, vm)
+				})
 
+				It("should not try to deallocate anything and exit in error", func() {
+					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(0), "we should never call deallocate without a matching VM")
+					Expect(err).Should(HaveOccurred())
+					Expect(errwrap.Cause(err)).Should(Equal(azure.MultipleMatchesErr))
+				})
 			})
 		})
 
@@ -261,3 +274,23 @@ var _ = Describe("Azure", func() {
 		})
 	})
 })
+
+func newVirtualMachine(id string, name string, vmDiskURL string) compute.VirtualMachine {
+	tmpID := id
+	tmpName := name
+	tmpURL := vmDiskURL
+	vm := compute.VirtualMachine{
+		ID:   &tmpID,
+		Name: &tmpName,
+		VirtualMachineProperties: &compute.VirtualMachineProperties{
+			StorageProfile: &compute.StorageProfile{
+				OsDisk: &compute.OSDisk{
+					Image: &compute.VirtualHardDisk{
+						URI: &tmpURL,
+					},
+				},
+			},
+		},
+	}
+	return vm
+}
