@@ -76,7 +76,7 @@ func (c *AzureConfig) NewClient() (Client, error) {
 		return nil, errwrap.Wrap(err, "azure newclient failed to create a client")
 	}
 
-	return &azureClient{client: client}, errors.New("not yet implemented")
+	return client, errors.New("not yet implemented")
 }
 
 type AWSConfig struct {
