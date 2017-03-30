@@ -113,10 +113,17 @@ var _ = Describe("Azure", func() {
 			var err error
 			var identifier string
 			var fakeVirtualMachinesClient *azurefakes.FakeComputeVirtualMachinesClient
+			var controlValue []compute.VirtualMachine
 
 			JustBeforeEach(func() {
 				azureClient.VirtualMachinesClient = fakeVirtualMachinesClient
 				err = azureClient.Delete(identifier)
+			})
+
+			BeforeEach(func() {
+				fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
+				controlValue = make([]compute.VirtualMachine, 0)
+				azureClient = new(azure.Client)
 			})
 
 			XContext("when azure running VMs list returns more than a single page of results", func() {
@@ -128,15 +135,12 @@ var _ = Describe("Azure", func() {
 			Context("when given an identifier with a single match of VM name on our regex", func() {
 				controlRegex := "ops*"
 				BeforeEach(func() {
-					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
-					controlValue := make([]compute.VirtualMachine, 0)
 					controlName := "ops-manager"
 					controlValue = append(controlValue, compute.VirtualMachine{
 						Name: &controlName,
 					})
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
 					fakeVirtualMachinesClient.DeleteReturns(autorest.Response{}, nil)
-					azureClient = new(azure.Client)
 					identifier = controlRegex
 				})
 				It("should delete the VM instance", func() {
@@ -153,9 +157,7 @@ var _ = Describe("Azure", func() {
 			Context("when unable to list (failed api call) existing VMs to match against", func() {
 				controlErr := errors.New("random list err")
 				BeforeEach(func() {
-					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{}, controlErr)
-					azureClient = new(azure.Client)
 					identifier = "ops-manager"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
@@ -167,10 +169,7 @@ var _ = Describe("Azure", func() {
 
 			Context("when given an identifier and no VMs are found in Azure (vm empty set)", func() {
 				BeforeEach(func() {
-					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
-					controlValue := make([]compute.VirtualMachine, 0)
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
-					azureClient = new(azure.Client)
 					identifier = "ops-manager"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
@@ -182,14 +181,10 @@ var _ = Describe("Azure", func() {
 
 			Context("when given an identifier with a populated VMs list from azure and no matching VM name regex", func() {
 				BeforeEach(func() {
-					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
-					controlValue := make([]compute.VirtualMachine, 0)
 					controlName := "blah"
-					controlValue = append(controlValue, compute.VirtualMachine{
-						Name: &controlName,
-					})
+					controlValue = append(controlValue,
+						compute.VirtualMachine{Name: &controlName})
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
-					azureClient = new(azure.Client)
 					identifier = "ops-manager"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
@@ -201,17 +196,11 @@ var _ = Describe("Azure", func() {
 
 			Context("when given an identifier with multiple matches on VM name from our regex", func() {
 				BeforeEach(func() {
-					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
-					controlValue := make([]compute.VirtualMachine, 0)
 					controlName := "ops-manager"
-					controlValue = append(controlValue, compute.VirtualMachine{
-						Name: &controlName,
-					})
-					controlValue = append(controlValue, compute.VirtualMachine{
-						Name: &controlName,
-					})
+					controlValue = append(controlValue,
+						compute.VirtualMachine{Name: &controlName},
+						compute.VirtualMachine{Name: &controlName})
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
-					azureClient = new(azure.Client)
 					identifier = "ops*"
 				})
 				It("should not delete any VM instances and should exit unsuccessfully", func() {
