@@ -10,6 +10,19 @@ import (
 )
 
 type FakeComputeVirtualMachinesClient struct {
+	ListAllNextResultsStub        func(lastResults compute.VirtualMachineListResult) (result compute.VirtualMachineListResult, err error)
+	listAllNextResultsMutex       sync.RWMutex
+	listAllNextResultsArgsForCall []struct {
+		lastResults compute.VirtualMachineListResult
+	}
+	listAllNextResultsReturns struct {
+		result1 compute.VirtualMachineListResult
+		result2 error
+	}
+	listAllNextResultsReturnsOnCall map[int]struct {
+		result1 compute.VirtualMachineListResult
+		result2 error
+	}
 	CreateOrUpdateStub        func(resourceGroupName string, vmName string, parameters compute.VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error)
 	createOrUpdateMutex       sync.RWMutex
 	createOrUpdateArgsForCall []struct {
@@ -71,6 +84,57 @@ type FakeComputeVirtualMachinesClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeComputeVirtualMachinesClient) ListAllNextResults(lastResults compute.VirtualMachineListResult) (result compute.VirtualMachineListResult, err error) {
+	fake.listAllNextResultsMutex.Lock()
+	ret, specificReturn := fake.listAllNextResultsReturnsOnCall[len(fake.listAllNextResultsArgsForCall)]
+	fake.listAllNextResultsArgsForCall = append(fake.listAllNextResultsArgsForCall, struct {
+		lastResults compute.VirtualMachineListResult
+	}{lastResults})
+	fake.recordInvocation("ListAllNextResults", []interface{}{lastResults})
+	fake.listAllNextResultsMutex.Unlock()
+	if fake.ListAllNextResultsStub != nil {
+		return fake.ListAllNextResultsStub(lastResults)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.listAllNextResultsReturns.result1, fake.listAllNextResultsReturns.result2
+}
+
+func (fake *FakeComputeVirtualMachinesClient) ListAllNextResultsCallCount() int {
+	fake.listAllNextResultsMutex.RLock()
+	defer fake.listAllNextResultsMutex.RUnlock()
+	return len(fake.listAllNextResultsArgsForCall)
+}
+
+func (fake *FakeComputeVirtualMachinesClient) ListAllNextResultsArgsForCall(i int) compute.VirtualMachineListResult {
+	fake.listAllNextResultsMutex.RLock()
+	defer fake.listAllNextResultsMutex.RUnlock()
+	return fake.listAllNextResultsArgsForCall[i].lastResults
+}
+
+func (fake *FakeComputeVirtualMachinesClient) ListAllNextResultsReturns(result1 compute.VirtualMachineListResult, result2 error) {
+	fake.ListAllNextResultsStub = nil
+	fake.listAllNextResultsReturns = struct {
+		result1 compute.VirtualMachineListResult
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeComputeVirtualMachinesClient) ListAllNextResultsReturnsOnCall(i int, result1 compute.VirtualMachineListResult, result2 error) {
+	fake.ListAllNextResultsStub = nil
+	if fake.listAllNextResultsReturnsOnCall == nil {
+		fake.listAllNextResultsReturnsOnCall = make(map[int]struct {
+			result1 compute.VirtualMachineListResult
+			result2 error
+		})
+	}
+	fake.listAllNextResultsReturnsOnCall[i] = struct {
+		result1 compute.VirtualMachineListResult
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeComputeVirtualMachinesClient) CreateOrUpdate(resourceGroupName string, vmName string, parameters compute.VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error) {
@@ -287,6 +351,8 @@ func (fake *FakeComputeVirtualMachinesClient) ListReturnsOnCall(i int, result1 c
 func (fake *FakeComputeVirtualMachinesClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.listAllNextResultsMutex.RLock()
+	defer fake.listAllNextResultsMutex.RUnlock()
 	fake.createOrUpdateMutex.RLock()
 	defer fake.createOrUpdateMutex.RUnlock()
 	fake.deleteMutex.RLock()
