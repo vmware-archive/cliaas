@@ -66,20 +66,8 @@ func NewClient(
 }
 
 func (s *Client) Delete(identifier string) error {
-	matchingInstances, err := s.getFilteredList(identifier)
-	if err != nil {
-		return errwrap.Wrap(err, "error when attempting to get filtered vm list")
-	}
-
-	switch len(matchingInstances) {
-	case 0:
-		return NoMatchesErr
-	case 1:
-		_, err = s.VirtualMachinesClient.Delete(s.resourceGroupName, *(matchingInstances[0].Name), nil)
-		return err
-	default:
-		return MultipleMatchesErr
-	}
+	_, err := s.executeFunctionOnMatchingVM(identifier, s.VirtualMachinesClient.Delete)
+	return err
 }
 
 func (s *Client) Replace(identifier string, vhdURL string) error {
@@ -93,6 +81,27 @@ func (s *Client) Replace(identifier string, vhdURL string) error {
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &vhdURL
 	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *instance.Name, *instance, nil)
 	return err
+}
+
+func (s *Client) deallocate(identifier string) (*compute.VirtualMachine, error) {
+	return s.executeFunctionOnMatchingVM(identifier, s.VirtualMachinesClient.Deallocate)
+}
+
+func (s *Client) executeFunctionOnMatchingVM(identifier string, f func(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)) (*compute.VirtualMachine, error) {
+	matchingInstances, err := s.getFilteredList(identifier)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "error when attempting to get filtered vm list")
+	}
+
+	switch len(matchingInstances) {
+	case 0:
+		return nil, NoMatchesErr
+	case 1:
+		_, err = f(s.resourceGroupName, *matchingInstances[0].Name, nil)
+		return &matchingInstances[0], err
+	default:
+		return nil, MultipleMatchesErr
+	}
 }
 
 func (s *Client) getFilteredList(identifier string) ([]compute.VirtualMachine, error) {
@@ -112,23 +121,6 @@ func (s *Client) getFilteredList(identifier string) ([]compute.VirtualMachine, e
 		}
 	}
 	return matchingInstances, nil
-}
-
-func (s *Client) deallocate(identifier string) (*compute.VirtualMachine, error) {
-	matchingInstances, err := s.getFilteredList(identifier)
-	if err != nil {
-		return nil, errwrap.Wrap(err, "error when attempting to get filtered vm list")
-	}
-
-	switch len(matchingInstances) {
-	case 0:
-		return nil, NoMatchesErr
-	case 1:
-		_, err = s.VirtualMachinesClient.Deallocate(s.resourceGroupName, *matchingInstances[0].Name, nil)
-		return &matchingInstances[0], err
-	default:
-		return nil, MultipleMatchesErr
-	}
 }
 
 func checkEnvVar(envVars map[string]string) error {
