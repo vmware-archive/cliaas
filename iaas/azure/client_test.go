@@ -20,7 +20,7 @@ var _ = Describe("Azure", func() {
 			var err error
 			var identifier string
 			var fakeVirtualMachinesClient *azurefakes.FakeComputeVirtualMachinesClient
-			var controlNewImageURL = "asdf"
+			var controlNewImageURL = "some-control-new-image-url"
 			var controlRegex = "ops*"
 			var controlValue []compute.VirtualMachine
 
@@ -38,10 +38,10 @@ var _ = Describe("Azure", func() {
 			})
 
 			Context("when there is a single match on a identifier regex", func() {
-				controlID := "blah"
-				controlOldImageURL := "blah"
+				controlID := "some-id"
+				controlOldImageURL := "some-image-url"
 				controlOldName := "ops-manager"
-				controlNewNameRegex := controlOldName + "....*"
+				controlNewNameRegex := controlOldName + "_....*"
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
 					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
@@ -91,8 +91,8 @@ var _ = Describe("Azure", func() {
 			})
 
 			Context("when there are multiple matches for the identifier regex", func() {
-				controlID := "blah"
-				controlOldImageURL := "blah"
+				controlID := "some-id"
+				controlOldImageURL := "some-image-url"
 				controlOldName := "ops-manager"
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
@@ -181,7 +181,7 @@ var _ = Describe("Azure", func() {
 
 			Context("when given an identifier with a populated VMs list from azure and no matching VM name regex", func() {
 				BeforeEach(func() {
-					controlName := "blah"
+					controlName := "some-name"
 					controlValue = append(controlValue,
 						compute.VirtualMachine{Name: &controlName})
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
@@ -235,11 +235,11 @@ var _ = Describe("Azure", func() {
 
 		Context("when provided a valid set of configuration values", func() {
 			BeforeEach(func() {
-				subID = "asdf"
-				clientID = "asdf"
-				clientSecret = "asdf"
-				tenantID = "asdf"
-				resourceGroupName = "asdf"
+				subID = "some-sub-id"
+				clientID = "some-client-id"
+				clientSecret = "some-client-secret"
+				tenantID = "some-tenant-id"
+				resourceGroupName = "some-resource-group-name"
 				resourceManagerEndpoint = ""
 			})
 			It("should return a azure client", func() {

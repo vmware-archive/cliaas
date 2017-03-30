@@ -92,7 +92,7 @@ func generateInstanceName(currentName string) string {
 	tstamp := time.Now().Format("20060112123456")
 	splits := strings.Split(currentName, "_")
 	if len(splits) == 1 {
-		return currentName + tstamp
+		return currentName + "_" + tstamp
 	}
 	truncatedSplits := splits[:len(splits)-1]
 	truncatedSplits = append(truncatedSplits, tstamp)
