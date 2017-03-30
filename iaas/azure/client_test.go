@@ -23,6 +23,9 @@ var _ = Describe("Azure", func() {
 			var controlNewImageURL = "some-control-new-image-url"
 			var controlRegex = "ops*"
 			var controlValue []compute.VirtualMachine
+			var controlID = "some-id"
+			var controlOldImageURL = "some-image-url"
+			var controlOldName = "ops-manager"
 
 			JustBeforeEach(func() {
 				fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
@@ -38,9 +41,6 @@ var _ = Describe("Azure", func() {
 			})
 
 			Context("when there is a single match on a identifier regex", func() {
-				controlID := "some-id"
-				controlOldImageURL := "some-image-url"
-				controlOldName := "ops-manager"
 				controlNewNameRegex := controlOldName + "_....*"
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
@@ -91,9 +91,6 @@ var _ = Describe("Azure", func() {
 			})
 
 			Context("when there are multiple matches for the identifier regex", func() {
-				controlID := "some-id"
-				controlOldImageURL := "some-image-url"
-				controlOldName := "ops-manager"
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
 					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
@@ -126,9 +123,23 @@ var _ = Describe("Azure", func() {
 				azureClient = new(azure.Client)
 			})
 
-			XContext("when azure running VMs list returns more than a single page of results", func() {
+			Context("when azure running VMs list returns more than a single page of results", func() {
+				BeforeEach(func() {
+					identifier = "testid"
+					vmMatch := newVirtualMachine(identifier, identifier, "testurl")
+					vmNothing := newVirtualMachine("nomatch", "nomatch", "testurl")
+					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &[]compute.VirtualMachine{vmNothing}}, nil)
+					fakeVirtualMachinesClient.ListAllNextResultsReturnsOnCall(
+						0,
+						compute.VirtualMachineListResult{
+							Value: &[]compute.VirtualMachine{vmMatch},
+						},
+						nil,
+					)
+					fakeVirtualMachinesClient.ListAllNextResultsReturnsOnCall(1, compute.VirtualMachineListResult{}, nil)
+				})
 				It("then we should properly walk through all pages to apply our regex", func() {
-					Expect(true).Should(BeFalse())
+					Expect(err).ShouldNot(HaveOccurred())
 				})
 			})
 

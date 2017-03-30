@@ -21,6 +21,7 @@ type Client struct {
 }
 
 type ComputeVirtualMachinesClient interface {
+	ListAllNextResults(lastResults compute.VirtualMachineListResult) (result compute.VirtualMachineListResult, err error)
 	CreateOrUpdate(resourceGroupName string, vmName string, parameters compute.VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error)
 	Delete(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
 	Deallocate(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
@@ -65,67 +66,58 @@ func NewClient(
 }
 
 func (s *Client) Delete(identifier string) error {
-	vmsList, err := s.VirtualMachinesClient.List(s.resourceGroupName)
+	matchingInstances, err := s.getFilteredList(identifier)
 	if err != nil {
-		return errwrap.Wrap(err, "error in getting list of VMs from azure")
-	}
-	var matchingInstances = make([]string, 0)
-	var vmNameFilter = regexp.MustCompile(identifier)
-	for _, instance := range *vmsList.Value {
-		if vmNameFilter.MatchString(*instance.Name) {
-			matchingInstances = append(matchingInstances, *instance.Name)
-		}
+		return errwrap.Wrap(err, "error when attempting to get filtered vm list")
 	}
 
 	switch len(matchingInstances) {
 	case 0:
 		return NoMatchesErr
 	case 1:
-		_, err = s.VirtualMachinesClient.Delete(s.resourceGroupName, matchingInstances[0], nil)
+		_, err = s.VirtualMachinesClient.Delete(s.resourceGroupName, *(matchingInstances[0].Name), nil)
 		return err
 	default:
 		return MultipleMatchesErr
 	}
 }
 
-func generateInstanceName(currentName string) string {
-	tstamp := time.Now().Format("20060112123456")
-	splits := strings.Split(currentName, "_")
-	if len(splits) == 1 {
-		return currentName + "_" + tstamp
-	}
-	truncatedSplits := splits[:len(splits)-1]
-	truncatedSplits = append(truncatedSplits, tstamp)
-
-	return strings.Join(truncatedSplits, "_")
-}
-
 func (s *Client) Replace(identifier string, vhdURL string) error {
 	instance, err := s.deallocate(identifier)
-
 	if err != nil {
 		return errwrap.Wrap(err, "error shutting down VM")
 	}
+
 	tmpName := generateInstanceName(*instance.Name)
 	instance.Name = &tmpName
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &vhdURL
-
 	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *instance.Name, *instance, nil)
-
 	return err
 }
 
-func (s *Client) deallocate(identifier string) (*compute.VirtualMachine, error) {
-	vmsList, err := s.VirtualMachinesClient.List(s.resourceGroupName)
+func (s *Client) getFilteredList(identifier string) ([]compute.VirtualMachine, error) {
+	vmListResults, err := s.VirtualMachinesClient.List(s.resourceGroupName)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "error in getting list of VMs from azure")
 	}
+
 	var matchingInstances = make([]compute.VirtualMachine, 0)
 	var vmNameFilter = regexp.MustCompile(identifier)
-	for _, instance := range *vmsList.Value {
-		if vmNameFilter.MatchString(*instance.Name) {
-			matchingInstances = append(matchingInstances, instance)
+
+	for vmListResults.Value != nil && len(*vmListResults.Value) > 0 {
+		matchingInstances = getMatchingInstances(*vmListResults.Value, vmNameFilter, matchingInstances)
+		vmListResults, err = s.VirtualMachinesClient.ListAllNextResults(vmListResults)
+		if err != nil {
+			return nil, errwrap.Wrap(err, "ListAllNextResults call failed")
 		}
+	}
+	return matchingInstances, nil
+}
+
+func (s *Client) deallocate(identifier string) (*compute.VirtualMachine, error) {
+	matchingInstances, err := s.getFilteredList(identifier)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "error when attempting to get filtered vm list")
 	}
 
 	switch len(matchingInstances) {
@@ -150,4 +142,26 @@ func checkEnvVar(envVars map[string]string) error {
 		return fmt.Errorf("Missing environment variables %v", missingVars)
 	}
 	return nil
+}
+
+func generateInstanceName(currentName string) string {
+	tstamp := time.Now().Format("20060112123456")
+	splits := strings.Split(currentName, "_")
+	if len(splits) == 1 {
+		return currentName + "_" + tstamp
+	}
+
+	truncatedSplits := splits[:len(splits)-1]
+	truncatedSplits = append(truncatedSplits, tstamp)
+	return strings.Join(truncatedSplits, "_")
+}
+
+func getMatchingInstances(vmList []compute.VirtualMachine, identifierRegex *regexp.Regexp, matchingInstances []compute.VirtualMachine) []compute.VirtualMachine {
+
+	for _, instance := range vmList {
+		if identifierRegex.MatchString(*instance.Name) {
+			matchingInstances = append(matchingInstances, instance)
+		}
+	}
+	return matchingInstances
 }
