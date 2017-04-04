@@ -74,6 +74,10 @@ cat > config.yml <<EOF
     tenant_id: xxxxx
     resource_group_name: xxxxx
     resource_manager_endpoint: xxxxx
+    storage_account_name: xxxx
+    storage_account_key: xxxx
+    storage_container_name: xxxx
+    storage_url: xxxx
 EOF
 ```
 
@@ -83,6 +87,10 @@ EOF
 * `tenant_id`: xxxxx //$ azure account show | grep "Tenant ID"
 * `resource_group_name`: xxxxx /// this is just the resource group name we wish to target
 * `resource_manager_endpoint`: xxxx /// this is an option value. defaults to https://management.azure.com/
+* `storage_account_name`: xxxx // this is the name of the storage account you wish to use for storing ops manager vhd
+* `storage_account_key`: xxxx // this is the key to access the above storage account
+* `storage_container_name`: xxxx // the name of the storage container you wish to place the ops manager disk image vhd
+* `storage_url`: xxxx // optional storage url to overwrite default value (core.windows.net)
 
 #### Identifiers
 

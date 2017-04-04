@@ -2,8 +2,10 @@ package azure_test
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	storage "github.com/Azure/azure-storage-go"
 	"github.com/Azure/go-autorest/autorest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,12 +22,16 @@ var _ = Describe("Azure", func() {
 			var err error
 			var identifier string
 			var fakeVirtualMachinesClient *azurefakes.FakeComputeVirtualMachinesClient
+			var fakeBlobServiceClient *azurefakes.FakeBlobCopier
 			var controlNewImageURL = "some-control-new-image-url"
 			var controlRegex = "ops*"
 			var controlValue []compute.VirtualMachine
 			var controlID = "some-id"
 			var controlOldImageURL = "some-image-url"
 			var controlOldName = "ops-manager"
+			var controlContainerName = "mycontainer"
+			var controlStorageAccountName = "myaccount"
+			var controlNewImageLocalContainerURL = fmt.Sprintf("https://%s.blob.core.windows.net/%s/%s", controlStorageAccountName, controlContainerName, controlOldName+"_....*")
 
 			JustBeforeEach(func() {
 				fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &controlValue}, nil)
@@ -33,6 +39,10 @@ var _ = Describe("Azure", func() {
 				azureClient = new(azure.Client)
 				identifier = controlRegex
 				azureClient.VirtualMachinesClient = fakeVirtualMachinesClient
+				azureClient.BlobServiceClient = fakeBlobServiceClient
+				azureClient.SetStorageAccountName(controlStorageAccountName)
+				azureClient.SetStorageContainerName(controlContainerName)
+				azureClient.SetStorageBaseURL(storage.DefaultBaseURL)
 				err = azureClient.Replace(identifier, controlNewImageURL)
 			})
 
@@ -44,13 +54,24 @@ var _ = Describe("Azure", func() {
 				controlNewNameRegex := controlOldName + "_....*"
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
+					fakeBlobServiceClient = new(azurefakes.FakeBlobCopier)
 					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
 					controlValue = append(controlValue, vm)
 				})
-				It("it should not return an error", func() {
+
+				It("should not return an error", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
-				It("it should spin down the matching vm instance", func() {
+
+				It("should copy the blob from the given public vhd URL into our local account's blob service container", func() {
+					Expect(fakeBlobServiceClient.CopyBlobCallCount()).Should(Equal(1), "we should have called CopyBlob exactly once")
+					container, localImageFilename, sourceBlob := fakeBlobServiceClient.CopyBlobArgsForCall(0)
+					Expect(container).Should(Equal(controlContainerName))
+					Expect(localImageFilename).Should(MatchRegexp(controlNewNameRegex))
+					Expect(sourceBlob).Should(Equal(controlNewImageURL))
+				})
+
+				It("should spin down the matching vm instance", func() {
 					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(1), "we should call deallocate exactly once")
 					_, vmName, _ := fakeVirtualMachinesClient.DeallocateArgsForCall(0)
 					Expect(vmName).Should(MatchRegexp(controlRegex))
@@ -58,19 +79,20 @@ var _ = Describe("Azure", func() {
 					fakeVirtualMachinesClient.DeallocateReturnsOnCall(1, autorest.Response{}, deallocateErr)
 					Expect(deallocateErr).ShouldNot(HaveOccurred())
 				})
-				It("it should copy the existing vms config into the new vm instance's config ", func() {
+				It("should copy the existing vms config into the new vm instance's config ", func() {
 					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
 					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
 					Expect(*parameters.ID).Should(Equal(controlID))
 				})
-				It("it should replace the disk image on the new vm instance's config with the given new version", func() {
+				It("should replace the disk image on the new vm instance's config with the local copy of the given Public VHD", func() {
 					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
 					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
 					var imageURL = *parameters.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI
 					Expect(imageURL).ShouldNot(Equal(controlOldImageURL))
-					Expect(imageURL).Should(Equal(controlNewImageURL))
+					Expect(imageURL).ShouldNot(Equal(controlNewImageURL))
+					Expect(imageURL).Should(MatchRegexp(controlNewImageLocalContainerURL))
 				})
-				It("it should apply a new unique name to the new vm instance's config", func() {
+				It("should apply a new unique name to the new vm instance's config", func() {
 					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
 					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
 					var name = *parameters.Name
@@ -138,7 +160,7 @@ var _ = Describe("Azure", func() {
 					)
 					fakeVirtualMachinesClient.ListAllNextResultsReturnsOnCall(1, compute.VirtualMachineListResult{}, nil)
 				})
-				It("then we should properly walk through all pages to apply our regex", func() {
+				It("should properly walk through all pages to apply our regex", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 			})

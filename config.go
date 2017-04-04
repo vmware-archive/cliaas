@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/clock"
+	"github.com/Azure/azure-storage-go"
 
 	"github.com/pivotal-cf/cliaas/iaas/azure"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
@@ -60,6 +61,10 @@ type AzureConfig struct {
 	TenantID                string `yaml:"tenant_id"`
 	ResourceGroupName       string `yaml:"resource_group_name"`
 	ResourceManagerEndpoint string `yaml:"resource_manager_endpoint"`
+	StorageAccountName      string `yaml:"storage_account_name"`
+	StorageAccountKey       string `yaml:"storage_account_key"`
+	StorageContainerName    string `yaml:"storage_container_name"`
+	StorageURL              string `yaml:"storage_url"`
 }
 
 func (c *AzureConfig) Complete() bool {
@@ -67,13 +72,27 @@ func (c *AzureConfig) Complete() bool {
 		c.ClientID != "" &&
 		c.ClientSecret != "" &&
 		c.TenantID != "" &&
-		c.ResourceGroupName != ""
+		c.ResourceGroupName != "" &&
+		c.StorageAccountName != "" &&
+		c.StorageAccountKey != "" &&
+		c.StorageContainerName != ""
 }
 
 func (c *AzureConfig) NewClient() (Client, error) {
 	client, err := azure.NewClient(c.SubscriptionID, c.ClientID, c.ClientSecret, c.TenantID, c.ResourceGroupName, c.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "azure newclient failed to create a client")
+	}
+
+	if c.StorageURL == "" {
+		c.StorageURL = storage.DefaultBaseURL
+	}
+	client.SetStorageContainerName(c.StorageContainerName)
+	client.SetStorageAccountName(c.StorageAccountName)
+	client.SetStorageBaseURL(c.StorageURL)
+	err = client.SetBlobServiceClient(c.StorageAccountName, c.StorageAccountKey, c.StorageURL)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "failed setting blobstore client")
 	}
 
 	return client, errors.New("not yet implemented")

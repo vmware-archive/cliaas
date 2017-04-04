@@ -73,11 +73,14 @@ var _ = Describe("Config", func() {
 
 				BeforeEach(func() {
 					azureConfig = &cliaas.AzureConfig{
-						SubscriptionID:    "asdfasd",
-						ClientID:          "klasdjfas",
-						ClientSecret:      "asdfas",
-						TenantID:          "asdfasd",
-						ResourceGroupName: "asdfasd",
+						SubscriptionID:       "asdfasd",
+						ClientID:             "klasdjfas",
+						ClientSecret:         "asdfas",
+						TenantID:             "asdfasd",
+						ResourceGroupName:    "asdfasd",
+						StorageAccountName:   "sadfasdf",
+						StorageAccountKey:    "asdfasdf",
+						StorageContainerName: "asdfasdf",
 					}
 				})
 

@@ -13,3 +13,5 @@ import:
   version: ^1.2.0
 - package: code.cloudfoundry.org/clock
 - package: gopkg.in/yaml.v2
+- package: github.com/Azure/azure-storage-go
+  version: ^0.1.0

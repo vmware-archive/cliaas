@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/azure-storage-go"
+
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/examples/helpers"
 	"github.com/Azure/go-autorest/autorest"
@@ -16,8 +18,16 @@ import (
 const defaultResourceManagerEndpoint = "https://management.azure.com/"
 
 type Client struct {
+	BlobServiceClient     BlobCopier
 	VirtualMachinesClient ComputeVirtualMachinesClient
 	resourceGroupName     string
+	storageContainerName  string
+	storageAccountName    string
+	storageBaseURL        string
+}
+
+type BlobCopier interface {
+	CopyBlob(container, name, sourceBlob string) error
 }
 
 type ComputeVirtualMachinesClient interface {
@@ -65,9 +75,43 @@ func NewClient(
 	}, nil
 }
 
+func (s *Client) SetStorageContainerName(name string) {
+	s.storageContainerName = name
+}
+
+func (s *Client) SetStorageAccountName(name string) {
+	s.storageAccountName = name
+}
+
+func (s *Client) SetStorageBaseURL(baseURL string) {
+	s.storageBaseURL = baseURL
+}
+
+func (s *Client) SetBlobServiceClient(storageAccountName string, storageAccountKey string, storageURL string) error {
+	blobClient, err := newBlobClient(storageAccountName, storageAccountKey, storageURL)
+	if err != nil {
+		return errwrap.Wrap(err, "failed creating a blob client")
+	}
+	s.BlobServiceClient = blobClient
+	return nil
+}
+
+func newBlobClient(accountName string, accountKey string, baseURL string) (*storage.BlobStorageClient, error) {
+	client, err := storage.NewClient(accountName, accountKey, baseURL, storage.DefaultAPIVersion, true)
+	if err != nil {
+		return nil, err
+	}
+	blobClient := client.GetBlobService()
+	return &blobClient, nil
+}
+
 func (s *Client) Delete(identifier string) error {
 	_, err := s.executeFunctionOnMatchingVM(identifier, s.VirtualMachinesClient.Delete)
 	return err
+}
+
+func generateLocalImageURL(accountName string, baseURL string, containerName string, localBlobName string) string {
+	return fmt.Sprintf("https://%s.blob.%s/%s/%s", accountName, baseURL, containerName, localBlobName)
 }
 
 func (s *Client) Replace(identifier string, vhdURL string) error {
@@ -78,7 +122,14 @@ func (s *Client) Replace(identifier string, vhdURL string) error {
 
 	tmpName := generateInstanceName(*instance.Name)
 	instance.Name = &tmpName
-	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &vhdURL
+	localBlobName := tmpName + "-image.vhd"
+	err = s.BlobServiceClient.CopyBlob(s.storageContainerName, localBlobName, vhdURL)
+	if err != nil {
+		return errwrap.Wrap(err, "error copying source blob to local blob")
+	}
+
+	localImageURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localBlobName)
+	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &localImageURL
 	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *instance.Name, *instance, nil)
 	return err
 }
