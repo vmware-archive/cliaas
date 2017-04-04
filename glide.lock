@@ -39,14 +39,14 @@ imports:
   - service/ec2
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
-  version: 8e625d1702a32d01cef05a9252198d231c4af113
+  version: 8b742db0f792bb89ee4dadbdb2314aeb9a5626d2
   subpackages:
   - arm/compute
   - arm/examples/helpers
 - name: github.com/Azure/azure-storage-go
   version: 7c36d244fc8bf27bcf9785b0b37d6beef2949296
 - name: github.com/Azure/go-autorest
-  version: 92e199ed6a4b8b81c5d7536915af3616c2cd9fff
+  version: ec5f4903f77ed9927ac95b19ab8e44ada64c1356
   subpackages:
   - autorest
   - autorest/azure
