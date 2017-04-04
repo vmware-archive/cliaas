@@ -21,6 +21,8 @@ const (
 )
 
 var (
+	controlVMBaseURL  = "https://azureintstore.blob.core.windows.net/opsmanager/"
+	controlVMImageURL = controlVMBaseURL + "opsmanagerimage193.vhd"
 	subscriptionID    = os.Getenv("AZURE_SUBSCRIPTION_ID")
 	clientID          = os.Getenv("AZURE_CLIENT_ID")
 	clientSecret      = os.Getenv("AZURE_CLIENT_SECRET")
@@ -33,7 +35,7 @@ var (
 	vmPass            = getGUID()
 )
 
-var _ = XDescribe("Azure API Client", func() {
+var _ = Describe("Azure API Client", func() {
 	var client compute.VirtualMachinesClient
 	var identifier string
 	var err error
@@ -44,13 +46,11 @@ var _ = XDescribe("Azure API Client", func() {
 		identifier = "ops-man-rotation-test-" + getGUID()
 		azureClient, err = azure.NewClient(subscriptionID, clientID, clientSecret, tenantID, resourceGroupName, resourceManagerEndpoint)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = createVM(client, identifier, controlOpsManVMDiskURL)
+		osDiskImageURL := fmt.Sprintf("%svm-%s.vhd", controlVMBaseURL, getGUID())
+		err = createVM(client, identifier, controlVMImageURL, osDiskImageURL)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	AfterEach(func() {
-
-	})
 	Describe("Delete", func() {
 		JustBeforeEach(func() {
 			Expect(vmExists(client, identifier)).Should(BeTrue(), "does the control test VM exist?")
@@ -64,7 +64,11 @@ var _ = XDescribe("Azure API Client", func() {
 			})
 		})
 	})
-	Describe("Replace", func() {
+	XDescribe("Replace", func() {
+
+		AfterEach(func() {
+
+		})
 		Context("when called on a vm with a name matching the given regex", func() {
 			It("should shutdown the matching VM and spin up a the new VM in its place", func() {
 				Expect(true).Should(BeFalse())
@@ -73,15 +77,16 @@ var _ = XDescribe("Azure API Client", func() {
 	})
 })
 
-func createVM(client compute.VirtualMachinesClient, name string, diskURL string) error {
-	instance := newVirtualMachine(name, diskURL)
+func createVM(client compute.VirtualMachinesClient, name string, imageURL string, osDiskURL string) error {
+	instance := newVirtualMachine(name, imageURL, osDiskURL)
 	_, err := client.CreateOrUpdate(resourceGroupName, *instance.Name, instance, nil)
 	return err
 }
 
-func newVirtualMachine(name string, vmDiskURL string) compute.VirtualMachine {
+func newVirtualMachine(name string, vmImageURL string, osDiskURL string) compute.VirtualMachine {
 	tmpName := name
-	tmpURL := vmDiskURL
+	tmpImageURL := vmImageURL
+	tmpOsDiskURL := osDiskURL
 	vm := compute.VirtualMachine{
 		Location: &vmLocation,
 		Name:     &tmpName,
@@ -105,12 +110,12 @@ func newVirtualMachine(name string, vmDiskURL string) compute.VirtualMachine {
 				OsDisk: &compute.OSDisk{
 					Name: &osDiskName,
 					Vhd: &compute.VirtualHardDisk{
-						URI: &tmpURL,
+						URI: &tmpOsDiskURL,
 					},
 					CreateOption: compute.FromImage,
 					OsType:       compute.Linux,
 					Image: &compute.VirtualHardDisk{
-						URI: &tmpURL,
+						URI: &tmpImageURL,
 					},
 				},
 			},
