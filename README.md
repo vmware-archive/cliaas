@@ -65,6 +65,11 @@ EOF
 
 #### Azure-specific Config
 
+!!! The replace-vm call on Azure will *DELETE* the current ops manager vm when
+standing up the new version. This behavior is different than other IaaS' so be
+warned !!!
+
+
 ```
 cat > config.yml <<EOF
   azure:
