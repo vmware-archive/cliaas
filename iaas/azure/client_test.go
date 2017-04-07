@@ -56,6 +56,7 @@ var _ = Describe("Azure", func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
 					fakeBlobServiceClient = new(azurefakes.FakeBlobCopier)
 					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
+					fakeVirtualMachinesClient.GetReturns(vm, nil)
 					controlValue = append(controlValue, vm)
 				})
 
@@ -71,19 +72,25 @@ var _ = Describe("Azure", func() {
 					Expect(sourceBlob).Should(Equal(controlNewImageURL))
 				})
 
-				It("should spin down the matching vm instance", func() {
+				It("should spin down & delete the matching vm instance", func() {
 					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(1), "we should call deallocate exactly once")
 					_, vmName, _ := fakeVirtualMachinesClient.DeallocateArgsForCall(0)
 					Expect(vmName).Should(MatchRegexp(controlRegex))
 					var deallocateErr error
 					fakeVirtualMachinesClient.DeallocateReturnsOnCall(1, autorest.Response{}, deallocateErr)
 					Expect(deallocateErr).ShouldNot(HaveOccurred())
+
+					Expect(fakeVirtualMachinesClient.DeleteCallCount()).Should(Equal(1), "we should call delete exactly once")
+					_, vmName, _ = fakeVirtualMachinesClient.DeleteArgsForCall(0)
+					Expect(vmName).Should(MatchRegexp(controlRegex))
 				})
+
 				It("should copy the existing vms config into the new vm instance's config ", func() {
 					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
 					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
 					Expect(*parameters.ID).Should(Equal(controlID))
 				})
+
 				It("should replace the disk image on the new vm instance's config with the local copy of the given Public VHD", func() {
 					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
 					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
@@ -92,6 +99,7 @@ var _ = Describe("Azure", func() {
 					Expect(imageURL).ShouldNot(Equal(controlNewImageURL))
 					Expect(imageURL).Should(MatchRegexp(controlNewImageLocalContainerURL))
 				})
+
 				It("should apply a new unique name to the new vm instance's config", func() {
 					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
 					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
@@ -305,8 +313,12 @@ func newVirtualMachine(id string, name string, vmDiskURL string) compute.Virtual
 		ID:   &tmpID,
 		Name: &tmpName,
 		VirtualMachineProperties: &compute.VirtualMachineProperties{
+			OsProfile: &compute.OSProfile{},
 			StorageProfile: &compute.StorageProfile{
 				OsDisk: &compute.OSDisk{
+					Vhd: &compute.VirtualHardDisk{
+						URI: &tmpURL,
+					},
 					Image: &compute.VirtualHardDisk{
 						URI: &tmpURL,
 					},

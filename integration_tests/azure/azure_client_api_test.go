@@ -17,22 +17,27 @@ import (
 
 const (
 	resourceManagerEndpoint = "https://management.azure.com/"
-	controlOpsManVMDiskURL  = "https://opsmanagereastus.blob.core.windows.net/images/ops-manager-1.9.3.vhd"
+	controlOpsManVMDiskURL  = "https://opsmanagereastus.blob.core.windows.net/images/ops-manager-1.10.3.vhd"
 )
 
 var (
-	controlVMBaseURL  = "https://azureintstore.blob.core.windows.net/opsmanager/"
-	controlVMImageURL = controlVMBaseURL + "opsmanagerimage193.vhd"
-	subscriptionID    = os.Getenv("AZURE_SUBSCRIPTION_ID")
-	clientID          = os.Getenv("AZURE_CLIENT_ID")
-	clientSecret      = os.Getenv("AZURE_CLIENT_SECRET")
-	tenantID          = os.Getenv("AZURE_TENANT_ID")
-	resourceGroupName = os.Getenv("AZURE_RESOURCE_GROUP_NAME")
-	nicID             = os.Getenv("AZURE_NIC_ID")
-	osDiskName        = "linux"
-	vmLocation        = "eastus"
-	vmUser            = "opsmanuser"
-	vmPass            = getGUID()
+	controlVMBaseURL     = "https://azureintstore.blob.core.windows.net/opsmanager/"
+	controlVMImageURL    = controlVMBaseURL + "opsmanagerimage193.vhd"
+	subscriptionID       = os.Getenv("AZURE_SUBSCRIPTION_ID")
+	clientID             = os.Getenv("AZURE_CLIENT_ID")
+	clientSecret         = os.Getenv("AZURE_CLIENT_SECRET")
+	tenantID             = os.Getenv("AZURE_TENANT_ID")
+	resourceGroupName    = os.Getenv("AZURE_RESOURCE_GROUP_NAME")
+	nicID                = os.Getenv("AZURE_NIC_ID")
+	storageAccountName   = os.Getenv("AZURE_STORAGE_ACCOUNT_NAME")
+	storageAccountKey    = os.Getenv("AZURE_STORAGE_ACCOUNT_KEY")
+	storageContainerName = os.Getenv("AZURE_STORAGE_CONTAINER_NAME")
+	storageBaseURL       = os.Getenv("AZURE_STORAGE_BASE_URL")
+	adminVMPassword      = os.Getenv("AZURE_VM_ADMIN_PASSWORD")
+	osDiskName           = "linux"
+	vmLocation           = "eastus"
+	vmUser               = "opsmanuser"
+	vmPass               = getGUID()
 )
 
 var _ = Describe("Azure API Client", func() {
@@ -51,10 +56,16 @@ var _ = Describe("Azure API Client", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
+	AfterEach(func() {
+		azureClient.Delete(identifier)
+		Expect(vmExists(client, identifier)).Should(BeFalse(), "this vm should have been removed")
+	})
+
 	Describe("Delete", func() {
 		JustBeforeEach(func() {
 			Expect(vmExists(client, identifier)).Should(BeTrue(), "does the control test VM exist?")
 			err = azureClient.Delete(identifier)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		Context("when called on a vm with a name matching the given regex", func() {
@@ -64,14 +75,22 @@ var _ = Describe("Azure API Client", func() {
 			})
 		})
 	})
-	XDescribe("Replace", func() {
 
-		AfterEach(func() {
-
+	Describe("Replace", func() {
+		JustBeforeEach(func() {
+			Expect(vmExists(client, identifier+"_....*")).Should(BeFalse(), "was the control test VM removed?")
+			azureClient.SetStorageContainerName(storageContainerName)
+			azureClient.SetStorageAccountName(storageAccountName)
+			azureClient.SetStorageBaseURL(storageBaseURL)
+			err = azureClient.SetBlobServiceClient(storageAccountName, storageAccountKey, storageBaseURL)
+			Expect(err).ShouldNot(HaveOccurred())
+			err = azureClient.Replace(identifier, controlOpsManVMDiskURL)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
+
 		Context("when called on a vm with a name matching the given regex", func() {
-			It("should shutdown the matching VM and spin up a the new VM in its place", func() {
-				Expect(true).Should(BeFalse())
+			It("should delete the matching VM and spin up a the new VM in its place", func() {
+				Expect(vmExists(client, identifier+"_....*")).Should(BeTrue(), "was the control test VM removed?")
 			})
 		})
 	})

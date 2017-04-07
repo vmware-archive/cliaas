@@ -78,6 +78,7 @@ cat > config.yml <<EOF
     storage_account_key: xxxx
     storage_container_name: xxxx
     storage_url: xxxx
+    vm_admin_password: xxxxx
 EOF
 ```
 
@@ -91,7 +92,8 @@ EOF
 * `storage_account_key`: xxxx // this is the key to access the above storage account
 * `storage_container_name`: xxxx // the name of the storage container you wish to place the ops manager disk image vhd
 * `storage_url`: xxxx // optional storage url to overwrite default value (core.windows.net)
-
+* `vm_admin_password`: xxxx // optional vm admin password ( a random one will be
+  used if none given)
 #### Identifiers
 
 The VM identifier is used to find the VM by name in the IaaS.

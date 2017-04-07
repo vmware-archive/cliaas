@@ -65,6 +65,7 @@ type AzureConfig struct {
 	StorageAccountKey       string `yaml:"storage_account_key"`
 	StorageContainerName    string `yaml:"storage_container_name"`
 	StorageURL              string `yaml:"storage_url"`
+	VMAdminPassword         string `yaml:"vm_admin_password"`
 }
 
 func (c *AzureConfig) Complete() bool {
@@ -90,6 +91,7 @@ func (c *AzureConfig) NewClient() (Client, error) {
 	client.SetStorageContainerName(c.StorageContainerName)
 	client.SetStorageAccountName(c.StorageAccountName)
 	client.SetStorageBaseURL(c.StorageURL)
+	client.SetVMAdminPassword(c.VMAdminPassword)
 	err = client.SetBlobServiceClient(c.StorageAccountName, c.StorageAccountKey, c.StorageURL)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "failed setting blobstore client")

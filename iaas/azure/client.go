@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-storage-go"
+	"github.com/google/uuid"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/examples/helpers"
@@ -24,6 +25,7 @@ type Client struct {
 	storageContainerName  string
 	storageAccountName    string
 	storageBaseURL        string
+	vmAdminPassword       string
 }
 
 type BlobCopier interface {
@@ -31,6 +33,7 @@ type BlobCopier interface {
 }
 
 type ComputeVirtualMachinesClient interface {
+	Get(resourceGroupName string, vmName string, expand compute.InstanceViewTypes) (result compute.VirtualMachine, err error)
 	ListAllNextResults(lastResults compute.VirtualMachineListResult) (result compute.VirtualMachineListResult, err error)
 	CreateOrUpdate(resourceGroupName string, vmName string, parameters compute.VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error)
 	Delete(resourceGroupName string, vmName string, cancel <-chan struct{}) (result autorest.Response, err error)
@@ -73,6 +76,10 @@ func NewClient(
 		VirtualMachinesClient: &client,
 		resourceGroupName:     resourceGroupName,
 	}, nil
+}
+
+func (s *Client) SetVMAdminPassword(password string) {
+	s.vmAdminPassword = password
 }
 
 func (s *Client) SetStorageContainerName(name string) {
@@ -121,17 +128,45 @@ func (s *Client) Replace(identifier string, vhdURL string) error {
 	}
 
 	tmpName := generateInstanceName(*instance.Name)
-	instance.Name = &tmpName
 	localBlobName := tmpName + "-image.vhd"
+	localDiskName := tmpName + "-osdisk.vhd"
 	err = s.BlobServiceClient.CopyBlob(s.storageContainerName, localBlobName, vhdURL)
 	if err != nil {
 		return errwrap.Wrap(err, "error copying source blob to local blob")
 	}
 
 	localImageURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localBlobName)
-	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &localImageURL
-	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *instance.Name, *instance, nil)
+	localDiskURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localDiskName)
+	newInstance, err := s.generateInstanceCopy(*instance.Name, tmpName, localImageURL, localDiskURL)
+	if err != nil {
+		return errwrap.Wrap(err, "failed to generate a new instance object")
+	}
+
+	err = s.Delete(identifier)
+	if err != nil {
+		return errwrap.Wrap(err, "failed removing original VM")
+	}
+
+	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *newInstance.Name, *newInstance, nil)
 	return err
+}
+
+func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName string, localImageURL string, localOSDiskURL string) (*compute.VirtualMachine, error) {
+	instance, err := s.VirtualMachinesClient.Get(s.resourceGroupName, sourceInstanceName, compute.InstanceView)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "unable to get virtual machine instance from azure api")
+	}
+
+	instance.Name = &newInstanceName
+	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &localImageURL
+	instance.VirtualMachineProperties.StorageProfile.OsDisk.Vhd.URI = &localOSDiskURL
+	instance.VirtualMachineProperties.VMID = nil
+
+	if s.vmAdminPassword == "" {
+		s.vmAdminPassword = getGUID()
+	}
+	instance.VirtualMachineProperties.OsProfile.AdminPassword = &s.vmAdminPassword
+	return &instance, nil
 }
 
 func (s *Client) deallocate(identifier string) (*compute.VirtualMachine, error) {
@@ -172,6 +207,12 @@ func (s *Client) getFilteredList(identifier string) ([]compute.VirtualMachine, e
 		}
 	}
 	return matchingInstances, nil
+}
+
+func getGUID() string {
+	uuid, _ := uuid.NewRandom()
+	localString := uuid.String()
+	return localString
 }
 
 func checkEnvVar(envVars map[string]string) error {
