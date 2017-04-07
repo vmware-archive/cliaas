@@ -15,3 +15,5 @@ import:
 - package: gopkg.in/yaml.v2
 - package: github.com/Azure/azure-storage-go
   version: ^0.1.0
+- package: github.com/Azure/azure-sdk-for-go
+  version: v9.0.1-beta

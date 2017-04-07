@@ -1,13 +1,13 @@
-hash: 903b5bb233b7f621450fbe5de821993b2c44263669911596e13db0ba5c7a78a4
-updated: 2017-04-03T16:27:43.916241706-04:00
+hash: cfa6319e965bf1c7cd1ba4766dd8ffe2a227c0a8920eae2c29326c788308acc8
+updated: 2017-04-06T13:51:55.63999293-04:00
 imports:
 - name: cloud.google.com/go
-  version: 0b87d14d90086b53a97dfbd66f3000f7f112b494
+  version: 675fad27ef35e552d3708858ff337d54b3b6f4d3
   subpackages:
   - compute/metadata
   - internal
 - name: code.cloudfoundry.org/clock
-  version: 07af930eb5e50f99b6e7b413774d1a6b1cc8e598
+  version: 2269160ae1757f96bbb8c6475e6fa36c805e73e0
   subpackages:
   - fakeclock
 - name: github.com/aws/aws-sdk-go
@@ -39,7 +39,7 @@ imports:
   - service/ec2
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
-  version: 8b742db0f792bb89ee4dadbdb2314aeb9a5626d2
+  version: 088007b3b08cc02b27f2eadfdcd870958460ce7e
   subpackages:
   - arm/compute
   - arm/examples/helpers
@@ -56,45 +56,61 @@ imports:
 - name: github.com/dgrijalva/jwt-go
   version: 2268707a8f0843315e2004ee4f1d021dc08baedf
 - name: github.com/go-ini/ini
-  version: 6f66b0e091edb3c7b380f7c4f0f884274d550b67
+  version: e7fea39b01aea8d5671f6858f0532f56e8bff3a5
 - name: github.com/golang/protobuf
-  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
+  version: 2bba0603135d7d7f5cb73b2125beeda19c09f4ef
   subpackages:
   - proto
+  - ptypes/any
+- name: github.com/google/go-genproto
+  version: 411e09b969b1170a9f0c467558eb4c4c110d9c77
+  subpackages:
+  - googleapis/rpc/status
 - name: github.com/googleapis/gax-go
-  version: da06d194a00e19ce00d9011a13931c3f6f6887c7
+  version: 9af46dd5a1713e8b5cd71106287eba3cefdde50b
 - name: github.com/jessevdk/go-flags
   version: 48cf8722c3375517aba351d1f7577c40663a4407
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/pkg/errors
-  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+  version: ff09b135c25aae272398c51a07235b90a75aa4f0
 - name: golang.org/x/net
-  version: 07b51741c1d6423d4a6abab1c49940ec09cb1aaf
+  version: ffcf1bedda3b04ebb15a168a59800a73d6dc0f4d
   subpackages:
   - context
   - context/ctxhttp
   - http2
   - http2/hpack
+  - idna
   - internal/timeseries
   - lex/httplex
   - trace
 - name: golang.org/x/oauth2
-  version: 314dd2c0bf3ebd592ec0d20847d27e79d0dbe8dd
+  version: 7fdf09982454086d5570c7db3e11f360194830ca
   subpackages:
   - google
   - internal
   - jws
   - jwt
+- name: golang.org/x/text
+  version: f4b4367115ec2de254587813edaa901bc1c723a8
+  repo: https://github.com/golang/text.git
+  vcs: git
+  subpackages:
+  - .
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
 - name: google.golang.org/api
-  version: bc20c61134e1d25265dd60049f5735381e79b631
+  version: 48e49d1645e228d1c50c3d54fb476b2224477303
   subpackages:
   - compute/v1
   - gensupport
   - googleapi
   - googleapi/internal/uritemplates
 - name: google.golang.org/appengine
-  version: 08a149cfaee099e6ce4be01c0113a78c85ee1dee
+  version: 56d253d1dd14aa01937e12c73a0971bcfd797ff2
   subpackages:
   - internal
   - internal/app_identity
@@ -106,25 +122,27 @@ imports:
   - internal/urlfetch
   - urlfetch
 - name: google.golang.org/grpc
-  version: d0c32ee6a441117d49856d6120ca9552af413ee0
+  version: b5071124392bfd416c713e6595ac149b387f7186
   subpackages:
   - codes
   - credentials
   - grpclog
   - internal
+  - keepalive
   - metadata
   - naming
   - peer
   - stats
+  - status
   - tap
   - transport
 - name: gopkg.in/yaml.v2
-  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+  version: a3f3340b5840cee44f372bddb5880fcbc419b46a
 testImports:
 - name: github.com/google/uuid
   version: 6a5e28554805e78ea6141142aba763936c4761c0
 - name: github.com/onsi/ginkgo
-  version: 462326b1628e124b23f42e87a8f2750e3c4e2d24
+  version: 77a8c1e5c40d6bb6c5eb4dd4bdce9763564f6298
   subpackages:
   - config
   - internal/codelocation
@@ -133,21 +151,25 @@ testImports:
   - internal/leafnodes
   - internal/remote
   - internal/spec
+  - internal/spec_iterator
   - internal/specrunner
   - internal/suite
   - internal/testingtproxy
   - internal/writer
   - reporters
   - reporters/stenographer
+  - reporters/stenographer/support/go-colorable
+  - reporters/stenographer/support/go-isatty
   - types
 - name: github.com/onsi/gomega
-  version: a78ae492d53aad5a7a232d0d0462c14c400e3ee7
+  version: 334b8f472b3af5d541c5642701c1e29e2126f486
   subpackages:
   - format
   - gbytes
   - gexec
   - internal/assertion
   - internal/asyncassertion
+  - internal/oraclematcher
   - internal/testingtsupport
   - matchers
   - matchers/support/goraph/bipartitegraph
@@ -155,3 +177,7 @@ testImports:
   - matchers/support/goraph/node
   - matchers/support/goraph/util
   - types
+- name: golang.org/x/sys
+  version: 7de4796419dc3b554e6dab3a119a62469569d299
+  subpackages:
+  - unix
