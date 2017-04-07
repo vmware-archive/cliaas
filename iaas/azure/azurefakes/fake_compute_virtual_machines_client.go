@@ -10,6 +10,21 @@ import (
 )
 
 type FakeComputeVirtualMachinesClient struct {
+	GetStub        func(resourceGroupName string, vmName string, expand compute.InstanceViewTypes) (result compute.VirtualMachine, err error)
+	getMutex       sync.RWMutex
+	getArgsForCall []struct {
+		resourceGroupName string
+		vmName            string
+		expand            compute.InstanceViewTypes
+	}
+	getReturns struct {
+		result1 compute.VirtualMachine
+		result2 error
+	}
+	getReturnsOnCall map[int]struct {
+		result1 compute.VirtualMachine
+		result2 error
+	}
 	ListAllNextResultsStub        func(lastResults compute.VirtualMachineListResult) (result compute.VirtualMachineListResult, err error)
 	listAllNextResultsMutex       sync.RWMutex
 	listAllNextResultsArgsForCall []struct {
@@ -84,6 +99,59 @@ type FakeComputeVirtualMachinesClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeComputeVirtualMachinesClient) Get(resourceGroupName string, vmName string, expand compute.InstanceViewTypes) (result compute.VirtualMachine, err error) {
+	fake.getMutex.Lock()
+	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
+	fake.getArgsForCall = append(fake.getArgsForCall, struct {
+		resourceGroupName string
+		vmName            string
+		expand            compute.InstanceViewTypes
+	}{resourceGroupName, vmName, expand})
+	fake.recordInvocation("Get", []interface{}{resourceGroupName, vmName, expand})
+	fake.getMutex.Unlock()
+	if fake.GetStub != nil {
+		return fake.GetStub(resourceGroupName, vmName, expand)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getReturns.result1, fake.getReturns.result2
+}
+
+func (fake *FakeComputeVirtualMachinesClient) GetCallCount() int {
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
+	return len(fake.getArgsForCall)
+}
+
+func (fake *FakeComputeVirtualMachinesClient) GetArgsForCall(i int) (string, string, compute.InstanceViewTypes) {
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
+	return fake.getArgsForCall[i].resourceGroupName, fake.getArgsForCall[i].vmName, fake.getArgsForCall[i].expand
+}
+
+func (fake *FakeComputeVirtualMachinesClient) GetReturns(result1 compute.VirtualMachine, result2 error) {
+	fake.GetStub = nil
+	fake.getReturns = struct {
+		result1 compute.VirtualMachine
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeComputeVirtualMachinesClient) GetReturnsOnCall(i int, result1 compute.VirtualMachine, result2 error) {
+	fake.GetStub = nil
+	if fake.getReturnsOnCall == nil {
+		fake.getReturnsOnCall = make(map[int]struct {
+			result1 compute.VirtualMachine
+			result2 error
+		})
+	}
+	fake.getReturnsOnCall[i] = struct {
+		result1 compute.VirtualMachine
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeComputeVirtualMachinesClient) ListAllNextResults(lastResults compute.VirtualMachineListResult) (result compute.VirtualMachineListResult, err error) {
@@ -351,6 +419,8 @@ func (fake *FakeComputeVirtualMachinesClient) ListReturnsOnCall(i int, result1 c
 func (fake *FakeComputeVirtualMachinesClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
 	fake.listAllNextResultsMutex.RLock()
 	defer fake.listAllNextResultsMutex.RUnlock()
 	fake.createOrUpdateMutex.RLock()
