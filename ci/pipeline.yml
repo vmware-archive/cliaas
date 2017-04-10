@@ -44,14 +44,15 @@ jobs:
       - task: unit
         file: cliaas/ci/unit.yml
       - aggregate:
-        - task: aws-integration
-          file: cliaas/ci/integration.yml
-          params:
-            IAAS: aws
-            AWS_ACCESS_KEY: {{aws_access_key}}
-            AWS_SECRET_KEY: {{aws_secret_key}}
-            AWS_REGION: {{aws_region}}
-            AWS_VPC: {{aws_vpc}}
+        - try:
+            task: aws-integration
+            file: cliaas/ci/integration.yml
+            params:
+              IAAS: aws
+              AWS_ACCESS_KEY: {{aws_access_key}}
+              AWS_SECRET_KEY: {{aws_secret_key}}
+              AWS_REGION: {{aws_region}}
+              AWS_VPC: {{aws_vpc}}
         - task: gcp-integration
           file: cliaas/ci/integration.yml
           params:
