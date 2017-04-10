@@ -28,6 +28,7 @@ var _ = Describe("Config", func() {
 					SecretAccessKey: "some-secret-access-key",
 					Region:          "some-region",
 					VPCID:           "some-vpc-id",
+					AMI:             "some-ami",
 				}
 
 				multiConfig = cliaas.MultiConfig{
@@ -81,6 +82,7 @@ var _ = Describe("Config", func() {
 						StorageAccountName:   "sadfasdf",
 						StorageAccountKey:    "asdfasdf",
 						StorageContainerName: "asdfasdf",
+						VHDImageURL:          "https://some.url",
 					}
 				})
 

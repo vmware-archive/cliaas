@@ -13,6 +13,7 @@ import (
 )
 
 type Config interface {
+	Image() string
 	Complete() bool
 	NewClient() (Client, error)
 }
@@ -55,6 +56,7 @@ func (c *MultiConfig) CompleteConfigs() []Config {
 }
 
 type AzureConfig struct {
+	VHDImageURL             string `yaml:"vhd_image_url"`
 	SubscriptionID          string `yaml:"subscription_id"`
 	ClientID                string `yaml:"client_id"`
 	ClientSecret            string `yaml:"client_secret"`
@@ -68,6 +70,10 @@ type AzureConfig struct {
 	VMAdminPassword         string `yaml:"vm_admin_password"`
 }
 
+func (c *AzureConfig) Image() string {
+	return c.VHDImageURL
+}
+
 func (c *AzureConfig) Complete() bool {
 	return c.SubscriptionID != "" &&
 		c.ClientID != "" &&
@@ -76,6 +82,7 @@ func (c *AzureConfig) Complete() bool {
 		c.ResourceGroupName != "" &&
 		c.StorageAccountName != "" &&
 		c.StorageAccountKey != "" &&
+		c.VHDImageURL != "" &&
 		c.StorageContainerName != ""
 }
 
@@ -101,16 +108,22 @@ func (c *AzureConfig) NewClient() (Client, error) {
 }
 
 type AWSConfig struct {
+	AMI             string `yaml:"ami"`
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key"`
 	Region          string `yaml:"region"`
 	VPCID           string `yaml:"vpc_id"`
 }
 
+func (c *AWSConfig) Image() string {
+	return c.AMI
+}
+
 func (c *AWSConfig) Complete() bool {
 	return c.AccessKeyID != "" &&
 		c.SecretAccessKey != "" &&
 		c.VPCID != "" &&
+		c.AMI != "" &&
 		c.Region != ""
 }
 
@@ -130,6 +143,10 @@ type GCPConfig struct {
 	Zone         string `yaml:"zone"`
 	Project      string `yaml:"project"`
 	DiskImageURL string `yaml:"disk_image_url"`
+}
+
+func (c *GCPConfig) Image() string {
+	return c.DiskImageURL
 }
 
 func (c *GCPConfig) Complete() bool {
