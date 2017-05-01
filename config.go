@@ -112,7 +112,7 @@ type AWSConfig struct {
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key"`
 	Region          string `yaml:"region"`
-	VPCID           string `yaml:"vpc_id"`
+	VPCID           string `yaml:"vpc"`
 }
 
 func (c *AWSConfig) Image() string {
