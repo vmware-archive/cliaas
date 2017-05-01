@@ -1,8 +1,11 @@
 package cliaas_test
 
 import (
+	"io/ioutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/pivotal-cf/cliaas"
 )
@@ -17,6 +20,49 @@ var _ = Describe("Config", func() {
 
 		It("returns nil when no configs are set", func() {
 			Expect(multiConfig.CompleteConfigs()).To(BeNil())
+		})
+
+		Context("when the multi config consumes a valid aws config yaml", func() {
+			var multiConfig cliaas.MultiConfig
+			var fileBytes []byte
+			var completeConfigs []cliaas.Config
+
+			JustBeforeEach(func() {
+				var err error
+				err = yaml.Unmarshal(fileBytes, &multiConfig)
+				Expect(err).ShouldNot(HaveOccurred())
+				completeConfigs = multiConfig.CompleteConfigs()
+			})
+
+			BeforeEach(func() {
+				var err error
+				fileBytes, err = ioutil.ReadFile("testdata/fake_aws_config.yml")
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("should contain a complete and valid aws config object", func() {
+				Expect(completeConfigs).Should(HaveLen(1), "there should be a valid aws in there")
+			})
+
+			It("should have an aws access key", func() {
+				Expect(multiConfig.AWS.AccessKeyID).ShouldNot(BeEmpty())
+			})
+
+			It("should have an aws secret key", func() {
+				Expect(multiConfig.AWS.SecretAccessKey).ShouldNot(BeEmpty())
+			})
+
+			It("should have an aws region", func() {
+				Expect(multiConfig.AWS.Region).ShouldNot(BeEmpty())
+			})
+
+			It("should have an aws vpc", func() {
+				Expect(multiConfig.AWS.VPCID).ShouldNot(BeEmpty())
+			})
+
+			It("should have an aws ami", func() {
+				Expect(multiConfig.AWS.AMI).ShouldNot(BeEmpty())
+			})
 		})
 
 		Context("when the multi config has a complete AWS config", func() {

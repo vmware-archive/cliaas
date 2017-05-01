@@ -1,0 +1,6 @@
+aws:
+  access_key_id: xxxxxxxxxxxxxxxxxxxx
+  secret_access_key: dddddddddddddddddddddddddddddddddddddddd
+  region: us-east-1
+  vpc: vpc-yyyyyyyy
+  ami: ami-nnnnnnnn
