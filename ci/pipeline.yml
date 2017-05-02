@@ -53,6 +53,21 @@ jobs:
               AWS_SECRET_KEY: {{aws_secret_key}}
               AWS_REGION: {{aws_region}}
               AWS_VPC: {{aws_vpc}}
+        - try:
+            task: azure-integration
+            file: cliaas/ci/integration.yml
+            params:
+              IAAS: azure 
+              AZURE_SUBSCRIPTION_ID: {{azure_subscription_id}} 
+              AZURE_CLIENT_ID: {{azure_client_id}}
+              AZURE_CLIENT_SECRET: {{azure_client_secret}}
+              AZURE_TENANT_ID: {{azure_tenant_id}} 
+              AZURE_RESOURCE_GROUP_NAME: {{azure_resource_group_name}} 
+              AZURE_NIC_ID: {{azure_nic_id}} 
+              AZURE_STORAGE_ACCOUNT_NAME: {{azure_storage_account_name}}
+              AZURE_STORAGE_ACCOUNT_KEY: {{azure_storage_account_key}}
+              AZURE_STORAGE_CONTAINER_NAME: {{azure_storage_container_name}}
+              AZURE_STORAGE_BASE_URL: {{azure_storage_base_url}}
         - task: gcp-integration
           file: cliaas/ci/integration.yml
           params:
@@ -60,20 +75,6 @@ jobs:
             GCP_CREDS: {{gcp_creds}}
             GCP_PROJECT: {{gcp_project}}
             GCP_ZONE: {{gcp_zone}}
-        - task: azure-integration
-          file: cliaas/ci/integration.yml
-          params:
-            IAAS: azure 
-            AZURE_SUBSCRIPTION_ID: {{azure_subscription_id}} 
-            AZURE_CLIENT_ID: {{azure_client_id}}
-            AZURE_CLIENT_SECRET: {{azure_client_secret}}
-            AZURE_TENANT_ID: {{azure_tenant_id}} 
-            AZURE_RESOURCE_GROUP_NAME: {{azure_resource_group_name}} 
-            AZURE_NIC_ID: {{azure_nic_id}} 
-            AZURE_STORAGE_ACCOUNT_NAME: {{azure_storage_account_name}}
-            AZURE_STORAGE_ACCOUNT_KEY: {{azure_storage_account_key}}
-            AZURE_STORAGE_CONTAINER_NAME: {{azure_storage_container_name}}
-            AZURE_STORAGE_BASE_URL: {{azure_storage_base_url}}
 
   - name: create-patch-rc
     serial_groups: [version]
