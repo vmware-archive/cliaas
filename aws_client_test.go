@@ -16,11 +16,35 @@ import (
 
 var _ = Describe("AWSClient", func() {
 	var (
-		client    cliaas.AWSClient
-		ec2Client *cliaasfakes.FakeEC2Client
+		client            cliaas.AWSClient
+		ec2Client         *cliaasfakes.FakeEC2Client
+		runningState      *ec2.InstanceState
+		pendingState      *ec2.InstanceState
+		shuttingDownState *ec2.InstanceState
+		terminatedState   *ec2.InstanceState
+		stoppingState     *ec2.InstanceState
+		stoppedState      *ec2.InstanceState
 	)
 
 	BeforeEach(func() {
+		runningState = &ec2.InstanceState{}
+		runningState.SetCode(16)
+		runningState.SetName(ec2.InstanceStateNameRunning)
+		pendingState = &ec2.InstanceState{}
+		pendingState.SetCode(0)
+		pendingState.SetName(ec2.InstanceStateNamePending)
+		shuttingDownState = &ec2.InstanceState{}
+		shuttingDownState.SetCode(32)
+		shuttingDownState.SetName(ec2.InstanceStateNameShuttingDown)
+		terminatedState = &ec2.InstanceState{}
+		terminatedState.SetCode(48)
+		terminatedState.SetName(ec2.InstanceStateNameTerminated)
+		stoppingState = &ec2.InstanceState{}
+		stoppingState.SetCode(64)
+		stoppingState.SetName(ec2.InstanceStateNameStopping)
+		stoppedState = &ec2.InstanceState{}
+		stoppedState.SetCode(80)
+		stoppedState.SetName(ec2.InstanceStateNameStopped)
 		ec2Client = new(cliaasfakes.FakeEC2Client)
 		clock := fakeclock.NewFakeClock(time.Now())
 
@@ -28,30 +52,16 @@ var _ = Describe("AWSClient", func() {
 	})
 
 	Describe("GetVMInfo", func() {
-		Context("when a single instance is found", func() {
+		Context("when a single `running` instance is found", func() {
 			BeforeEach(func() {
+
 				instances := []*ec2.Instance{
-					&ec2.Instance{
-						InstanceId:   aws.String("some-instance-id"),
-						InstanceType: aws.String("some-instance-type"),
-						KeyName:      aws.String("some-key-name"),
-						SubnetId:     aws.String("some-subnet-id"),
-						SecurityGroups: []*ec2.GroupIdentifier{
-							{
-								GroupId: aws.String("some-group-id"),
-							},
-							{
-								GroupId: aws.String("some-other-group-id"),
-							},
-						},
-						NetworkInterfaces: []*ec2.InstanceNetworkInterface{
-							{
-								Association: &ec2.InstanceNetworkInterfaceAssociation{
-									PublicIp: aws.String("some-public-ip"),
-								},
-							},
-						},
-					},
+					createEC2Instance(pendingState),
+					createEC2Instance(runningState),
+					createEC2Instance(shuttingDownState),
+					createEC2Instance(terminatedState),
+					createEC2Instance(stoppingState),
+					createEC2Instance(stoppedState),
 				}
 
 				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
@@ -77,11 +87,11 @@ var _ = Describe("AWSClient", func() {
 			})
 		})
 
-		Context("when more than one instance is found", func() {
+		Context("when more than one `running` instance is found", func() {
 			BeforeEach(func() {
 				instances := []*ec2.Instance{
-					&ec2.Instance{},
-					&ec2.Instance{},
+					createEC2Instance(runningState),
+					createEC2Instance(runningState),
 				}
 				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
 					Reservations: []*ec2.Reservation{
@@ -277,3 +287,28 @@ var _ = Describe("AWSClient", func() {
 		})
 	})
 })
+
+func createEC2Instance(state *ec2.InstanceState) *ec2.Instance {
+	return &ec2.Instance{
+		State:        state,
+		InstanceId:   aws.String("some-instance-id"),
+		InstanceType: aws.String("some-instance-type"),
+		KeyName:      aws.String("some-key-name"),
+		SubnetId:     aws.String("some-subnet-id"),
+		SecurityGroups: []*ec2.GroupIdentifier{
+			{
+				GroupId: aws.String("some-group-id"),
+			},
+			{
+				GroupId: aws.String("some-other-group-id"),
+			},
+		},
+		NetworkInterfaces: []*ec2.InstanceNetworkInterface{
+			{
+				Association: &ec2.InstanceNetworkInterfaceAssociation{
+					PublicIp: aws.String("some-public-ip"),
+				},
+			},
+		},
+	}
+}

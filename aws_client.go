@@ -227,7 +227,11 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 	var list []*ec2.Instance
 
 	for idx := range resp.Reservations {
-		list = append(list, resp.Reservations[idx].Instances...)
+		for _, instance := range resp.Reservations[idx].Instances {
+			if *instance.State.Name == ec2.InstanceStateNameRunning {
+				list = append(list, instance)
+			}
+		}
 	}
 
 	if len(list) == 0 {

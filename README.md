@@ -51,6 +51,8 @@ EOF
 
 Notes:
 - AWS implementation assumes an Elastic IP is assigned to the Ops Manager VM. If you do not have one allocated to the VM, your replace-vm calls will likely fail on assigning public IP.
+- The given identifier will match only if the instance has a state of `Running`.
+  All other matches with any state other than `Running` will be ignored.
 
 #### GCP-specific Config
 
