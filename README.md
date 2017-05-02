@@ -49,6 +49,9 @@ EOF
 * `vpc`: The AWS vpc to use.
 * `ami`: A Pivotal Cloud Foundry Operations Manager AMI, for the new VM in `replace-vm`.
 
+Notes:
+- AWS implementation assumes an Elastic IP is assigned to the Ops Manager VM. If you do not have one allocated to the VM, your replace-vm calls will likely fail on assigning public IP.
+
 #### GCP-specific Config
 
 ```
