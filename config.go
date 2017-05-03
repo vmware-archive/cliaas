@@ -1,7 +1,6 @@
 package cliaas
 
 import (
-	"errors"
 	"os"
 
 	"code.cloudfoundry.org/clock"
@@ -104,7 +103,7 @@ func (c *AzureConfig) NewClient() (Client, error) {
 		return nil, errwrap.Wrap(err, "failed setting blobstore client")
 	}
 
-	return client, errors.New("not yet implemented")
+	return client, nil
 }
 
 type AWSConfig struct {
