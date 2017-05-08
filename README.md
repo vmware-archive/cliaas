@@ -16,7 +16,8 @@ Requirements:
 * [go](https://golang.org)
 
 ```
-go get github.com/pivotal-cf/cliaas
+mkdir -p $GOPATH/src/github.com/pivotal-cf
+git clone --depth 1 https://github.com/pivotal-cf/cliaas $GOPATH/src/github.com/pivotal-cf/cliaas
 cd $GOPATH/src/github.com/pivotal-cf/cliaas
 glide install
 go install github.com/pivotal-cf/cliaas/cmd/cliaas
