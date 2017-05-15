@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/clock"
-	"github.com/Azure/azure-storage-go"
 
+	"github.com/Azure/azure-storage-go"
 	"github.com/pivotal-cf/cliaas/iaas/azure"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
@@ -170,6 +170,7 @@ func (c *GCPConfig) NewClient() (Client, error) {
 		gcp.ConfigGoogleClient(computeClient),
 		gcp.ConfigZoneName(c.Zone),
 		gcp.ConfigProjectName(c.Project),
+		gcp.ConfigTimeout(600),
 	)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "failed to create gcp client api")
