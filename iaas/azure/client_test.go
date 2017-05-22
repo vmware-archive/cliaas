@@ -64,6 +64,12 @@ var _ = Describe("Azure", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
+				It("should never pass any resources when creating the new instance", func() {
+					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should have called CreateOrUpdate exactly once")
+					_, _, instance, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
+					Expect(instance.Resources).Should(BeNil(), "instance resources need to be purged or azure will fail on large sets")
+				})
+
 				It("should copy the blob from the given public vhd URL into our local account's blob service container", func() {
 					Expect(fakeBlobServiceClient.CopyBlobCallCount()).Should(Equal(1), "we should have called CopyBlob exactly once")
 					container, localImageFilename, sourceBlob := fakeBlobServiceClient.CopyBlobArgsForCall(0)
@@ -312,6 +318,12 @@ func newVirtualMachine(id string, name string, vmDiskURL string) compute.Virtual
 	vm := compute.VirtualMachine{
 		ID:   &tmpID,
 		Name: &tmpName,
+		Resources: &[]compute.VirtualMachineExtension{
+			compute.VirtualMachineExtension{},
+			compute.VirtualMachineExtension{},
+			compute.VirtualMachineExtension{},
+			compute.VirtualMachineExtension{},
+		},
 		VirtualMachineProperties: &compute.VirtualMachineProperties{
 			OsProfile: &compute.OSProfile{},
 			StorageProfile: &compute.StorageProfile{

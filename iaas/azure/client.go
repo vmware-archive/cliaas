@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-storage-go"
 	"github.com/google/uuid"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/examples/helpers"
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	errwrap "github.com/pkg/errors"
 )
@@ -161,6 +161,7 @@ func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &localImageURL
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Vhd.URI = &localOSDiskURL
 	instance.VirtualMachineProperties.VMID = nil
+	instance.Resources = nil
 
 	if s.vmAdminPassword == "" {
 		s.vmAdminPassword = getGUID()
