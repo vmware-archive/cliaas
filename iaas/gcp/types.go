@@ -5,3 +5,11 @@ type Filter struct {
 	NameRegexString string
 	Status          string
 }
+
+const (
+	InstanceAll        = "ALL"
+	InstanceRunning    = "RUNNING"
+	InstanceTerminated = "TERMINATED"
+	ImageReady         = "READY"
+	ImageFailed        = "FAILED"
+)

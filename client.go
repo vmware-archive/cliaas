@@ -34,7 +34,7 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 		return err
 	}
 
-	err = v.client.WaitForStatus(vmInfo.InstanceID, "stopped")
+	err = v.client.WaitForStatus(vmInfo.InstanceID, gcp.InstanceTerminated)
 	if err != nil {
 		_ = v.client.StartVM(vmInfo.InstanceID)
 		return err
@@ -53,7 +53,7 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 		return err
 	}
 
-	err = v.client.WaitForStatus(instanceID, "running")
+	err = v.client.WaitForStatus(instanceID, gcp.InstanceRunning)
 	if err != nil {
 		_ = v.client.DeleteVM(instanceID)
 		return err
@@ -93,21 +93,42 @@ func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string) err
 		return errwrap.Wrap(err, "stopvm failed")
 	}
 
-	err = c.client.WaitForStatus(vmInstance.Name, "stopped")
+	err = c.client.WaitForStatus(vmInstance.Name, gcp.InstanceTerminated)
 	if err != nil {
 		return errwrap.Wrap(err, "waitforstatus after stopvm failed")
 	}
 
-	vmInstance.Name = fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02_15-04-05"))
-	vmInstance.Disks = []*compute.AttachedDisk{
-		&compute.AttachedDisk{
-			Source: sourceImageTarballURL,
-		},
+	diskName, err := c.client.CreateImage(sourceImageTarballURL)
+	if err != nil {
+		return errwrap.Wrap(err, "could not create new disk image")
 	}
-	err = c.client.CreateVM(*vmInstance)
+
+	newInstance := createGCPInstanceFromExisting(vmInstance, diskName, fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02-15-04-05")))
+	err = c.client.CreateVM(*newInstance)
 	if err != nil {
 		return errwrap.Wrap(err, "CreateVM call failed")
 	}
 
-	return c.client.WaitForStatus(vmInstance.Name, "running")
+	return c.client.WaitForStatus(newInstance.Name, gcp.InstanceRunning)
+}
+
+func createGCPInstanceFromExisting(vmInstance *compute.Instance, diskName string, name string) *compute.Instance {
+	newInstance := &compute.Instance{
+		NetworkInterfaces: vmInstance.NetworkInterfaces,
+		MachineType:       vmInstance.MachineType,
+		Name:              name,
+		Tags: &compute.Tags{
+			Items: vmInstance.Tags.Items,
+		},
+		Disks: []*compute.AttachedDisk{
+			&compute.AttachedDisk{
+				Boot: true,
+				InitializeParams: &compute.AttachedDiskInitializeParams{
+					SourceImage: diskName,
+				},
+			},
+		},
+	}
+	newInstance.NetworkInterfaces[0].NetworkIP = ""
+	return newInstance
 }

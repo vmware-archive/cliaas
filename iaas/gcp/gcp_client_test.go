@@ -355,7 +355,8 @@ func createInstanceList(name, tag string) *compute.InstanceList {
 	return &compute.InstanceList{
 		Items: []*compute.Instance{
 			&compute.Instance{
-				Name: name,
+				Status: InstanceRunning,
+				Name:   name,
 				Tags: &compute.Tags{
 					Items: []string{
 						tag,

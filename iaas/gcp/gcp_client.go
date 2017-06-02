@@ -18,6 +18,7 @@ type GoogleComputeClient interface {
 	List(project string, zone string) (*compute.InstanceList, error)
 	Delete(project string, zone string, instanceName string) (*compute.Operation, error)
 	Insert(project string, zone string, instance *compute.Instance) (*compute.Operation, error)
+	ImageInsert(project string, image *compute.Image, timeout time.Duration) (*compute.Operation, error)
 	Stop(project string, zone string, instanceName string) (*compute.Operation, error)
 }
 
@@ -26,6 +27,7 @@ type ClientAPI interface {
 	DeleteVM(instanceName string) error
 	GetVMInfo(filter Filter) (*compute.Instance, error)
 	StopVM(instanceName string) error
+	CreateImage(tarball string) (string, error)
 }
 
 type Client struct {
@@ -52,7 +54,7 @@ func NewDefaultGoogleComputeClient(credpath string) (GoogleComputeClient, error)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "we have a compute.New error")
 	}
-	return &googleComputeClientWrapper{instanceService: c.Instances}, nil
+	return &googleComputeClientWrapper{instanceService: c.Instances, imageService: c.Images, ctx: ctx}, nil
 }
 
 func NewClient(configs ...func(*Client) error) (*Client, error) {
@@ -108,6 +110,18 @@ func ConfigProjectName(value string) func(*Client) error {
 	}
 }
 
+func (s *Client) CreateImage(tarball string) (string, error) {
+	diskName := fmt.Sprintf("opsman-disk-%v", time.Now().Format("2006-01-02-15-04-05"))
+	_, err := s.googleClient.ImageInsert(s.projectName, &compute.Image{
+		Name: diskName,
+		RawDisk: &compute.ImageRawDisk{
+			Source: fmt.Sprintf("http://storage.googleapis.com/%v", tarball),
+		},
+	}, s.timeout)
+	diskURL := fmt.Sprintf("projects/%s/global/images/%s", s.projectName, diskName)
+	return diskURL, err
+}
+
 func (s *Client) CreateVM(instance compute.Instance) error {
 	operation, err := s.googleClient.Insert(s.projectName, s.zoneName, &instance)
 	if err != nil {
@@ -152,6 +166,10 @@ func (s *Client) StopVM(instanceName string) error {
 // currently filter will only do a regex on teh tag||name regex fields against
 // the List's result set
 func (s *Client) GetVMInfo(filter Filter) (*compute.Instance, error) {
+	return s.getVMInfo(filter, InstanceRunning)
+}
+
+func (s *Client) getVMInfo(filter Filter, status string) (*compute.Instance, error) {
 	list, err := s.googleClient.List(s.projectName, s.zoneName)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "call List on google client failed")
@@ -164,7 +182,9 @@ func (s *Client) GetVMInfo(filter Filter) (*compute.Instance, error) {
 		tagMatch := validID.MatchString(taglist)
 		nameMatch := validName.MatchString(item.Name)
 
-		if tagMatch && nameMatch {
+		if tagMatch &&
+			nameMatch &&
+			(status == InstanceAll || item.Status == InstanceRunning) {
 			return item, nil
 		}
 	}
@@ -175,7 +195,7 @@ func (s *Client) WaitForStatus(vmName string, desiredStatus string) error {
 	errChannel := make(chan error)
 	go func() {
 		for {
-			vmInfo, err := s.GetVMInfo(Filter{NameRegexString: vmName})
+			vmInfo, err := s.getVMInfo(Filter{NameRegexString: vmName}, InstanceAll)
 			if err != nil {
 				errChannel <- errwrap.Wrap(err, "GetVMInfo call failed")
 				return
@@ -196,21 +216,70 @@ func (s *Client) WaitForStatus(vmName string, desiredStatus string) error {
 }
 
 type googleComputeClientWrapper struct {
+	imageService    *compute.ImagesService
 	instanceService *compute.InstancesService
+	ctx             context.Context
 }
 
 func (s *googleComputeClientWrapper) List(project string, zone string) (*compute.InstanceList, error) {
-	return s.instanceService.List(project, zone).Do()
+	return s.instanceService.List(project, zone).Context(s.ctx).Do()
 }
 
 func (s *googleComputeClientWrapper) Delete(project string, zone string, instance string) (*compute.Operation, error) {
-	return s.instanceService.Delete(project, zone, instance).Do()
+	return s.instanceService.Delete(project, zone, instance).Context(s.ctx).Do()
 }
 
 func (s *googleComputeClientWrapper) Stop(project string, zone string, instance string) (*compute.Operation, error) {
-	return s.instanceService.Stop(project, zone, instance).Do()
+	vmInstance, err := s.instanceService.Get(project, zone, instance).Context(s.ctx).Do()
+	if err != nil {
+		return nil, errwrap.Wrap(err, "failed getting vm instance")
+	}
+
+	if len(vmInstance.NetworkInterfaces) > 0 && len(vmInstance.NetworkInterfaces[0].AccessConfigs) > 0 {
+		accessConfigName := vmInstance.NetworkInterfaces[0].AccessConfigs[0].Name
+		nicName := vmInstance.NetworkInterfaces[0].Name
+		operation, err := s.instanceService.DeleteAccessConfig(project, zone, instance, accessConfigName, nicName).Context(s.ctx).Do()
+		if err != nil {
+			return operation, errwrap.Wrap(err, "could not delete access config")
+		}
+
+	}
+
+	return s.instanceService.Stop(project, zone, instance).Context(s.ctx).Do()
 }
 
 func (s *googleComputeClientWrapper) Insert(project string, zone string, instance *compute.Instance) (*compute.Operation, error) {
-	return s.instanceService.Insert(project, zone, instance).Do()
+	return s.instanceService.Insert(project, zone, instance).Context(s.ctx).Do()
+}
+
+func (s *googleComputeClientWrapper) ImageInsert(project string, image *compute.Image, timeout time.Duration) (*compute.Operation, error) {
+	operation, err := s.imageService.Insert(project, image).Context(s.ctx).Do()
+	if err != nil {
+		return operation, errwrap.Wrap(err, "disk image insert failed")
+	}
+
+	errChannel := make(chan error)
+	go func() {
+		for {
+			image, err := s.imageService.Get(project, image.Name).Context(s.ctx).Do()
+			if err != nil {
+				errChannel <- errwrap.Wrap(err, "image get failed")
+			}
+
+			if image.Status == ImageReady {
+				errChannel <- nil
+			}
+
+			if image.Status == ImageFailed {
+				errChannel <- errors.New("image creation failed")
+			}
+		}
+	}()
+	select {
+	case res := <-errChannel:
+		return operation, res
+	case <-time.After(timeout):
+		return nil, errors.New("polling for status timed out")
+	}
+	return nil, nil
 }
