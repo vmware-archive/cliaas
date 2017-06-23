@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
 	compute "google.golang.org/api/compute/v1"
@@ -14,15 +15,21 @@ type Client interface {
 	Replace(vmIdentifier string, imageIdentifier string) error
 }
 
-type awsClient struct {
+func NewAWSAPIClientAdaptor(client AWSClient) Client {
+	return &awsAPIClientAdaptor{
+		client: client,
+	}
+}
+
+type awsAPIClientAdaptor struct {
 	client AWSClient
 }
 
-func (v *awsClient) Delete(identifier string) error {
+func (v *awsAPIClientAdaptor) Delete(identifier string) error {
 	return v.client.DeleteVM(identifier)
 }
 
-func (v *awsClient) Replace(identifier string, ami string) error {
+func (v *awsAPIClientAdaptor) Replace(identifier string, ami string) error {
 	vmInfo, err := v.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err
@@ -34,7 +41,7 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 		return err
 	}
 
-	err = v.client.WaitForStatus(vmInfo.InstanceID, gcp.InstanceTerminated)
+	err = v.client.WaitForStatus(vmInfo.InstanceID, ec2.InstanceStateNameStopped)
 	if err != nil {
 		_ = v.client.StartVM(vmInfo.InstanceID)
 		return err
@@ -53,7 +60,7 @@ func (v *awsClient) Replace(identifier string, ami string) error {
 		return err
 	}
 
-	err = v.client.WaitForStatus(instanceID, gcp.InstanceRunning)
+	err = v.client.WaitForStatus(instanceID, ec2.InstanceStateNameRunning)
 	if err != nil {
 		_ = v.client.DeleteVM(instanceID)
 		return err

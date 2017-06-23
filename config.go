@@ -132,9 +132,8 @@ func (c *AWSConfig) NewClient() (Client, error) {
 		return nil, errwrap.Wrap(err, "failed to make ec2 client")
 	}
 
-	return &awsClient{
-		client: NewAWSClient(ec2Client, c.VPCID, clock.NewClock()),
-	}, nil
+	return NewAWSAPIClientAdaptor(
+		NewAWSClient(ec2Client, c.VPCID, clock.NewClock())), nil
 }
 
 type GCPConfig struct {
