@@ -56,7 +56,12 @@ var _ = Describe("AwsClient", func() {
 		)
 
 		JustBeforeEach(func() {
-			instanceID, createErr = awsClient.CreateVM(ami, vmType, name, keyPairName, subnetID, securityGroupID)
+			instanceID, createErr = awsClient.CreateVM(ami, name, cliaas.VMInfo{
+				InstanceType:     vmType,
+				KeyName:          keyPairName,
+				SubnetID:         subnetID,
+				SecurityGroupIDs: []string{securityGroupID},
+			})
 		})
 
 		AfterEach(func() {
@@ -79,7 +84,12 @@ var _ = Describe("AwsClient", func() {
 
 		BeforeEach(func() {
 			var createErr error
-			instanceID, createErr = awsClient.CreateVM(ami, vmType, name, keyPairName, subnetID, securityGroupID)
+			instanceID, createErr = awsClient.CreateVM(ami, name, cliaas.VMInfo{
+				InstanceType:     vmType,
+				KeyName:          keyPairName,
+				SubnetID:         subnetID,
+				SecurityGroupIDs: []string{securityGroupID},
+			})
 			Expect(createErr).NotTo(HaveOccurred())
 
 			client := cliaas.NewAWSClient(ec2Client, vpc, clock.NewClock())

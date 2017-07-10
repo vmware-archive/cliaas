@@ -14,7 +14,7 @@ import (
 //go:generate counterfeiter . AWSClient
 
 type AWSClient interface {
-	CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID string) (string, error)
+	CreateVM(ami, name string, vmInfo VMInfo) (string, error)
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (VMInfo, error)
 	StartVM(instanceID string) error
@@ -104,26 +104,24 @@ func (c *client) AssignPublicIP(instanceID, ip string) error {
 
 func (c *client) CreateVM(
 	ami string,
-	instanceType string,
 	name string,
-	keyName string,
-	subnetID string,
-	securityGroupID string,
+	vmInfo VMInfo,
 ) (string, error) {
 	runInput := &ec2.RunInstancesInput{
-		ImageId:      aws.String(ami),
-		InstanceType: aws.String(instanceType),
-		MinCount:     aws.Int64(1),
-		MaxCount:     aws.Int64(1),
-		KeyName:      aws.String(keyName),
+		ImageId:             aws.String(ami),
+		InstanceType:        aws.String(vmInfo.InstanceType),
+		BlockDeviceMappings: convertBlockDeviceMappings(vmInfo.BlockDeviceMappings),
+		MinCount:            aws.Int64(1),
+		MaxCount:            aws.Int64(1),
+		KeyName:             aws.String(vmInfo.KeyName),
 	}
 
-	if subnetID != "" {
-		runInput.SubnetId = aws.String(subnetID)
+	if vmInfo.SubnetID != "" {
+		runInput.SubnetId = aws.String(vmInfo.SubnetID)
 	}
 
-	if securityGroupID != "" {
-		runInput.SecurityGroupIds = aws.StringSlice([]string{securityGroupID})
+	if len(vmInfo.SecurityGroupIDs) > 0 {
+		runInput.SecurityGroupIds = aws.StringSlice(vmInfo.SecurityGroupIDs)
 	}
 
 	runResult, err := c.ec2Client.RunInstances(runInput)
@@ -194,12 +192,29 @@ func (c *client) StartVM(instanceID string) error {
 }
 
 type VMInfo struct {
-	InstanceID       string
-	InstanceType     string
-	KeyName          string
-	SubnetID         string
-	SecurityGroupIDs []string
-	PublicIP         string
+	InstanceID          string
+	InstanceType        string
+	BlockDeviceMappings []BlockDeviceMapping
+	KeyName             string
+	SubnetID            string
+	SecurityGroupIDs    []string
+	PublicIP            string
+}
+
+type BlockDeviceMapping struct {
+	DeviceName  string
+	EBS         EBS
+	NoDevice    string
+	VirtualName string
+}
+
+type EBS struct {
+	DeleteOnTermination bool
+	Encrypted           bool
+	Iops                int64
+	SnapshotId          string
+	VolumeSize          int64
+	VolumeType          string
 }
 
 func (c *client) GetVMInfo(name string) (VMInfo, error) {
@@ -267,4 +282,25 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 	}
 
 	return vmInfo, nil
+}
+
+func convertBlockDeviceMappings(blockDeviceMappings []BlockDeviceMapping) []*ec2.BlockDeviceMapping {
+	awsBlockDeviceMappings := []*ec2.BlockDeviceMapping{}
+	for _, blockDeviceMapping := range blockDeviceMappings {
+		awsBlockDeviceMappings = append(awsBlockDeviceMappings, &ec2.BlockDeviceMapping{
+			DeviceName: aws.String(blockDeviceMapping.DeviceName),
+			NoDevice:   aws.String(blockDeviceMapping.NoDevice),
+			Ebs: &ec2.EbsBlockDevice{
+				DeleteOnTermination: aws.Bool(blockDeviceMapping.EBS.DeleteOnTermination),
+				Encrypted:           aws.Bool(blockDeviceMapping.EBS.Encrypted),
+				Iops:                aws.Int64(blockDeviceMapping.EBS.Iops),
+				SnapshotId:          aws.String(blockDeviceMapping.EBS.SnapshotId),
+				VolumeSize:          aws.Int64(blockDeviceMapping.EBS.VolumeSize),
+				VolumeType:          aws.String(blockDeviceMapping.EBS.VolumeType),
+			},
+			VirtualName: aws.String(blockDeviceMapping.VirtualName),
+		})
+	}
+
+	return awsBlockDeviceMappings
 }

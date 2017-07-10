@@ -249,14 +249,49 @@ var _ = Describe("AWSClient", func() {
 		})
 
 		It("tries to create the instance", func() {
-			_, err := client.CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID)
+			_, err := client.CreateVM(ami, name, cliaas.VMInfo{
+				KeyName:          keyName,
+				SubnetID:         subnetID,
+				SecurityGroupIDs: []string{securityGroupID},
+				InstanceType:     instanceType,
+				BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+					{
+						DeviceName: "/dev/sda1",
+						NoDevice:   "some-device-name",
+						EBS: cliaas.EBS{
+							DeleteOnTermination: true,
+							Encrypted:           true,
+							Iops:                int64(1),
+							SnapshotId:          "some-snapshot-id",
+							VolumeSize:          int64(1),
+							VolumeType:          "some-volume-type",
+						},
+						VirtualName: "some-virtual-name",
+					},
+				},
+			})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
 			input := ec2Client.RunInstancesArgsForCall(0)
 			Expect(*input).To(Equal(ec2.RunInstancesInput{
-				ImageId:          aws.String(ami),
-				InstanceType:     aws.String(instanceType),
+				ImageId:      aws.String(ami),
+				InstanceType: aws.String(instanceType),
+				BlockDeviceMappings: []*ec2.BlockDeviceMapping{
+					{
+						DeviceName: aws.String("/dev/sda1"),
+						NoDevice:   aws.String("some-device-name"),
+						Ebs: &ec2.EbsBlockDevice{
+							DeleteOnTermination: aws.Bool(true),
+							Encrypted:           aws.Bool(true),
+							Iops:                aws.Int64(1),
+							SnapshotId:          aws.String("some-snapshot-id"),
+							VolumeSize:          aws.Int64(1),
+							VolumeType:          aws.String("some-volume-type"),
+						},
+						VirtualName: aws.String("some-virtual-name"),
+					},
+				},
 				MinCount:         aws.Int64(1),
 				MaxCount:         aws.Int64(1),
 				KeyName:          aws.String(keyName),
@@ -266,7 +301,12 @@ var _ = Describe("AWSClient", func() {
 		})
 
 		It("tries to create an instance with a blank security group when no security groups are set", func() {
-			_, err := client.CreateVM(ami, instanceType, name, keyName, subnetID, "")
+			_, err := client.CreateVM(ami, name, cliaas.VMInfo{
+				KeyName:          keyName,
+				SubnetID:         subnetID,
+				SecurityGroupIDs: []string{},
+				InstanceType:     instanceType,
+			})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
@@ -280,7 +320,12 @@ var _ = Describe("AWSClient", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.CreateVM(ami, instanceType, name, keyName, subnetID, securityGroupID)
+				_, err := client.CreateVM(ami, name, cliaas.VMInfo{
+					KeyName:          keyName,
+					SubnetID:         subnetID,
+					SecurityGroupIDs: []string{securityGroupID},
+					InstanceType:     instanceType,
+				})
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("run instances failed: an error"))
 			})

@@ -49,11 +49,8 @@ func (v *awsAPIClientAdaptor) Replace(identifier string, ami string) error {
 
 	instanceID, err := v.client.CreateVM(
 		ami,
-		vmInfo.InstanceType,
 		identifier,
-		vmInfo.KeyName,
-		vmInfo.SubnetID,
-		vmInfo.SecurityGroupIDs[0],
+		vmInfo,
 	)
 	if err != nil {
 		_ = v.client.StartVM(vmInfo.InstanceID)

@@ -18,21 +18,33 @@ var _ = Describe("test for unexported features", func() {
 				"old-vm-shutdown": 0,
 				"new-vm-startup":  1,
 			}
+			var expectedAMI = "xyz"
+			var expectedIdentifier = "abc"
+			var expectedVMInfo = VMInfo{
+				InstanceID:   "1234",
+				InstanceType: "abc",
+				BlockDeviceMappings: []BlockDeviceMapping{
+					{
+						DeviceName: "/dev/sda1",
+						EBS: EBS{
+							VolumeSize: int64(50),
+						},
+					},
+				},
+				KeyName:          "xyz",
+				SubnetID:         "asdf",
+				SecurityGroupIDs: []string{"hithere"},
+			}
+
 			BeforeEach(func() {
 				fakeAPIClient = new(cliaasfakes.FakeAWSClient)
-				fakeAPIClient.GetVMInfoReturns(VMInfo{
-					InstanceID:       "1234",
-					InstanceType:     "abc",
-					KeyName:          "xyz",
-					SubnetID:         "asdf",
-					SecurityGroupIDs: []string{"hithere"},
-				}, nil)
+				fakeAPIClient.GetVMInfoReturns(expectedVMInfo, nil)
 				fakeAPIClient.StopVMReturns(nil)
 				fakeAPIClient.WaitForStatusReturns(nil)
 				fakeAPIClient.CreateVMReturns("1234", nil)
 				client = NewAWSAPIClientAdaptor(fakeAPIClient)
 
-				err := client.Replace("abc", "xyz")
+				err := client.Replace(expectedIdentifier, expectedAMI)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -48,6 +60,13 @@ var _ = Describe("test for unexported features", func() {
 			It("should wait for vm starting after starting the new vm", func() {
 				_, state := fakeAPIClient.WaitForStatusArgsForCall(callIndex["new-vm-startup"])
 				Expect(state).Should(Equal(ec2.InstanceStateNameRunning))
+			})
+
+			It("should make a complete copy from old vm to new vm", func() {
+				ami, identifier, vmInfo := fakeAPIClient.CreateVMArgsForCall(0)
+				Expect(ami).To(Equal(expectedAMI))
+				Expect(identifier).To(Equal(expectedIdentifier))
+				Expect(vmInfo).To(Equal(expectedVMInfo))
 			})
 		})
 	})
