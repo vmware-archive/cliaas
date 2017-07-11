@@ -25,7 +25,7 @@ go install github.com/pivotal-cf/cliaas/cmd/cliaas
 
 ## Usage
 
-`cliaas -c config.yml replace-vm --identifier vm-identifier --image some-image`
+`cliaas -c config.yml replace-vm --identifier vm-identifier`
 
 ### Config
 
