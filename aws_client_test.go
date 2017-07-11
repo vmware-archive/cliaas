@@ -71,6 +71,16 @@ var _ = Describe("AWSClient", func() {
 						},
 					},
 				}, nil)
+
+				ec2Client.DescribeVolumesReturns(&ec2.DescribeVolumesOutput{
+					Volumes: []*ec2.Volume{
+						{
+							Encrypted:  aws.Bool(true),
+							Size:       aws.Int64(1),
+							VolumeType: aws.String("some-volume-type"),
+						},
+					},
+				}, nil)
 			})
 
 			It("returns vm info for the instance", func() {
@@ -83,6 +93,17 @@ var _ = Describe("AWSClient", func() {
 					SubnetID:         "some-subnet-id",
 					SecurityGroupIDs: []string{"some-group-id", "some-other-group-id"},
 					PublicIP:         "some-public-ip",
+					BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+						{
+							DeviceName: "/dev/sda1",
+							EBS: cliaas.EBS{
+								DeleteOnTermination: true,
+								Encrypted:           true,
+								VolumeSize:          1,
+								VolumeType:          "some-volume-type",
+							},
+						},
+					},
 				}))
 			})
 		})
@@ -257,16 +278,12 @@ var _ = Describe("AWSClient", func() {
 				BlockDeviceMappings: []cliaas.BlockDeviceMapping{
 					{
 						DeviceName: "/dev/sda1",
-						NoDevice:   "some-device-name",
 						EBS: cliaas.EBS{
 							DeleteOnTermination: true,
 							Encrypted:           true,
-							Iops:                int64(1),
-							SnapshotId:          "some-snapshot-id",
 							VolumeSize:          int64(1),
 							VolumeType:          "some-volume-type",
 						},
-						VirtualName: "some-virtual-name",
 					},
 				},
 			})
@@ -280,16 +297,12 @@ var _ = Describe("AWSClient", func() {
 				BlockDeviceMappings: []*ec2.BlockDeviceMapping{
 					{
 						DeviceName: aws.String("/dev/sda1"),
-						NoDevice:   aws.String("some-device-name"),
 						Ebs: &ec2.EbsBlockDevice{
 							DeleteOnTermination: aws.Bool(true),
 							Encrypted:           aws.Bool(true),
-							Iops:                aws.Int64(1),
-							SnapshotId:          aws.String("some-snapshot-id"),
 							VolumeSize:          aws.Int64(1),
 							VolumeType:          aws.String("some-volume-type"),
 						},
-						VirtualName: aws.String("some-virtual-name"),
 					},
 				},
 				MinCount:         aws.Int64(1),
@@ -352,6 +365,23 @@ func createEC2Instance(state *ec2.InstanceState) *ec2.Instance {
 			{
 				Association: &ec2.InstanceNetworkInterfaceAssociation{
 					PublicIp: aws.String("some-public-ip"),
+				},
+			},
+		},
+		RootDeviceName: aws.String("/dev/sda2"),
+		BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+			{
+				DeviceName: aws.String("/dev/sda1"),
+				Ebs: &ec2.EbsInstanceBlockDevice{
+					DeleteOnTermination: aws.Bool(true),
+					VolumeId:            aws.String("some-root-volume-id"),
+				},
+			},
+			{
+				DeviceName: aws.String("/dev/sda2"),
+				Ebs: &ec2.EbsInstanceBlockDevice{
+					DeleteOnTermination: aws.Bool(true),
+					VolumeId:            aws.String("some-volume-id"),
 				},
 			},
 		},

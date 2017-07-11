@@ -22,6 +22,19 @@ type FakeEC2Client struct {
 		result1 *ec2.DescribeInstancesOutput
 		result2 error
 	}
+	DescribeVolumesStub        func(*ec2.DescribeVolumesInput) (*ec2.DescribeVolumesOutput, error)
+	describeVolumesMutex       sync.RWMutex
+	describeVolumesArgsForCall []struct {
+		arg1 *ec2.DescribeVolumesInput
+	}
+	describeVolumesReturns struct {
+		result1 *ec2.DescribeVolumesOutput
+		result2 error
+	}
+	describeVolumesReturnsOnCall map[int]struct {
+		result1 *ec2.DescribeVolumesOutput
+		result2 error
+	}
 	DescribeInstanceStatusStub        func(*ec2.DescribeInstanceStatusInput) (*ec2.DescribeInstanceStatusOutput, error)
 	describeInstanceStatusMutex       sync.RWMutex
 	describeInstanceStatusArgsForCall []struct {
@@ -164,6 +177,57 @@ func (fake *FakeEC2Client) DescribeInstancesReturnsOnCall(i int, result1 *ec2.De
 	}
 	fake.describeInstancesReturnsOnCall[i] = struct {
 		result1 *ec2.DescribeInstancesOutput
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeEC2Client) DescribeVolumes(arg1 *ec2.DescribeVolumesInput) (*ec2.DescribeVolumesOutput, error) {
+	fake.describeVolumesMutex.Lock()
+	ret, specificReturn := fake.describeVolumesReturnsOnCall[len(fake.describeVolumesArgsForCall)]
+	fake.describeVolumesArgsForCall = append(fake.describeVolumesArgsForCall, struct {
+		arg1 *ec2.DescribeVolumesInput
+	}{arg1})
+	fake.recordInvocation("DescribeVolumes", []interface{}{arg1})
+	fake.describeVolumesMutex.Unlock()
+	if fake.DescribeVolumesStub != nil {
+		return fake.DescribeVolumesStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.describeVolumesReturns.result1, fake.describeVolumesReturns.result2
+}
+
+func (fake *FakeEC2Client) DescribeVolumesCallCount() int {
+	fake.describeVolumesMutex.RLock()
+	defer fake.describeVolumesMutex.RUnlock()
+	return len(fake.describeVolumesArgsForCall)
+}
+
+func (fake *FakeEC2Client) DescribeVolumesArgsForCall(i int) *ec2.DescribeVolumesInput {
+	fake.describeVolumesMutex.RLock()
+	defer fake.describeVolumesMutex.RUnlock()
+	return fake.describeVolumesArgsForCall[i].arg1
+}
+
+func (fake *FakeEC2Client) DescribeVolumesReturns(result1 *ec2.DescribeVolumesOutput, result2 error) {
+	fake.DescribeVolumesStub = nil
+	fake.describeVolumesReturns = struct {
+		result1 *ec2.DescribeVolumesOutput
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeEC2Client) DescribeVolumesReturnsOnCall(i int, result1 *ec2.DescribeVolumesOutput, result2 error) {
+	fake.DescribeVolumesStub = nil
+	if fake.describeVolumesReturnsOnCall == nil {
+		fake.describeVolumesReturnsOnCall = make(map[int]struct {
+			result1 *ec2.DescribeVolumesOutput
+			result2 error
+		})
+	}
+	fake.describeVolumesReturnsOnCall[i] = struct {
+		result1 *ec2.DescribeVolumesOutput
 		result2 error
 	}{result1, result2}
 }
@@ -530,6 +594,8 @@ func (fake *FakeEC2Client) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.describeInstancesMutex.RLock()
 	defer fake.describeInstancesMutex.RUnlock()
+	fake.describeVolumesMutex.RLock()
+	defer fake.describeVolumesMutex.RUnlock()
 	fake.describeInstanceStatusMutex.RLock()
 	defer fake.describeInstanceStatusMutex.RUnlock()
 	fake.associateAddressMutex.RLock()

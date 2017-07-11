@@ -211,8 +211,6 @@ type BlockDeviceMapping struct {
 type EBS struct {
 	DeleteOnTermination bool
 	Encrypted           bool
-	Iops                int64
-	SnapshotId          string
 	VolumeSize          int64
 	VolumeType          string
 }
@@ -271,34 +269,71 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 			publicIP = *association.PublicIp
 		}
 	}
+	blockDeviceMappings, err := c.describeVolumes(*instance.RootDeviceName, instance.BlockDeviceMappings)
+	if err != nil {
+		return VMInfo{}, errwrap.Wrap(err, "describeVolumes failure")
+	}
 
 	vmInfo := VMInfo{
-		InstanceID:       *instance.InstanceId,
-		InstanceType:     *instance.InstanceType,
-		KeyName:          *instance.KeyName,
-		SubnetID:         *instance.SubnetId,
-		SecurityGroupIDs: securityGroupIDs,
-		PublicIP:         publicIP,
+		InstanceID:          *instance.InstanceId,
+		InstanceType:        *instance.InstanceType,
+		KeyName:             *instance.KeyName,
+		SubnetID:            *instance.SubnetId,
+		SecurityGroupIDs:    securityGroupIDs,
+		PublicIP:            publicIP,
+		BlockDeviceMappings: blockDeviceMappings,
 	}
 
 	return vmInfo, nil
 }
 
+func (c *client) describeVolumes(rootDeviceNameFilter string, instanceBlockDeviceMappings []*ec2.InstanceBlockDeviceMapping) ([]BlockDeviceMapping, error) {
+	blockDeviceMappings := []BlockDeviceMapping{}
+	for _, blockDeviceMapping := range instanceBlockDeviceMappings {
+
+		if rootDeviceNameFilter != *blockDeviceMapping.DeviceName {
+			params := &ec2.DescribeVolumesInput{
+				Filters: []*ec2.Filter{
+					{
+						Name: aws.String("volume-id"),
+						Values: []*string{
+							blockDeviceMapping.Ebs.VolumeId,
+						},
+					},
+				},
+			}
+			resp, err := c.ec2Client.DescribeVolumes(params)
+			if err != nil {
+				return nil, errwrap.Wrap(err, "Describe Volume call failed")
+			}
+
+			for _, volume := range resp.Volumes {
+				blockDeviceMappings = append(blockDeviceMappings, BlockDeviceMapping{
+					DeviceName: *blockDeviceMapping.DeviceName,
+					EBS: EBS{
+						DeleteOnTermination: *blockDeviceMapping.Ebs.DeleteOnTermination,
+						Encrypted:           *volume.Encrypted,
+						VolumeSize:          *volume.Size,
+						VolumeType:          *volume.VolumeType,
+					},
+				})
+			}
+		}
+	}
+
+	return blockDeviceMappings, nil
+}
 func convertBlockDeviceMappings(blockDeviceMappings []BlockDeviceMapping) []*ec2.BlockDeviceMapping {
 	awsBlockDeviceMappings := []*ec2.BlockDeviceMapping{}
 	for _, blockDeviceMapping := range blockDeviceMappings {
 		awsBlockDeviceMappings = append(awsBlockDeviceMappings, &ec2.BlockDeviceMapping{
 			DeviceName: aws.String(blockDeviceMapping.DeviceName),
-			NoDevice:   aws.String(blockDeviceMapping.NoDevice),
 			Ebs: &ec2.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(blockDeviceMapping.EBS.DeleteOnTermination),
 				Encrypted:           aws.Bool(blockDeviceMapping.EBS.Encrypted),
-				Iops:                aws.Int64(blockDeviceMapping.EBS.Iops),
-				SnapshotId:          aws.String(blockDeviceMapping.EBS.SnapshotId),
 				VolumeSize:          aws.Int64(blockDeviceMapping.EBS.VolumeSize),
 				VolumeType:          aws.String(blockDeviceMapping.EBS.VolumeType),
 			},
-			VirtualName: aws.String(blockDeviceMapping.VirtualName),
 		})
 	}
 
