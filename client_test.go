@@ -27,7 +27,7 @@ var _ = Describe("test for unexported features", func() {
 					{
 						DeviceName: "/dev/sda1",
 						EBS: EBS{
-							VolumeSize: int64(50),
+							VolumeSize: 50,
 						},
 					},
 				},

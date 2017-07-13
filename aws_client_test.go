@@ -103,6 +103,15 @@ var _ = Describe("AWSClient", func() {
 								VolumeType:          "some-volume-type",
 							},
 						},
+						{
+							DeviceName: "/dev/sda2",
+							EBS: cliaas.EBS{
+								DeleteOnTermination: true,
+								Encrypted:           true,
+								VolumeSize:          1,
+								VolumeType:          "some-volume-type",
+							},
+						},
 					},
 				}))
 			})
@@ -248,13 +257,15 @@ var _ = Describe("AWSClient", func() {
 
 	Describe("Create", func() {
 		var (
-			name            = "some-instance-name"
-			ami             = "some-instance-ami"
-			instanceType    = "some-instance-type"
-			keyName         = "some-key-name"
-			subnetID        = "some-subnet-id"
-			securityGroupID = "some-security-group-id"
-			reservation     *ec2.Reservation
+			reservation  *ec2.Reservation
+			name         = "some-instance-name"
+			ami          = "some-instance-ami"
+			vmInfoConfig = VMInfoConfig{
+				InstanceType:    "some-instance-type",
+				KeyName:         "some-key-name",
+				SubnetID:        "some-subnet-id",
+				SecurityGroupID: "some-security-group-id",
+			}
 		)
 
 		BeforeEach(func() {
@@ -265,35 +276,18 @@ var _ = Describe("AWSClient", func() {
 					},
 				},
 			}
-
 			ec2Client.RunInstancesReturns(reservation, nil)
 		})
 
 		It("tries to create the instance", func() {
-			_, err := client.CreateVM(ami, name, cliaas.VMInfo{
-				KeyName:          keyName,
-				SubnetID:         subnetID,
-				SecurityGroupIDs: []string{securityGroupID},
-				InstanceType:     instanceType,
-				BlockDeviceMappings: []cliaas.BlockDeviceMapping{
-					{
-						DeviceName: "/dev/sda1",
-						EBS: cliaas.EBS{
-							DeleteOnTermination: true,
-							Encrypted:           true,
-							VolumeSize:          int64(1),
-							VolumeType:          "some-volume-type",
-						},
-					},
-				},
-			})
+			_, err := client.CreateVM(ami, name, createVMInfo("/dev/sda1", "", true, vmInfoConfig))
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(ec2Client.RunInstancesCallCount()).To(Equal(1))
 			input := ec2Client.RunInstancesArgsForCall(0)
 			Expect(*input).To(Equal(ec2.RunInstancesInput{
 				ImageId:      aws.String(ami),
-				InstanceType: aws.String(instanceType),
+				InstanceType: aws.String(vmInfoConfig.InstanceType),
 				BlockDeviceMappings: []*ec2.BlockDeviceMapping{
 					{
 						DeviceName: aws.String("/dev/sda1"),
@@ -307,18 +301,73 @@ var _ = Describe("AWSClient", func() {
 				},
 				MinCount:         aws.Int64(1),
 				MaxCount:         aws.Int64(1),
-				KeyName:          aws.String(keyName),
-				SubnetId:         aws.String(subnetID),
-				SecurityGroupIds: aws.StringSlice([]string{securityGroupID}),
+				KeyName:          aws.String(vmInfoConfig.KeyName),
+				SubnetId:         aws.String(vmInfoConfig.SubnetID),
+				SecurityGroupIds: aws.StringSlice([]string{vmInfoConfig.SecurityGroupID}),
 			}))
+		})
+
+		Context("when there is no snapshot id", func() {
+			It("sets a safe snapshot id value", func() {
+				_, err := client.CreateVM(ami, name, createVMInfo("/dev/sda1", "", true, vmInfoConfig))
+				Expect(err).NotTo(HaveOccurred())
+
+				input := ec2Client.RunInstancesArgsForCall(0)
+				Expect(input.BlockDeviceMappings).To(HaveLen(1))
+				Expect(input.BlockDeviceMappings[0].Ebs.SnapshotId).To(BeNil())
+				Expect(*input.BlockDeviceMappings[0].Ebs.Encrypted).To(BeTrue())
+			})
+		})
+
+		Context("when there is a snapshot id", func() {
+			It("resolves conflicts between snapshot id and encryption on the block device", func() {
+				_, err := client.CreateVM(ami, name, createVMInfo("/dev/sda1", "some-snapshot-id", true, vmInfoConfig))
+				Expect(err).NotTo(HaveOccurred())
+
+				input := ec2Client.RunInstancesArgsForCall(0)
+				Expect(input.BlockDeviceMappings).To(HaveLen(1))
+				Expect(*input.BlockDeviceMappings[0].Ebs.SnapshotId).To(Equal("some-snapshot-id"))
+				Expect(input.BlockDeviceMappings[0].Ebs.Encrypted).To(BeNil())
+			})
+		})
+
+		Context("when there are mulitple blockdevices on the original VM", func() {
+			var (
+				deviceName1 = "/dev/sda1"
+				deviceName2 = "/dev/sda2"
+				vmInfo      cliaas.VMInfo
+			)
+
+			BeforeEach(func() {
+				vmInfo = createVMInfo(deviceName1, "some-snapshot-id", true, vmInfoConfig)
+				vmInfo.BlockDeviceMappings = append(vmInfo.BlockDeviceMappings, cliaas.BlockDeviceMapping{
+					DeviceName: deviceName2,
+					EBS: cliaas.EBS{
+						DeleteOnTermination: true,
+						Encrypted:           true,
+						VolumeSize:          1,
+						VolumeType:          "some-volume-type",
+					},
+				})
+			})
+
+			It("creates a new VM with all blockdevices defined", func() {
+				_, err := client.CreateVM(ami, name, vmInfo)
+				Expect(err).NotTo(HaveOccurred())
+
+				input := ec2Client.RunInstancesArgsForCall(0)
+				Expect(input.BlockDeviceMappings).To(HaveLen(2))
+				Expect(*input.BlockDeviceMappings[0].DeviceName).To(Equal(deviceName1))
+				Expect(*input.BlockDeviceMappings[1].DeviceName).To(Equal(deviceName2))
+			})
 		})
 
 		It("tries to create an instance with a blank security group when no security groups are set", func() {
 			_, err := client.CreateVM(ami, name, cliaas.VMInfo{
-				KeyName:          keyName,
-				SubnetID:         subnetID,
+				KeyName:          vmInfoConfig.KeyName,
+				SubnetID:         vmInfoConfig.SubnetID,
 				SecurityGroupIDs: []string{},
-				InstanceType:     instanceType,
+				InstanceType:     vmInfoConfig.InstanceType,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -334,10 +383,10 @@ var _ = Describe("AWSClient", func() {
 
 			It("returns an error", func() {
 				_, err := client.CreateVM(ami, name, cliaas.VMInfo{
-					KeyName:          keyName,
-					SubnetID:         subnetID,
-					SecurityGroupIDs: []string{securityGroupID},
-					InstanceType:     instanceType,
+					KeyName:          vmInfoConfig.KeyName,
+					SubnetID:         vmInfoConfig.SubnetID,
+					SecurityGroupIDs: []string{vmInfoConfig.SecurityGroupID},
+					InstanceType:     vmInfoConfig.InstanceType,
 				})
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("run instances failed: an error"))
@@ -382,6 +431,34 @@ func createEC2Instance(state *ec2.InstanceState) *ec2.Instance {
 				Ebs: &ec2.EbsInstanceBlockDevice{
 					DeleteOnTermination: aws.Bool(true),
 					VolumeId:            aws.String("some-volume-id"),
+				},
+			},
+		},
+	}
+}
+
+type VMInfoConfig struct {
+	InstanceType    string
+	KeyName         string
+	SubnetID        string
+	SecurityGroupID string
+}
+
+func createVMInfo(deviceName, snapshotID string, encrypted bool, vmInfoConfig VMInfoConfig) cliaas.VMInfo {
+	return cliaas.VMInfo{
+		KeyName:          vmInfoConfig.KeyName,
+		SubnetID:         vmInfoConfig.SubnetID,
+		SecurityGroupIDs: []string{vmInfoConfig.SecurityGroupID},
+		InstanceType:     vmInfoConfig.InstanceType,
+		BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+			{
+				DeviceName: deviceName,
+				EBS: cliaas.EBS{
+					DeleteOnTermination: true,
+					Encrypted:           encrypted,
+					SnapshotID:          snapshotID,
+					VolumeSize:          1,
+					VolumeType:          "some-volume-type",
 				},
 			},
 		},
