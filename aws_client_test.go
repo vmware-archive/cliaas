@@ -98,7 +98,6 @@ var _ = Describe("AWSClient", func() {
 							DeviceName: "/dev/sda1",
 							EBS: cliaas.EBS{
 								DeleteOnTermination: true,
-								Encrypted:           true,
 								VolumeSize:          1,
 								VolumeType:          "some-volume-type",
 							},
@@ -107,7 +106,6 @@ var _ = Describe("AWSClient", func() {
 							DeviceName: "/dev/sda2",
 							EBS: cliaas.EBS{
 								DeleteOnTermination: true,
-								Encrypted:           true,
 								VolumeSize:          1,
 								VolumeType:          "some-volume-type",
 							},
@@ -293,7 +291,8 @@ var _ = Describe("AWSClient", func() {
 						DeviceName: aws.String("/dev/sda1"),
 						Ebs: &ec2.EbsBlockDevice{
 							DeleteOnTermination: aws.Bool(true),
-							Encrypted:           aws.Bool(true),
+							Encrypted:           nil,
+							SnapshotId:          nil,
 							VolumeSize:          aws.Int64(1),
 							VolumeType:          aws.String("some-volume-type"),
 						},
@@ -305,30 +304,6 @@ var _ = Describe("AWSClient", func() {
 				SubnetId:         aws.String(vmInfoConfig.SubnetID),
 				SecurityGroupIds: aws.StringSlice([]string{vmInfoConfig.SecurityGroupID}),
 			}))
-		})
-
-		Context("when there is no snapshot id", func() {
-			It("sets a safe snapshot id value", func() {
-				_, err := client.CreateVM(ami, name, createVMInfo("/dev/sda1", "", true, vmInfoConfig))
-				Expect(err).NotTo(HaveOccurred())
-
-				input := ec2Client.RunInstancesArgsForCall(0)
-				Expect(input.BlockDeviceMappings).To(HaveLen(1))
-				Expect(input.BlockDeviceMappings[0].Ebs.SnapshotId).To(BeNil())
-				Expect(*input.BlockDeviceMappings[0].Ebs.Encrypted).To(BeTrue())
-			})
-		})
-
-		Context("when there is a snapshot id", func() {
-			It("resolves conflicts between snapshot id and encryption on the block device", func() {
-				_, err := client.CreateVM(ami, name, createVMInfo("/dev/sda1", "some-snapshot-id", true, vmInfoConfig))
-				Expect(err).NotTo(HaveOccurred())
-
-				input := ec2Client.RunInstancesArgsForCall(0)
-				Expect(input.BlockDeviceMappings).To(HaveLen(1))
-				Expect(*input.BlockDeviceMappings[0].Ebs.SnapshotId).To(Equal("some-snapshot-id"))
-				Expect(input.BlockDeviceMappings[0].Ebs.Encrypted).To(BeNil())
-			})
 		})
 
 		Context("when there are mulitple blockdevices on the original VM", func() {
@@ -344,7 +319,6 @@ var _ = Describe("AWSClient", func() {
 					DeviceName: deviceName2,
 					EBS: cliaas.EBS{
 						DeleteOnTermination: true,
-						Encrypted:           true,
 						VolumeSize:          1,
 						VolumeType:          "some-volume-type",
 					},
@@ -455,8 +429,6 @@ func createVMInfo(deviceName, snapshotID string, encrypted bool, vmInfoConfig VM
 				DeviceName: deviceName,
 				EBS: cliaas.EBS{
 					DeleteOnTermination: true,
-					Encrypted:           encrypted,
-					SnapshotID:          snapshotID,
 					VolumeSize:          1,
 					VolumeType:          "some-volume-type",
 				},

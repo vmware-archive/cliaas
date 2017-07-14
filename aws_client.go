@@ -208,8 +208,6 @@ type BlockDeviceMapping struct {
 
 type EBS struct {
 	DeleteOnTermination bool
-	Encrypted           bool
-	SnapshotID          string
 	VolumeSize          int64
 	VolumeType          string
 }
@@ -309,8 +307,6 @@ func (c *client) describeVolumes(instanceBlockDeviceMappings []*ec2.InstanceBloc
 				DeviceName: aws.StringValue(blockDeviceMapping.DeviceName),
 				EBS: EBS{
 					DeleteOnTermination: aws.BoolValue(blockDeviceMapping.Ebs.DeleteOnTermination),
-					Encrypted:           aws.BoolValue(volume.Encrypted),
-					SnapshotID:          aws.StringValue(volume.SnapshotId),
 					VolumeSize:          aws.Int64Value(volume.Size),
 					VolumeType:          aws.StringValue(volume.VolumeType),
 				},
@@ -324,19 +320,12 @@ func convertBlockDeviceMappings(blockDeviceMappings []BlockDeviceMapping) []*ec2
 	awsBlockDeviceMappings := []*ec2.BlockDeviceMapping{}
 	for _, blockDeviceMapping := range blockDeviceMappings {
 
-		var snapshotID *string
-		encrypted := aws.Bool(blockDeviceMapping.EBS.Encrypted)
-		if blockDeviceMapping.EBS.SnapshotID != "" {
-			snapshotID = aws.String(blockDeviceMapping.EBS.SnapshotID)
-			encrypted = nil
-		}
-
 		awsBlockDeviceMappings = append(awsBlockDeviceMappings, &ec2.BlockDeviceMapping{
 			DeviceName: aws.String(blockDeviceMapping.DeviceName),
 			Ebs: &ec2.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(blockDeviceMapping.EBS.DeleteOnTermination),
-				Encrypted:           encrypted,
-				SnapshotId:          snapshotID,
+				Encrypted:           nil,
+				SnapshotId:          nil,
 				VolumeSize:          aws.Int64(blockDeviceMapping.EBS.VolumeSize),
 				VolumeType:          aws.String(blockDeviceMapping.EBS.VolumeType),
 			},
