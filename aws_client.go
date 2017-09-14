@@ -111,9 +111,12 @@ func (c *client) CreateVM(
 		ImageId:             aws.String(ami),
 		InstanceType:        aws.String(vmInfo.InstanceType),
 		BlockDeviceMappings: convertBlockDeviceMappings(vmInfo.BlockDeviceMappings),
-		MinCount:            aws.Int64(1),
-		MaxCount:            aws.Int64(1),
-		KeyName:             aws.String(vmInfo.KeyName),
+		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+			Arn: aws.String(vmInfo.IAMInstanceProfileARN),
+		},
+		MinCount: aws.Int64(1),
+		MaxCount: aws.Int64(1),
+		KeyName:  aws.String(vmInfo.KeyName),
 	}
 
 	if vmInfo.SubnetID != "" {
@@ -192,13 +195,14 @@ func (c *client) StartVM(instanceID string) error {
 }
 
 type VMInfo struct {
-	InstanceID          string
-	InstanceType        string
-	BlockDeviceMappings []BlockDeviceMapping
-	KeyName             string
-	SubnetID            string
-	SecurityGroupIDs    []string
-	PublicIP            string
+	InstanceID            string
+	InstanceType          string
+	BlockDeviceMappings   []BlockDeviceMapping
+	IAMInstanceProfileARN string
+	KeyName               string
+	SubnetID              string
+	SecurityGroupIDs      []string
+	PublicIP              string
 }
 
 type BlockDeviceMapping struct {
@@ -272,13 +276,14 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 	}
 
 	vmInfo := VMInfo{
-		InstanceID:          *instance.InstanceId,
-		InstanceType:        *instance.InstanceType,
-		KeyName:             *instance.KeyName,
-		SubnetID:            *instance.SubnetId,
-		SecurityGroupIDs:    securityGroupIDs,
-		PublicIP:            publicIP,
-		BlockDeviceMappings: blockDeviceMappings,
+		InstanceID:            *instance.InstanceId,
+		InstanceType:          *instance.InstanceType,
+		KeyName:               *instance.KeyName,
+		SubnetID:              *instance.SubnetId,
+		SecurityGroupIDs:      securityGroupIDs,
+		PublicIP:              publicIP,
+		BlockDeviceMappings:   blockDeviceMappings,
+		IAMInstanceProfileARN: *instance.IamInstanceProfile.Arn,
 	}
 
 	return vmInfo, nil

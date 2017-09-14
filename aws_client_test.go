@@ -111,6 +111,7 @@ var _ = Describe("AWSClient", func() {
 							},
 						},
 					},
+					IAMInstanceProfileARN: "some-instance-profile-arn",
 				}))
 			})
 		})
@@ -298,6 +299,9 @@ var _ = Describe("AWSClient", func() {
 						},
 					},
 				},
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Arn: aws.String("some-instance-profile-arn"),
+				},
 				MinCount:         aws.Int64(1),
 				MaxCount:         aws.Int64(1),
 				KeyName:          aws.String(vmInfoConfig.KeyName),
@@ -408,6 +412,9 @@ func createEC2Instance(state *ec2.InstanceState) *ec2.Instance {
 				},
 			},
 		},
+		IamInstanceProfile: &ec2.IamInstanceProfile{
+			Arn: aws.String("some-instance-profile-arn"),
+		},
 	}
 }
 
@@ -434,5 +441,6 @@ func createVMInfo(deviceName, snapshotID string, encrypted bool, vmInfoConfig VM
 				},
 			},
 		},
+		IAMInstanceProfileARN: "some-instance-profile-arn",
 	}
 }
