@@ -92,11 +92,16 @@ var _ = Describe("GCPCLientAPI", func() {
 			It("then we should recieve all info about the matching instance (by name) in GCP", func() {
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				instance, err := gcpClientAPI.GetVMInfo(Filter{
-					NameRegexString: instanceNameGUID,
-					TagRegexString:  "",
-				})
-				Expect(err).ShouldNot(HaveOccurred())
+
+				var instance *compute.Instance
+				Eventually(func() error {
+					var err error
+					instance, err = gcpClientAPI.GetVMInfo(Filter{
+						NameRegexString: instanceNameGUID,
+						TagRegexString:  "",
+					})
+					return err
+				}, "2m", "10s").Should(Succeed())
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
 				Expect(instance.Name).Should(Equal(instanceNameGUID))
@@ -108,11 +113,16 @@ var _ = Describe("GCPCLientAPI", func() {
 			It("then we should receive all info about the matching instance (by tag) in GCP", func() {
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				instance, err := gcpClientAPI.GetVMInfo(Filter{
-					NameRegexString: "",
-					TagRegexString:  controlTag,
-				})
-				Expect(err).ShouldNot(HaveOccurred())
+
+				var instance *compute.Instance
+				Eventually(func() error {
+					var err error
+					instance, err = gcpClientAPI.GetVMInfo(Filter{
+						NameRegexString: "",
+						TagRegexString:  controlTag,
+					})
+					return err
+				}, "2m", "10s").Should(Succeed())
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
 				Expect(instance.Name).Should(Equal(instanceNameGUID))
