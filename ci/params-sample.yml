@@ -6,9 +6,26 @@ gcp_creds: |
   }
 gcp_project: ""
 gcp_zone: ""
+
 aws_access_key: ""
 aws_secret_key: ""
 aws_region: us-east-1
 aws_vpc: cliaas
+aws_subnet: ""
+aws_security_group: ""
+keypair_name: ""
+
+azure_subscription_id: ""
+azure_client_id: ""
+azure_client_secret: ""
+azure_tenant_id: ""
+azure_resource_group_name: ""
+azure_nic_id: ""
+azure_storage_account_name: ""
+azure_storage_account_key: ""
+azure_storage_container_name: ""
+azure_storage_base_url: ""
+
+github_token: ""
 git_private_key: |
   private key contents

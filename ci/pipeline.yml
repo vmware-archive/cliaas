@@ -53,6 +53,9 @@ jobs:
               AWS_SECRET_KEY: {{aws_secret_key}}
               AWS_REGION: {{aws_region}}
               AWS_VPC: {{aws_vpc}}
+              AWS_SUBNET: {{aws_subnet}}
+              AWS_SECURITY_GROUP: {{aws_security_group}}
+              KEYPAIR_NAME: {{keypair_name}}
         - try:
             task: azure-integration
             file: cliaas/ci/integration.yml
