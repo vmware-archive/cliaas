@@ -18,20 +18,19 @@ import (
 
 var _ = Describe("AwsClient", func() {
 	var (
-		awsClient cliaas.AWSClient
-		ec2Client *ec2.EC2
-		accessKey = os.Getenv("AWS_ACCESS_KEY")
-		secretKey = os.Getenv("AWS_SECRET_KEY")
-		region    = os.Getenv("AWS_REGION")
-		vpc       = os.Getenv("AWS_VPC")
+		awsClient       cliaas.AWSClient
+		ec2Client       *ec2.EC2
+		accessKey       = os.Getenv("AWS_ACCESS_KEY")
+		secretKey       = os.Getenv("AWS_SECRET_KEY")
+		region          = os.Getenv("AWS_REGION")
+		vpc             = os.Getenv("AWS_VPC")
+		subnetID        = os.Getenv("AWS_SUBNET")
+		securityGroupID = os.Getenv("AWS_SECURITY_GROUP")
+		keyPairName     = os.Getenv("KEYPAIR_NAME")
+		ami             = "ami-0b33d91d"
+		vmType          = "t2.micro"
 
-		ami         = "ami-0b33d91d"
-		vmType      = "t2.micro"
-		keyPairName = "c0-cliaas"
-		subnetID    = "subnet-52d6c61b"
-
-		name            string
-		securityGroupID string
+		name string
 	)
 
 	BeforeEach(func() {
@@ -61,6 +60,16 @@ var _ = Describe("AwsClient", func() {
 				KeyName:          keyPairName,
 				SubnetID:         subnetID,
 				SecurityGroupIDs: []string{securityGroupID},
+				BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+					{
+						DeviceName: "/dev/sda1",
+						EBS: cliaas.EBS{
+							DeleteOnTermination: true,
+							VolumeSize:          10,
+							VolumeType:          "standard",
+						},
+					},
+				},
 			})
 		})
 
@@ -74,8 +83,10 @@ var _ = Describe("AwsClient", func() {
 			Expect(createErr).NotTo(HaveOccurred())
 			Expect(instanceID).NotTo(Equal(""))
 
-			_, err := awsClient.GetVMInfo(name)
-			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() error {
+				_, err := awsClient.GetVMInfo(name)
+				return err
+			}, "1m", "10s").Should(Succeed())
 		})
 	})
 
@@ -89,6 +100,16 @@ var _ = Describe("AwsClient", func() {
 				KeyName:          keyPairName,
 				SubnetID:         subnetID,
 				SecurityGroupIDs: []string{securityGroupID},
+				BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+					{
+						DeviceName: "/dev/sda1",
+						EBS: cliaas.EBS{
+							DeleteOnTermination: true,
+							VolumeSize:          10,
+							VolumeType:          "standard",
+						},
+					},
+				},
 			})
 			Expect(createErr).NotTo(HaveOccurred())
 
