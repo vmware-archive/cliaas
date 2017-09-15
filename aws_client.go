@@ -275,6 +275,11 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 		return VMInfo{}, errwrap.Wrap(err, "describeVolumes failure")
 	}
 
+	iamInstanceProfileArn := ""
+	if instance.IamInstanceProfile != nil {
+		iamInstanceProfileArn = *instance.IamInstanceProfile.Arn
+	}
+
 	vmInfo := VMInfo{
 		InstanceID:            *instance.InstanceId,
 		InstanceType:          *instance.InstanceType,
@@ -283,7 +288,7 @@ func (c *client) GetVMInfo(name string) (VMInfo, error) {
 		SecurityGroupIDs:      securityGroupIDs,
 		PublicIP:              publicIP,
 		BlockDeviceMappings:   blockDeviceMappings,
-		IAMInstanceProfileARN: *instance.IamInstanceProfile.Arn,
+		IAMInstanceProfileARN: iamInstanceProfileArn,
 	}
 
 	return vmInfo, nil
