@@ -26,44 +26,25 @@ var (
 
 	storageAccountName = strings.Replace(prefix, "-", "", -1)
 	containerName      = "cliaas"
-
-	imageURL = "https://opsmanagerwestus.blob.core.windows.net/images/ops-manager-1.11.11.vhd"
 )
 
 var _ = Describe("Azure API Client", func() {
 	var identifier string
 	var storageAccountKey string
 	var azureClient *azure.Client
-	var testAzureClient azureTestClient
 
 	BeforeEach(func() {
-		testAzureClient = azureTestClient{
-			SubscriptionID: subscriptionID,
-			ClientID:       clientID,
-			ClientSecret:   clientSecret,
-			TenantID:       tenantID,
-			Location:       location,
-		}
-
-		resourceGroup := testAzureClient.createResourceGroup(prefix)
-		storageAccountKey = testAzureClient.createStorageAccount(prefix, storageAccountName)
-		createContainer(storageAccountName, storageAccountKey, containerName)
-		newImageURL := copyBlob(storageAccountName, storageAccountKey, containerName, imageURL, "image.vhd")
-
-		subnet := testAzureClient.createVirtualNetwork(prefix, fmt.Sprintf("%s-network", prefix))
-
 		identifier = fmt.Sprintf("%s-vm", prefix)
 		testAzureClient.createVM(prefix, identifier, newImageURL, storageAccountName, containerName, &subnet)
 
 		var err error
-		azureClient, err = azure.NewClient(subscriptionID, clientID, clientSecret, tenantID, *resourceGroup.Name, resourceManagerEndpoint)
+		azureClient, err = azure.NewClient(subscriptionID, clientID, clientSecret, tenantID, prefix, resourceManagerEndpoint)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		azureClient.Delete(identifier)
 		Expect(testAzureClient.vmExists(identifier, prefix)).Should(BeFalse())
-		testAzureClient.deleteResourceGroup(prefix)
 	})
 
 	Describe("Delete", func() {
