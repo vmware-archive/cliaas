@@ -65,12 +65,8 @@ jobs:
               AZURE_CLIENT_ID: {{azure_client_id}}
               AZURE_CLIENT_SECRET: {{azure_client_secret}}
               AZURE_TENANT_ID: {{azure_tenant_id}}
-              AZURE_RESOURCE_GROUP_NAME: {{azure_resource_group_name}}
-              AZURE_NIC_ID: {{azure_nic_id}}
-              AZURE_STORAGE_ACCOUNT_NAME: {{azure_storage_account_name}}
-              AZURE_STORAGE_ACCOUNT_KEY: {{azure_storage_account_key}}
-              AZURE_STORAGE_CONTAINER_NAME: {{azure_storage_container_name}}
-              AZURE_STORAGE_BASE_URL: {{azure_storage_base_url}}
+              PREFIX: {{azure_prefix}}
+              LOCATION: {{azure_location}}
         - task: gcp-integration
           file: cliaas/ci/integration.yml
           params:
