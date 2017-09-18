@@ -36,6 +36,7 @@ resources:
 
 jobs:
   - name: test
+    serial: true
     plan:
       - get: cliaas
         trigger: true
