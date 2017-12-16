@@ -13,6 +13,7 @@ import (
 type Client interface {
 	Delete(vmIdentifier string) error
 	Replace(vmIdentifier string, imageIdentifier string) error
+	SwapLb(identifier string, vmidentifiers []string) error
 }
 
 func NewAWSAPIClientAdaptor(client AWSClient) Client {
@@ -76,6 +77,10 @@ func (v *awsAPIClientAdaptor) Replace(identifier string, ami string) error {
 	return nil
 }
 
+func (v *awsAPIClientAdaptor) SwapLb(identifier string, vmidentifiers []string) error {
+	return v.client.SwapLb(identifier, vmidentifiers)
+}
+
 type gcpClient struct {
 	client *gcp.Client
 }
@@ -114,6 +119,10 @@ func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string) err
 	}
 
 	return c.client.WaitForStatus(newInstance.Name, gcp.InstanceRunning)
+}
+
+func (c *gcpClient) SwapLb(identifier string, vmidentifiers []string) error {
+	return c.client.SwapLb(identifier, vmidentifiers)
 }
 
 func createGCPInstanceFromExisting(vmInstance *compute.Instance, diskName string, name string) *compute.Instance {

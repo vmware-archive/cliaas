@@ -443,6 +443,10 @@ func (fake *FakeAWSClient) WaitForStatusReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeAWSClient) SwapLb(identifier string, vmidentifiers []string) error {
+	return nil
+}
+
 func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()

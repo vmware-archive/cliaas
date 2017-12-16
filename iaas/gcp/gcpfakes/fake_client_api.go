@@ -334,6 +334,10 @@ func (fake *FakeClientAPI) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
+func (fake *FakeClientAPI) SwapLb(identifier string, vmidentifiers []string) error {
+	return nil
+}
+
 func (fake *FakeClientAPI) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
