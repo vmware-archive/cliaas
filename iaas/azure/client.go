@@ -151,6 +151,10 @@ func (s *Client) Replace(identifier string, vhdURL string) error {
 	return err
 }
 
+func (s *Client) SwapLb(identifier string, vmidentifiers []string) error {
+	return nil
+}
+
 func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName string, localImageURL string, localOSDiskURL string) (*compute.VirtualMachine, error) {
 	instance, err := s.VirtualMachinesClient.Get(s.resourceGroupName, sourceInstanceName, compute.InstanceView)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/cliaas"
@@ -18,6 +19,7 @@ var _ = Describe("AWSClient", func() {
 	var (
 		client            cliaas.AWSClient
 		ec2Client         *cliaasfakes.FakeEC2Client
+		elbClient         *cliaasfakes.FakeElbClient
 		runningState      *ec2.InstanceState
 		pendingState      *ec2.InstanceState
 		shuttingDownState *ec2.InstanceState
@@ -46,9 +48,10 @@ var _ = Describe("AWSClient", func() {
 		stoppedState.SetCode(80)
 		stoppedState.SetName(ec2.InstanceStateNameStopped)
 		ec2Client = new(cliaasfakes.FakeEC2Client)
+		elbClient = new(cliaasfakes.FakeElbClient)
 		clock := fakeclock.NewFakeClock(time.Now())
 
-		client = cliaas.NewAWSClient(ec2Client, "some vpc", clock)
+		client = cliaas.NewAWSClient(ec2Client, elbClient, "some vpc", clock)
 	})
 
 	Describe("GetVMInfo", func() {
@@ -368,6 +371,81 @@ var _ = Describe("AWSClient", func() {
 				})
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("run instances failed: an error"))
+			})
+		})
+	})
+
+	Describe("SwapLb", func() {
+		var (
+			lbName       string
+			newInstances []string
+		)
+
+		BeforeEach(func() {
+
+			elbClient.DescribeErr = false
+			elbClient.LoadBalancerExist = true
+			elbClient.DeregisterErr = false
+			elbClient.RegisterErr = false
+			lbName = "MyLoadBalancer"
+			newInstances = []string{"new-instance"}
+			var oldInstance = "old-instance"
+			elbClient.Instances = []*elb.Instance{&elb.Instance{InstanceId: &oldInstance}}
+		})
+
+		Context("when Describe Load Balancer throw err", func() {
+			BeforeEach(func() {
+				elbClient.DescribeErr = true
+			})
+			It("should error out", func() {
+				err := client.SwapLb(lbName, newInstances)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when load balancer does not exists", func() {
+			BeforeEach(func() {
+				elbClient.LoadBalancerExist = false
+			})
+			It("should error out", func() {
+				err := client.SwapLb(lbName, newInstances)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("When Deregister Instance failed", func() {
+			BeforeEach(func() {
+				elbClient.DescribeErr = true
+			})
+			It("should error out", func() {
+				err := client.SwapLb(lbName, newInstances)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("When Degister Instance succeed", func() {
+			It("should deregister the old-instance", func() {
+				client.SwapLb(lbName, newInstances)
+				oldInstance := *elbClient.DeregisterCapture[0].InstanceId
+				Expect(oldInstance).To(Equal(oldInstance))
+			})
+		})
+
+		Context("when register Instance failed", func() {
+			BeforeEach(func() {
+				elbClient.RegisterErr = true
+			})
+			It("should error out", func() {
+				err := client.SwapLb(lbName, newInstances)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("When Register Instance succeed", func() {
+			It("should register the new-instance", func() {
+				client.SwapLb(lbName, newInstances)
+				newInstance := *elbClient.RegisterCapture[0].InstanceId
+				Expect(newInstance).To(Equal("new-instance"))
 			})
 		})
 	})

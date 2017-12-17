@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
 	errwrap "github.com/pkg/errors"
 )
 
@@ -21,10 +22,12 @@ type AWSClient interface {
 	StopVM(instanceID string) error
 	AssignPublicIP(instance, ip string) error
 	WaitForStatus(instanceID string, status string) error
+	SwapLb(identifier string, vmidentifiers []string) error
 }
 
 type client struct {
 	ec2Client EC2Client
+	elbClient ElbClient
 	vpcID     string
 	timeout   time.Duration
 	clock     clock.Clock
@@ -32,11 +35,13 @@ type client struct {
 
 func NewAWSClient(
 	ec2Client EC2Client,
+	elbClient ElbClient,
 	vpcID string,
 	clock clock.Clock,
 ) AWSClient {
 	client := &client{
 		ec2Client: ec2Client,
+		elbClient: elbClient,
 		vpcID:     vpcID,
 		timeout:   60 * time.Second,
 		clock:     clock,
@@ -343,4 +348,43 @@ func convertBlockDeviceMappings(blockDeviceMappings []BlockDeviceMapping) []*ec2
 	}
 
 	return awsBlockDeviceMappings
+}
+
+func (c *client) SwapLb(identifier string, vmidentifiers []string) error {
+	loadBalancerNames := []*string{&identifier}
+	describeLBInput := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: loadBalancerNames,
+	}
+	describeLbOutput, err := c.elbClient.DescribeLoadBalancers(describeLBInput)
+	if err != nil {
+		return err
+	}
+	if len(describeLbOutput.LoadBalancerDescriptions) != 1 {
+		return fmt.Errorf("Can not find Load Balancer: %s", identifier)
+	}
+	oldInstances := describeLbOutput.LoadBalancerDescriptions[0].Instances
+	if len(oldInstances) != 0 {
+		deregisterInstancesInput := &elb.DeregisterInstancesFromLoadBalancerInput{
+			Instances:        oldInstances,
+			LoadBalancerName: &identifier,
+		}
+		_, err = c.elbClient.DeregisterInstancesFromLoadBalancer(deregisterInstancesInput)
+		if err != nil {
+			return err
+		}
+	}
+	newInstances := make([]*elb.Instance, 0)
+	for _, v := range vmidentifiers {
+		id := v
+		newInstances = append(newInstances, &elb.Instance{InstanceId: &id})
+	}
+	registerInstancesInput := &elb.RegisterInstancesWithLoadBalancerInput{
+		Instances:        newInstances,
+		LoadBalancerName: &identifier,
+	}
+	_, err = c.elbClient.RegisterInstancesWithLoadBalancer(registerInstancesInput)
+	if err != nil {
+		return err
+	}
+	return nil
 }

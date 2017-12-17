@@ -28,6 +28,7 @@ type ClientAPI interface {
 	GetVMInfo(filter Filter) (*compute.Instance, error)
 	StopVM(instanceName string) error
 	CreateImage(tarball string) (string, error)
+	SwapLb(identifier string, vmidentifiers []string) error
 }
 
 type Client struct {
@@ -213,6 +214,10 @@ func (s *Client) WaitForStatus(vmName string, desiredStatus string) error {
 	case <-time.After(s.timeout):
 		return errors.New("polling for status timed out")
 	}
+}
+
+func (s *Client) SwapLb(identifier string, vmidentifiers []string) error {
+	return nil
 }
 
 type googleComputeClientWrapper struct {
