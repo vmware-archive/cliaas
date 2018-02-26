@@ -6,27 +6,28 @@ import (
 	. "github.com/pivotal-cf/cliaas"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pivotal-cf/cliaas/cliaasfakes"
+	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 var _ = Describe("test for unexported features", func() {
 	Describe("awsClient", func() {
 		Context("when calling Replace on a running VM with valid arguments", func() {
 			var client Client
-			var fakeAPIClient *cliaasfakes.FakeAWSClient
+			var fakeAPIClient *awsfakes.FakeAWSClient
 			var callIndex = map[string]int{
 				"old-vm-shutdown": 0,
 				"new-vm-startup":  1,
 			}
 			var expectedAMI = "xyz"
 			var expectedIdentifier = "abc"
-			var expectedVMInfo = VMInfo{
+			var expectedVMInfo = aws.VMInfo{
 				InstanceID:   "1234",
 				InstanceType: "abc",
-				BlockDeviceMappings: []BlockDeviceMapping{
+				BlockDeviceMappings: []aws.BlockDeviceMapping{
 					{
 						DeviceName: "/dev/sda1",
-						EBS: EBS{
+						EBS: aws.EBS{
 							VolumeSize: 50,
 						},
 					},
@@ -37,7 +38,7 @@ var _ = Describe("test for unexported features", func() {
 			}
 
 			BeforeEach(func() {
-				fakeAPIClient = new(cliaasfakes.FakeAWSClient)
+				fakeAPIClient = new(awsfakes.FakeAWSClient)
 				fakeAPIClient.GetVMInfoReturns(expectedVMInfo, nil)
 				fakeAPIClient.StopVMReturns(nil)
 				fakeAPIClient.WaitForStatusReturns(nil)

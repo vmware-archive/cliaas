@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 	errwrap "github.com/pkg/errors"
 	compute "google.golang.org/api/compute/v1"
 )
@@ -15,14 +16,14 @@ type Client interface {
 	Replace(vmIdentifier string, imageIdentifier string) error
 }
 
-func NewAWSAPIClientAdaptor(client AWSClient) Client {
+func NewAWSAPIClientAdaptor(client aws.AWSClient) Client {
 	return &awsAPIClientAdaptor{
 		client: client,
 	}
 }
 
 type awsAPIClientAdaptor struct {
-	client AWSClient
+	client aws.AWSClient
 }
 
 func (v *awsAPIClientAdaptor) Delete(identifier string) error {

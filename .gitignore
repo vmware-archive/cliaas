@@ -30,3 +30,5 @@ config.yml
 .DS_Store
 coverage.out
 setenv.sh
+
+.idea/

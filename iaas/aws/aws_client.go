@@ -1,4 +1,4 @@
-package cliaas
+package aws
 
 import (
 	"fmt"

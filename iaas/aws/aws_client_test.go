@@ -1,4 +1,4 @@
-package cliaas_test
+package aws_test
 
 import (
 	"errors"
@@ -10,14 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/cliaas"
-	"github.com/pivotal-cf/cliaas/cliaasfakes"
+	. "github.com/pivotal-cf/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
 )
 
 var _ = Describe("AWSClient", func() {
 	var (
-		client            cliaas.AWSClient
-		ec2Client         *cliaasfakes.FakeEC2Client
+		client            AWSClient
+		ec2Client         *awsfakes.FakeEC2Client
 		runningState      *ec2.InstanceState
 		pendingState      *ec2.InstanceState
 		shuttingDownState *ec2.InstanceState
@@ -45,10 +45,10 @@ var _ = Describe("AWSClient", func() {
 		stoppedState = &ec2.InstanceState{}
 		stoppedState.SetCode(80)
 		stoppedState.SetName(ec2.InstanceStateNameStopped)
-		ec2Client = new(cliaasfakes.FakeEC2Client)
+		ec2Client = new(awsfakes.FakeEC2Client)
 		clock := fakeclock.NewFakeClock(time.Now())
 
-		client = cliaas.NewAWSClient(ec2Client, "some vpc", clock)
+		client = NewAWSClient(ec2Client, "some vpc", clock)
 	})
 
 	Describe("GetVMInfo", func() {
@@ -86,17 +86,17 @@ var _ = Describe("AWSClient", func() {
 			It("returns vm info for the instance", func() {
 				vmInfo, err := client.GetVMInfo("some-identifier")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(vmInfo).To(Equal(cliaas.VMInfo{
+				Expect(vmInfo).To(Equal(VMInfo{
 					InstanceID:       "some-instance-id",
 					InstanceType:     "some-instance-type",
 					KeyName:          "some-key-name",
 					SubnetID:         "some-subnet-id",
 					SecurityGroupIDs: []string{"some-group-id", "some-other-group-id"},
 					PublicIP:         "some-public-ip",
-					BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+					BlockDeviceMappings: []BlockDeviceMapping{
 						{
 							DeviceName: "/dev/sda1",
-							EBS: cliaas.EBS{
+							EBS: EBS{
 								DeleteOnTermination: true,
 								VolumeSize:          1,
 								VolumeType:          "some-volume-type",
@@ -104,7 +104,7 @@ var _ = Describe("AWSClient", func() {
 						},
 						{
 							DeviceName: "/dev/sda2",
-							EBS: cliaas.EBS{
+							EBS: EBS{
 								DeleteOnTermination: true,
 								VolumeSize:          1,
 								VolumeType:          "some-volume-type",
@@ -314,14 +314,14 @@ var _ = Describe("AWSClient", func() {
 			var (
 				deviceName1 = "/dev/sda1"
 				deviceName2 = "/dev/sda2"
-				vmInfo      cliaas.VMInfo
+				vmInfo      VMInfo
 			)
 
 			BeforeEach(func() {
 				vmInfo = createVMInfo(deviceName1, "some-snapshot-id", true, vmInfoConfig)
-				vmInfo.BlockDeviceMappings = append(vmInfo.BlockDeviceMappings, cliaas.BlockDeviceMapping{
+				vmInfo.BlockDeviceMappings = append(vmInfo.BlockDeviceMappings, BlockDeviceMapping{
 					DeviceName: deviceName2,
-					EBS: cliaas.EBS{
+					EBS: EBS{
 						DeleteOnTermination: true,
 						VolumeSize:          1,
 						VolumeType:          "some-volume-type",
@@ -341,7 +341,7 @@ var _ = Describe("AWSClient", func() {
 		})
 
 		It("tries to create an instance with a blank security group when no security groups are set", func() {
-			_, err := client.CreateVM(ami, name, cliaas.VMInfo{
+			_, err := client.CreateVM(ami, name, VMInfo{
 				KeyName:          vmInfoConfig.KeyName,
 				SubnetID:         vmInfoConfig.SubnetID,
 				SecurityGroupIDs: []string{},
@@ -360,7 +360,7 @@ var _ = Describe("AWSClient", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.CreateVM(ami, name, cliaas.VMInfo{
+				_, err := client.CreateVM(ami, name, VMInfo{
 					KeyName:          vmInfoConfig.KeyName,
 					SubnetID:         vmInfoConfig.SubnetID,
 					SecurityGroupIDs: []string{vmInfoConfig.SecurityGroupID},
@@ -425,16 +425,16 @@ type VMInfoConfig struct {
 	SecurityGroupID string
 }
 
-func createVMInfo(deviceName, snapshotID string, encrypted bool, vmInfoConfig VMInfoConfig) cliaas.VMInfo {
-	return cliaas.VMInfo{
+func createVMInfo(deviceName, snapshotID string, encrypted bool, vmInfoConfig VMInfoConfig) VMInfo {
+	return VMInfo{
 		KeyName:          vmInfoConfig.KeyName,
 		SubnetID:         vmInfoConfig.SubnetID,
 		SecurityGroupIDs: []string{vmInfoConfig.SecurityGroupID},
 		InstanceType:     vmInfoConfig.InstanceType,
-		BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+		BlockDeviceMappings: []BlockDeviceMapping{
 			{
 				DeviceName: deviceName,
-				EBS: cliaas.EBS{
+				EBS: EBS{
 					DeleteOnTermination: true,
 					VolumeSize:          1,
 					VolumeType:          "some-volume-type",

@@ -9,6 +9,7 @@ import (
 	"github.com/pivotal-cf/cliaas/iaas/azure"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 type Config interface {
@@ -127,13 +128,13 @@ func (c *AWSConfig) Complete() bool {
 }
 
 func (c *AWSConfig) NewClient() (Client, error) {
-	ec2Client, err := NewEC2Client(c.AccessKeyID, c.SecretAccessKey, c.Region)
+	ec2Client, err := aws.NewEC2Client(c.AccessKeyID, c.SecretAccessKey, c.Region)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "failed to make ec2 client")
 	}
 
 	return NewAWSAPIClientAdaptor(
-		NewAWSClient(ec2Client, c.VPCID, clock.NewClock())), nil
+		aws.NewAWSClient(ec2Client, c.VPCID, clock.NewClock())), nil
 }
 
 type GCPConfig struct {
