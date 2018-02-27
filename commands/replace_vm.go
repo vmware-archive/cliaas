@@ -13,10 +13,10 @@ func (r *ReplaceVMCommand) Execute([]string) error {
 		return err
 	}
 
-	size, err := strconv.ParseInt(r.DiskSizeGB, 10, 64)
+	diskSizeGB, err := strconv.ParseInt(r.DiskSizeGB, 10, 64)
 	if err != nil {
 		return err
 	}
 
-	return client.Replace(r.Identifier, Cliaas.Config.Image(), size)
+	return client.Replace(r.Identifier, Cliaas.Config.Image(), diskSizeGB)
 }
