@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
-	storage "github.com/Azure/azure-storage-go"
+	"github.com/Azure/azure-storage-go"
 	"github.com/Azure/go-autorest/autorest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,6 +16,7 @@ import (
 )
 
 var _ = Describe("Azure", func() {
+	var diskSize = int32(10)
 	Describe("Client", func() {
 		Describe("Replace()", func() {
 			var azureClient *azure.Client
@@ -55,7 +56,7 @@ var _ = Describe("Azure", func() {
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
 					fakeBlobServiceClient = new(azurefakes.FakeBlobCopier)
-					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
+					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL, diskSize)
 					fakeVirtualMachinesClient.GetReturns(vm, nil)
 					controlValue = append(controlValue, vm)
 				})
@@ -129,7 +130,7 @@ var _ = Describe("Azure", func() {
 			Context("when there are multiple matches for the identifier regex", func() {
 				BeforeEach(func() {
 					fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
-					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL)
+					vm := newVirtualMachine(controlID, controlOldName, controlOldImageURL, diskSize)
 					controlValue = append(controlValue, vm, vm)
 				})
 
@@ -162,8 +163,8 @@ var _ = Describe("Azure", func() {
 			Context("when azure running VMs list returns more than a single page of results", func() {
 				BeforeEach(func() {
 					identifier = "testid"
-					vmMatch := newVirtualMachine(identifier, identifier, "testurl")
-					vmNothing := newVirtualMachine("nomatch", "nomatch", "testurl")
+					vmMatch := newVirtualMachine(identifier, identifier, "testurl", diskSize)
+					vmNothing := newVirtualMachine("nomatch", "nomatch", "testurl", diskSize)
 					fakeVirtualMachinesClient.ListReturns(compute.VirtualMachineListResult{Value: &[]compute.VirtualMachine{vmNothing}}, nil)
 					fakeVirtualMachinesClient.ListAllNextResultsReturnsOnCall(
 						0,
@@ -257,6 +258,42 @@ var _ = Describe("Azure", func() {
 				})
 			})
 		})
+
+		Describe("GetDisk()", func() {
+			var fakeVirtualMachinesClient *azurefakes.FakeComputeVirtualMachinesClient
+			var identifier string
+			var url string
+			var controlValue []compute.VirtualMachine
+			var azureClient *azure.Client
+			var vm compute.VirtualMachine
+
+			BeforeEach(func() {
+				azureClient = new(azure.Client)
+				identifier = "testid"
+				url = "testurl"
+				fakeVirtualMachinesClient = new(azurefakes.FakeComputeVirtualMachinesClient)
+				vm = newVirtualMachine(identifier, identifier, url, diskSize)
+				azureClient.VirtualMachinesClient = fakeVirtualMachinesClient
+				controlValue = append(controlValue, vm)
+			})
+
+			Context("when given an identifier with a single match of disk name on our regex", func() {
+				It("should return the disk size", func() {
+					fakeVirtualMachinesClient.GetReturns(vm, nil)
+					disk, err := azureClient.GetDisk(identifier)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(disk.SizeGB).To(BeEquivalentTo(diskSize))
+				})
+			})
+
+			Context("when given an identifier and no disk is found in Azure", func() {
+				It("should return an error", func() {
+					fakeVirtualMachinesClient.GetReturns(compute.VirtualMachine{}, errors.New("error"))
+					_, err := azureClient.GetDisk(identifier+"nomatch")
+					Expect(err).To(HaveOccurred())
+				})
+			})
+		})
 	})
 
 	Describe("NewClient", func() {
@@ -311,7 +348,7 @@ var _ = Describe("Azure", func() {
 	})
 })
 
-func newVirtualMachine(id string, name string, vmDiskURL string) compute.VirtualMachine {
+func newVirtualMachine(id string, name string, vmDiskURL string, diskSize int32) compute.VirtualMachine {
 	tmpID := id
 	tmpName := name
 	tmpURL := vmDiskURL
@@ -328,6 +365,7 @@ func newVirtualMachine(id string, name string, vmDiskURL string) compute.Virtual
 			OsProfile: &compute.OSProfile{},
 			StorageProfile: &compute.StorageProfile{
 				OsDisk: &compute.OSDisk{
+					DiskSizeGB: &diskSize,
 					Vhd: &compute.VirtualHardDisk{
 						URI: &tmpURL,
 					},

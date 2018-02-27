@@ -5,15 +5,17 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	"github.com/pivotal-cf/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/gcp"
+	"github.com/pivotal-cf/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 type Client interface {
 	Delete(vmIdentifier string) error
 	Replace(vmIdentifier string, imageIdentifier string) error
+	GetDisk(vmIdentifier string) (iaas.Disk, error)
 }
 
 func NewAWSAPIClientAdaptor(client aws.AWSClient) Client {
@@ -26,55 +28,59 @@ type awsAPIClientAdaptor struct {
 	client aws.AWSClient
 }
 
-func (v *awsAPIClientAdaptor) Delete(identifier string) error {
-	return v.client.DeleteVM(identifier)
+func (c *awsAPIClientAdaptor) Delete(identifier string) error {
+	return c.client.DeleteVM(identifier)
 }
 
-func (v *awsAPIClientAdaptor) Replace(identifier string, ami string) error {
-	vmInfo, err := v.client.GetVMInfo(identifier + "*")
+func (c *awsAPIClientAdaptor) Replace(identifier string, ami string) error {
+	vmInfo, err := c.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err
 	}
 
-	err = v.client.StopVM(vmInfo.InstanceID)
+	err = c.client.StopVM(vmInfo.InstanceID)
 	if err != nil {
-		_ = v.client.StartVM(vmInfo.InstanceID)
+		_ = c.client.StartVM(vmInfo.InstanceID)
 		return err
 	}
 
-	err = v.client.WaitForStatus(vmInfo.InstanceID, ec2.InstanceStateNameStopped)
+	err = c.client.WaitForStatus(vmInfo.InstanceID, ec2.InstanceStateNameStopped)
 	if err != nil {
-		_ = v.client.StartVM(vmInfo.InstanceID)
+		_ = c.client.StartVM(vmInfo.InstanceID)
 		return err
 	}
 
-	instanceID, err := v.client.CreateVM(
+	instanceID, err := c.client.CreateVM(
 		ami,
 		identifier,
 		vmInfo,
 	)
 	if err != nil {
-		_ = v.client.StartVM(vmInfo.InstanceID)
+		_ = c.client.StartVM(vmInfo.InstanceID)
 		return err
 	}
 
-	err = v.client.WaitForStatus(instanceID, ec2.InstanceStateNameRunning)
+	err = c.client.WaitForStatus(instanceID, ec2.InstanceStateNameRunning)
 	if err != nil {
-		_ = v.client.DeleteVM(instanceID)
+		_ = c.client.DeleteVM(instanceID)
 		return err
 	}
 
 	if vmInfo.PublicIP != "" {
-		err = v.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
+		err = c.client.AssignPublicIP(instanceID, vmInfo.PublicIP)
 		if err != nil {
-			_ = v.client.DeleteVM(instanceID)
-			_ = v.client.AssignPublicIP(vmInfo.InstanceID, vmInfo.PublicIP)
-			_ = v.client.StartVM(vmInfo.InstanceID)
+			_ = c.client.DeleteVM(instanceID)
+			_ = c.client.AssignPublicIP(vmInfo.InstanceID, vmInfo.PublicIP)
+			_ = c.client.StartVM(vmInfo.InstanceID)
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (c *awsAPIClientAdaptor) GetDisk(identifier string) (iaas.Disk, error) {
+	return iaas.Disk{SizeGB: int64(0)}, nil
 }
 
 type gcpClient struct {
@@ -83,6 +89,16 @@ type gcpClient struct {
 
 func (c *gcpClient) Delete(identifier string) error {
 	return c.client.DeleteVM(identifier)
+}
+
+func (c *gcpClient) GetDisk(identifier string) (iaas.Disk, error) {
+	disk, err := c.client.GetDisk(gcp.Filter{
+		NameRegexString: identifier + "*",
+	})
+	if err != nil {
+		return iaas.Disk{}, errwrap.Wrap(err, "getvminfo failed")
+	}
+	return iaas.Disk{SizeGB: disk.SizeGb}, nil
 }
 
 func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string) error {

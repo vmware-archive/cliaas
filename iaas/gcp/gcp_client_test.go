@@ -8,7 +8,7 @@ import (
 	. "github.com/pivotal-cf/cliaas/iaas/gcp"
 	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 	errwrap "github.com/pkg/errors"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 var _ = Describe("GCPClientAPI", func() {
@@ -19,6 +19,7 @@ var _ = Describe("GCPClientAPI", func() {
 		var controlProject = "prj"
 		var controlInstanceName = "blah"
 		var controlInstanceTag = "hello"
+		var controlDiskSizeGB = int64(10)
 
 		Describe("given a CreateVM method and a valid instance", func() {
 			var controlInstance compute.Instance
@@ -247,8 +248,8 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 			})
 		})
-		Describe("given a GetVMInfo method and a filter object argument", func() {
 
+		Describe("given a GetVMInfo method and a filter object argument", func() {
 			Context("when there is a matching instance", func() {
 				controlInstanceList := createInstanceList(controlInstanceName, controlInstanceTag)
 				BeforeEach(func() {
@@ -272,7 +273,6 @@ var _ = Describe("GCPClientAPI", func() {
 			})
 
 			Context("when there is no matching instance", func() {
-
 				BeforeEach(func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.ListReturns(createInstanceList("nothing-to-match", "nothing-to-match"), nil)
@@ -290,8 +290,8 @@ var _ = Describe("GCPClientAPI", func() {
 					Expect(err).Should(HaveOccurred())
 				})
 			})
-			Context("when there is empty instance set", func() {
 
+			Context("when there is empty instance set", func() {
 				BeforeEach(func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.ListReturns(&compute.InstanceList{}, nil)
@@ -310,12 +310,58 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 			})
 		})
+
+		Describe("given a GetDisk method and a filter object argument", func() {
+			Context("when there is a matching disk", func() {
+				controlDisk := createDisk(controlInstanceName, controlDiskSizeGB)
+				controlDiskList := &compute.DiskList{
+					Items: []*compute.Disk{controlDisk},
+				}
+
+				BeforeEach(func() {
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.DiskListReturns(controlDiskList, nil)
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+
+				It("then it should yield the filtered disk instance from a gcp disk list", func() {
+					disk, err := client.GetDisk(Filter{NameRegexString: controlInstanceName})
+					Expect(disk).ShouldNot(BeNil())
+					Expect(controlDisk.SizeGb).To(BeEquivalentTo(controlDiskSizeGB))
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when there is no matching disk", func() {
+				BeforeEach(func() {
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.DiskListReturns(&compute.DiskList{
+						Items: []*compute.Disk{createDisk("nothing-to-match", 0)},
+					}, nil)
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+
+				It("then it should give an error", func() {
+					disk, err := client.GetDisk(Filter{NameRegexString: "bbb"})
+					Expect(err).Should(HaveOccurred())
+					Expect(disk).Should(BeNil())
+				})
+			})
+		})
 	})
 
 	Describe("given a NewGCPCLIentAPI()", func() {
-
 		Context("when passed a incomplete/invalid set of configs", func() {
-
 			var client *Client
 			var err error
 			var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
@@ -329,8 +375,8 @@ var _ = Describe("GCPClientAPI", func() {
 				Expect(client).Should(BeNil())
 			})
 		})
-		Context("when passed a valid set of configs", func() {
 
+		Context("when passed a valid set of configs", func() {
 			var client *Client
 			var err error
 			var controlZone = "zone"
@@ -364,5 +410,13 @@ func createInstanceList(name, tag string) *compute.InstanceList {
 				},
 			},
 		},
+	}
+}
+
+func createDisk(name string, sizeGB int64) *compute.Disk {
+	return &compute.Disk{
+		Status: InstanceRunning,
+		Name:   name,
+		SizeGb: sizeGB,
 	}
 }

@@ -17,6 +17,7 @@ type AWSClient interface {
 	CreateVM(ami, name string, vmInfo VMInfo) (string, error)
 	DeleteVM(instanceID string) error
 	GetVMInfo(name string) (VMInfo, error)
+	GetDisk(name string) (EBS, error)
 	StartVM(instanceID string) error
 	StopVM(instanceID string) error
 	AssignPublicIP(instance, ip string) error
@@ -30,11 +31,7 @@ type client struct {
 	clock     clock.Clock
 }
 
-func NewAWSClient(
-	ec2Client EC2Client,
-	vpcID string,
-	clock clock.Clock,
-) AWSClient {
+func NewAWSClient(ec2Client EC2Client, vpcID string, clock clock.Clock) AWSClient {
 	client := &client{
 		ec2Client: ec2Client,
 		vpcID:     vpcID,
@@ -192,6 +189,47 @@ func (c *client) StartVM(instanceID string) error {
 	}
 
 	return nil
+}
+
+func (c *client) GetDisk(name string) (EBS, error) {
+	params := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:Name"),
+				Values: []*string{
+					aws.String(name),
+				},
+			},
+		},
+	}
+	resp, err := c.ec2Client.DescribeInstances(params)
+
+	var list []*ec2.Instance
+
+	for idx := range resp.Reservations {
+		for _, instance := range resp.Reservations[idx].Instances {
+			if *instance.State.Name == ec2.InstanceStateNameRunning {
+				list = append(list, instance)
+			}
+		}
+	}
+
+	if len(list) == 0 {
+		return EBS{}, errwrap.New("no matching instances found")
+	}
+
+	if len(list) > 1 {
+		return EBS{}, errwrap.New("more than one matching instance found")
+	}
+
+	instance := list[0]
+
+	blockDeviceMappings, err := c.describeVolumes(instance.BlockDeviceMappings)
+	if err != nil {
+		return EBS{}, errwrap.Wrap(err, "describeVolumes failure")
+	}
+
+	return blockDeviceMappings[0].EBS, nil
 }
 
 type VMInfo struct {

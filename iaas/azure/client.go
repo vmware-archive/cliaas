@@ -14,6 +14,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	errwrap "github.com/pkg/errors"
+	"github.com/pivotal-cf/cliaas/iaas"
 )
 
 const defaultResourceManagerEndpoint = "https://management.azure.com/"
@@ -78,47 +79,10 @@ func NewClient(
 	}, nil
 }
 
-func (s *Client) SetVMAdminPassword(password string) {
-	s.vmAdminPassword = password
-}
-
-func (s *Client) SetStorageContainerName(name string) {
-	s.storageContainerName = name
-}
-
-func (s *Client) SetStorageAccountName(name string) {
-	s.storageAccountName = name
-}
-
-func (s *Client) SetStorageBaseURL(baseURL string) {
-	s.storageBaseURL = baseURL
-}
-
-func (s *Client) SetBlobServiceClient(storageAccountName string, storageAccountKey string, storageURL string) error {
-	blobClient, err := newBlobClient(storageAccountName, storageAccountKey, storageURL)
-	if err != nil {
-		return errwrap.Wrap(err, "failed creating a blob client")
-	}
-	s.BlobServiceClient = blobClient
-	return nil
-}
-
-func newBlobClient(accountName string, accountKey string, baseURL string) (*storage.BlobStorageClient, error) {
-	client, err := storage.NewClient(accountName, accountKey, baseURL, storage.DefaultAPIVersion, true)
-	if err != nil {
-		return nil, err
-	}
-	blobClient := client.GetBlobService()
-	return &blobClient, nil
-}
-
+/* Cliaas Client Interface */
 func (s *Client) Delete(identifier string) error {
 	_, err := s.executeFunctionOnMatchingVM(identifier, s.VirtualMachinesClient.Delete)
 	return err
-}
-
-func generateLocalImageURL(accountName string, baseURL string, containerName string, localBlobName string) string {
-	return fmt.Sprintf("https://%s.blob.%s/%s/%s", accountName, baseURL, containerName, localBlobName)
 }
 
 func (s *Client) Replace(identifier string, vhdURL string) error {
@@ -149,6 +113,40 @@ func (s *Client) Replace(identifier string, vhdURL string) error {
 
 	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *newInstance.Name, *newInstance, nil)
 	return err
+}
+
+func (s *Client) GetDisk(identifier string) (iaas.Disk, error) {
+	instance, err := s.VirtualMachinesClient.Get(s.resourceGroupName, identifier, compute.InstanceView)
+	if err != nil {
+		return iaas.Disk{}, errwrap.Wrap(err, "unable to get virtual machine instance from azure api for disk")
+	}
+	return iaas.Disk{SizeGB: int64(*instance.StorageProfile.OsDisk.DiskSizeGB)}, nil
+}
+/* End Cliaas Client Interface */
+
+func (s *Client) SetVMAdminPassword(password string) {
+	s.vmAdminPassword = password
+}
+
+func (s *Client) SetStorageContainerName(name string) {
+	s.storageContainerName = name
+}
+
+func (s *Client) SetStorageAccountName(name string) {
+	s.storageAccountName = name
+}
+
+func (s *Client) SetStorageBaseURL(baseURL string) {
+	s.storageBaseURL = baseURL
+}
+
+func (s *Client) SetBlobServiceClient(storageAccountName string, storageAccountKey string, storageURL string) error {
+	blobClient, err := newBlobClient(storageAccountName, storageAccountKey, storageURL)
+	if err != nil {
+		return errwrap.Wrap(err, "failed creating a blob client")
+	}
+	s.BlobServiceClient = blobClient
+	return nil
 }
 
 func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName string, localImageURL string, localOSDiskURL string) (*compute.VirtualMachine, error) {
@@ -208,6 +206,19 @@ func (s *Client) getFilteredList(identifier string) ([]compute.VirtualMachine, e
 		}
 	}
 	return matchingInstances, nil
+}
+
+func newBlobClient(accountName string, accountKey string, baseURL string) (*storage.BlobStorageClient, error) {
+	client, err := storage.NewClient(accountName, accountKey, baseURL, storage.DefaultAPIVersion, true)
+	if err != nil {
+		return nil, err
+	}
+	blobClient := client.GetBlobService()
+	return &blobClient, nil
+}
+
+func generateLocalImageURL(accountName string, baseURL string, containerName string, localBlobName string) string {
+	return fmt.Sprintf("https://%s.blob.%s/%s/%s", accountName, baseURL, containerName, localBlobName)
 }
 
 func getGUID() string {

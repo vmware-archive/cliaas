@@ -47,6 +47,19 @@ type FakeAWSClient struct {
 		result1 aws.VMInfo
 		result2 error
 	}
+	GetDiskStub        func(name string) (aws.EBS, error)
+	getDiskMutex       sync.RWMutex
+	getDiskArgsForCall []struct {
+		name string
+	}
+	getDiskReturns struct {
+		result1 aws.EBS
+		result2 error
+	}
+	getDiskReturnsOnCall map[int]struct {
+		result1 aws.EBS
+		result2 error
+	}
 	StartVMStub        func(instanceID string) error
 	startVMMutex       sync.RWMutex
 	startVMArgsForCall []struct {
@@ -245,6 +258,57 @@ func (fake *FakeAWSClient) GetVMInfoReturnsOnCall(i int, result1 aws.VMInfo, res
 	}
 	fake.getVMInfoReturnsOnCall[i] = struct {
 		result1 aws.VMInfo
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeAWSClient) GetDisk(name string) (aws.EBS, error) {
+	fake.getDiskMutex.Lock()
+	ret, specificReturn := fake.getDiskReturnsOnCall[len(fake.getDiskArgsForCall)]
+	fake.getDiskArgsForCall = append(fake.getDiskArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("GetDisk", []interface{}{name})
+	fake.getDiskMutex.Unlock()
+	if fake.GetDiskStub != nil {
+		return fake.GetDiskStub(name)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getDiskReturns.result1, fake.getDiskReturns.result2
+}
+
+func (fake *FakeAWSClient) GetDiskCallCount() int {
+	fake.getDiskMutex.RLock()
+	defer fake.getDiskMutex.RUnlock()
+	return len(fake.getDiskArgsForCall)
+}
+
+func (fake *FakeAWSClient) GetDiskArgsForCall(i int) string {
+	fake.getDiskMutex.RLock()
+	defer fake.getDiskMutex.RUnlock()
+	return fake.getDiskArgsForCall[i].name
+}
+
+func (fake *FakeAWSClient) GetDiskReturns(result1 aws.EBS, result2 error) {
+	fake.GetDiskStub = nil
+	fake.getDiskReturns = struct {
+		result1 aws.EBS
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeAWSClient) GetDiskReturnsOnCall(i int, result1 aws.EBS, result2 error) {
+	fake.GetDiskStub = nil
+	if fake.getDiskReturnsOnCall == nil {
+		fake.getDiskReturnsOnCall = make(map[int]struct {
+			result1 aws.EBS
+			result2 error
+		})
+	}
+	fake.getDiskReturnsOnCall[i] = struct {
+		result1 aws.EBS
 		result2 error
 	}{result1, result2}
 }
@@ -452,6 +516,8 @@ func (fake *FakeAWSClient) Invocations() map[string][][]interface{} {
 	defer fake.deleteVMMutex.RUnlock()
 	fake.getVMInfoMutex.RLock()
 	defer fake.getVMInfoMutex.RUnlock()
+	fake.getDiskMutex.RLock()
+	defer fake.getDiskMutex.RUnlock()
 	fake.startVMMutex.RLock()
 	defer fake.startVMMutex.RUnlock()
 	fake.stopVMMutex.RLock()

@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/pivotal-cf/cliaas/iaas/aws"
 	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
+	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 )
 
 var _ = Describe("AWSClient", func() {
@@ -368,6 +369,67 @@ var _ = Describe("AWSClient", func() {
 				})
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("run instances failed: an error"))
+			})
+		})
+	})
+
+	FDescribe("GetDisk", func() {
+		var diskSize = int64(10)
+		Context("when there is a matching disk", func() {
+			BeforeEach(func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+				}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
+
+				ec2Client.DescribeVolumesReturns(&ec2.DescribeVolumesOutput{
+					Volumes: []*ec2.Volume{
+						{
+							Encrypted:  aws.Bool(true),
+							Size:       aws.Int64(diskSize),
+							VolumeType: aws.String("some-volume-type"),
+						},
+					},
+				}, nil)
+			})
+
+			It("then it should yield the ebs volume from an aws instance", func() {
+				volume, err := client.GetDisk("some-identifier")
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(2))
+
+				Expect(volume).ShouldNot(BeNil())
+				Expect(volume.VolumeSize).To(BeEquivalentTo(diskSize))
+			})
+		})
+
+		Context("when there is no matching disk", func() {
+			BeforeEach(func() {
+				var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+				fakeGoogleClient.DiskListReturns(&compute.DiskList{
+					Items: []*compute.Disk{createDisk("nothing-to-match", 0)},
+				}, nil)
+
+				client, _ = NewClient(
+					ConfigGoogleClient(fakeGoogleClient),
+					ConfigZoneName(controlZone),
+					ConfigProjectName(controlProject),
+				)
+			})
+
+			It("then it should give an error", func() {
+				disk, err := client.GetDisk(Filter{NameRegexString: "bbb"})
+				Expect(disk).Should(BeNil())
+				Expect(err).Should(HaveOccurred())
 			})
 		})
 	})
