@@ -158,7 +158,7 @@ func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName
 
 	instance.Name = &newInstanceName
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &localImageURL
-	instance.VirtualMachineProperties.StorageProfile.OsDisk.DiskSizeGB = diskSizeGB
+	instance.VirtualMachineProperties.StorageProfile.OsDisk.DiskSizeGB = &diskSizeGB
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Vhd.URI = &localOSDiskURL
 	instance.VirtualMachineProperties.VMID = nil
 	instance.Resources = nil
