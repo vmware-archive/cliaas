@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/pivotal-cf/cliaas/iaas/aws"
 	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
-	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 )
 
 var _ = Describe("AWSClient", func() {
@@ -373,7 +372,7 @@ var _ = Describe("AWSClient", func() {
 		})
 	})
 
-	FDescribe("GetDisk", func() {
+	Describe("GetDisk", func() {
 		var diskSize = int64(10)
 		Context("when there is a matching disk", func() {
 			BeforeEach(func() {
@@ -400,8 +399,8 @@ var _ = Describe("AWSClient", func() {
 				}, nil)
 			})
 
-			It("then it should yield the ebs volume from an aws instance", func() {
-				volume, err := client.GetDisk("some-identifier")
+			It("returns the ebs volume from an aws instance", func() {
+				volume, err := client.GetDisk("some-instance-id")
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
@@ -412,24 +411,84 @@ var _ = Describe("AWSClient", func() {
 			})
 		})
 
-		Context("when there is no matching disk", func() {
-			BeforeEach(func() {
-				var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
-				fakeGoogleClient.DiskListReturns(&compute.DiskList{
-					Items: []*compute.Disk{createDisk("nothing-to-match", 0)},
+		Context("when a single instance is not returned", func() {
+			It("should return an error when no instances match", func() {
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{}, nil)
+
+				_, err := client.GetDisk("some-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(0))
+			})
+
+			It("should return an error when more than one instance match", func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+					createEC2Instance(runningState),
+				}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
 				}, nil)
 
-				client, _ = NewClient(
-					ConfigGoogleClient(fakeGoogleClient),
-					ConfigZoneName(controlZone),
-					ConfigProjectName(controlProject),
-				)
+				_, err := client.GetDisk("some-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(0))
+			})
+		})
+
+		Context("and there is an error retrieving the instances", func() {
+			BeforeEach(func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+				}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, errors.New("error"))
 			})
 
 			It("then it should give an error", func() {
-				disk, err := client.GetDisk(Filter{NameRegexString: "bbb"})
-				Expect(disk).Should(BeNil())
-				Expect(err).Should(HaveOccurred())
+				_, err := client.GetDisk("some-bogus-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(0))
+			})
+		})
+
+		Context("and there is an error retrieving the block devices", func() {
+			BeforeEach(func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+				}
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
+				ec2Client.DescribeVolumesReturns(&ec2.DescribeVolumesOutput{}, errors.New("some error"))
+			})
+
+			It("then it should give an error and stop checking block device mappings from Volumes", func() {
+				_, err := client.GetDisk("some-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(1))
 			})
 		})
 	})

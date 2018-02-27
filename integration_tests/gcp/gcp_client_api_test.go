@@ -17,7 +17,7 @@ import (
 	. "github.com/pivotal-cf/cliaas/iaas/gcp"
 )
 
-var _ = Describe("GCPCLientAPI", func() {
+var _ = Describe("GCPClientAPI", func() {
 	Describe("given a gcpclientapi and a gcp client which targets a valid gcp account/creds", func() {
 		var credContents = os.Getenv("GCP_CREDS")
 		var project = os.Getenv("GCP_PROJECT")

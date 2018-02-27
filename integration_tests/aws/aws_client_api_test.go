@@ -13,12 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/cliaas"
+	cliaasAWS "github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 var _ = Describe("AwsClient", func() {
 	var (
-		awsClient       cliaas.AWSClient
+		awsClient       cliaasAWS.AWSClient
 		ec2Client       *ec2.EC2
 		accessKey       = os.Getenv("AWS_ACCESS_KEY")
 		secretKey       = os.Getenv("AWS_SECRET_KEY")
@@ -42,7 +42,7 @@ var _ = Describe("AwsClient", func() {
 			Region:      aws.String(region),
 		})
 
-		awsClient = cliaas.NewAWSClient(ec2Client, vpc, clock.NewClock())
+		awsClient = cliaasAWS.NewAWSClient(ec2Client, vpc, clock.NewClock())
 		Expect(awsClient).NotTo(BeNil())
 
 		name = randSeq(10)
@@ -55,15 +55,15 @@ var _ = Describe("AwsClient", func() {
 		)
 
 		JustBeforeEach(func() {
-			instanceID, createErr = awsClient.CreateVM(ami, name, cliaas.VMInfo{
+			instanceID, createErr = awsClient.CreateVM(ami, name, cliaasAWS.VMInfo{
 				InstanceType:     vmType,
 				KeyName:          keyPairName,
 				SubnetID:         subnetID,
 				SecurityGroupIDs: []string{securityGroupID},
-				BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+				BlockDeviceMappings: []cliaasAWS.BlockDeviceMapping{
 					{
 						DeviceName: "/dev/sda1",
-						EBS: cliaas.EBS{
+						EBS: cliaasAWS.EBS{
 							DeleteOnTermination: true,
 							VolumeSize:          10,
 							VolumeType:          "standard",
@@ -90,20 +90,20 @@ var _ = Describe("AwsClient", func() {
 		})
 	})
 
-	Context("AssociateElasticIP", func() {
+	Context("AssignPublicIP", func() {
 		var instanceID string
 
 		BeforeEach(func() {
 			var createErr error
-			instanceID, createErr = awsClient.CreateVM(ami, name, cliaas.VMInfo{
+			instanceID, createErr = awsClient.CreateVM(ami, name, cliaasAWS.VMInfo{
 				InstanceType:     vmType,
 				KeyName:          keyPairName,
 				SubnetID:         subnetID,
 				SecurityGroupIDs: []string{securityGroupID},
-				BlockDeviceMappings: []cliaas.BlockDeviceMapping{
+				BlockDeviceMappings: []cliaasAWS.BlockDeviceMapping{
 					{
 						DeviceName: "/dev/sda1",
-						EBS: cliaas.EBS{
+						EBS: cliaasAWS.EBS{
 							DeleteOnTermination: true,
 							VolumeSize:          10,
 							VolumeType:          "standard",
@@ -113,7 +113,7 @@ var _ = Describe("AwsClient", func() {
 			})
 			Expect(createErr).NotTo(HaveOccurred())
 
-			client := cliaas.NewAWSClient(ec2Client, vpc, clock.NewClock())
+			client := cliaasAWS.NewAWSClient(ec2Client, vpc, clock.NewClock())
 
 			err := client.WaitForStatus(instanceID, ec2.InstanceStateNameRunning)
 			Expect(err).NotTo(HaveOccurred())

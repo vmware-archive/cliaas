@@ -203,6 +203,9 @@ func (c *client) GetDisk(name string) (EBS, error) {
 		},
 	}
 	resp, err := c.ec2Client.DescribeInstances(params)
+	if err != nil {
+		return EBS{}, errwrap.Wrap(err, "ec2Client DescribeInstances failed")
+	}
 
 	var list []*ec2.Instance
 
@@ -226,7 +229,7 @@ func (c *client) GetDisk(name string) (EBS, error) {
 
 	blockDeviceMappings, err := c.describeVolumes(instance.BlockDeviceMappings)
 	if err != nil {
-		return EBS{}, errwrap.Wrap(err, "describeVolumes failure")
+		return EBS{}, errwrap.Wrap(err, "describeVolumes failed")
 	}
 
 	return blockDeviceMappings[0].EBS, nil
