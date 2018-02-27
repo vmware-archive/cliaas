@@ -371,6 +371,127 @@ var _ = Describe("AWSClient", func() {
 			})
 		})
 	})
+
+	Describe("GetDisk", func() {
+		var diskSize = int64(10)
+		Context("when there is a matching disk", func() {
+			BeforeEach(func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+				}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
+
+				ec2Client.DescribeVolumesReturns(&ec2.DescribeVolumesOutput{
+					Volumes: []*ec2.Volume{
+						{
+							Encrypted:  aws.Bool(true),
+							Size:       aws.Int64(diskSize),
+							VolumeType: aws.String("some-volume-type"),
+						},
+					},
+				}, nil)
+			})
+
+			It("returns the ebs volume from an aws instance", func() {
+				volume, err := client.GetDisk("some-instance-id")
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(2))
+
+				Expect(volume).ShouldNot(BeNil())
+				Expect(volume.VolumeSize).To(BeEquivalentTo(diskSize))
+			})
+		})
+
+		Context("when a single instance is not returned", func() {
+			It("should return an error when no instances match", func() {
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{}, nil)
+
+				_, err := client.GetDisk("some-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(0))
+			})
+
+			It("should return an error when more than one instance match", func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+					createEC2Instance(runningState),
+				}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
+
+				_, err := client.GetDisk("some-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(0))
+			})
+		})
+
+		Context("and there is an error retrieving the instances", func() {
+			BeforeEach(func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+				}
+
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, errors.New("error"))
+			})
+
+			It("then it should give an error", func() {
+				_, err := client.GetDisk("some-bogus-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(0))
+			})
+		})
+
+		Context("and there is an error retrieving the block devices", func() {
+			BeforeEach(func() {
+				instances := []*ec2.Instance{
+					createEC2Instance(runningState),
+				}
+				ec2Client.DescribeInstancesReturns(&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: instances,
+						},
+					},
+				}, nil)
+				ec2Client.DescribeVolumesReturns(&ec2.DescribeVolumesOutput{}, errors.New("some error"))
+			})
+
+			It("then it should give an error and stop checking block device mappings from Volumes", func() {
+				_, err := client.GetDisk("some-instance-id")
+				Expect(err).To(HaveOccurred())
+
+				Expect(ec2Client.DescribeInstancesCallCount()).To(BeEquivalentTo(1))
+				Expect(ec2Client.DescribeVolumesCallCount()).To(BeEquivalentTo(1))
+			})
+		})
+	})
 })
 
 func createEC2Instance(state *ec2.InstanceState) *ec2.Instance {

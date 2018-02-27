@@ -14,6 +14,7 @@ import (
 const (
 	resourceManagerEndpoint = "https://management.azure.com/"
 	controlOpsManVMDiskURL  = "https://opsmanagereastus.blob.core.windows.net/images/ops-manager-1.10.3.vhd"
+	controlOpsManVMDiskSize  = int64(10)
 )
 
 var (
@@ -75,7 +76,7 @@ var _ = Describe("Azure API Client", func() {
 			err = azureClient.SetBlobServiceClient(storageAccountName, storageAccountKey, "core.windows.net")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = azureClient.Replace(identifier, controlOpsManVMDiskURL)
+			err = azureClient.Replace(identifier, controlOpsManVMDiskURL, controlOpsManVMDiskSize)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 

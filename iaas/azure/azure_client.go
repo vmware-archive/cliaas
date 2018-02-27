@@ -14,6 +14,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	errwrap "github.com/pkg/errors"
+	"github.com/pivotal-cf/cliaas/iaas"
 )
 
 const defaultResourceManagerEndpoint = "https://management.azure.com/"
@@ -26,6 +27,7 @@ type Client struct {
 	storageAccountName    string
 	storageBaseURL        string
 	vmAdminPassword       string
+
 }
 
 type BlobCopier interface {
@@ -78,6 +80,51 @@ func NewClient(
 	}, nil
 }
 
+/* Cliaas Client Interface */
+func (s *Client) Delete(identifier string) error {
+	_, err := s.executeFunctionOnMatchingVM(identifier, s.VirtualMachinesClient.Delete)
+	return err
+}
+
+func (s *Client) Replace(identifier string, vhdURL string, diskSizeGB int64) error {
+	instance, err := s.deallocate(identifier)
+	if err != nil {
+		return errwrap.Wrap(err, "error shutting down VM")
+	}
+
+	tmpName := generateInstanceName(*instance.Name)
+	localBlobName := tmpName + "-image.vhd"
+	localDiskName := tmpName + "-osdisk.vhd"
+	err = s.BlobServiceClient.CopyBlob(s.storageContainerName, localBlobName, vhdURL)
+	if err != nil {
+		return errwrap.Wrap(err, "error copying source blob to local blob")
+	}
+
+	localImageURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localBlobName)
+	localDiskURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localDiskName)
+	newInstance, err := s.generateInstanceCopy(*instance.Name, tmpName, localImageURL, localDiskURL, int32(diskSizeGB))
+	if err != nil {
+		return errwrap.Wrap(err, "failed to generate a new instance object")
+	}
+
+	err = s.Delete(identifier)
+	if err != nil {
+		return errwrap.Wrap(err, "failed removing original VM")
+	}
+
+	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *newInstance.Name, *newInstance, nil)
+	return err
+}
+
+func (s *Client) GetDisk(identifier string) (iaas.Disk, error) {
+	instance, err := s.VirtualMachinesClient.Get(s.resourceGroupName, identifier, compute.InstanceView)
+	if err != nil {
+		return iaas.Disk{}, errwrap.Wrap(err, "unable to get virtual machine instance from azure api for disk")
+	}
+	return iaas.Disk{SizeGB: int64(*instance.StorageProfile.OsDisk.DiskSizeGB)}, nil
+}
+/* End Cliaas Client Interface */
+
 func (s *Client) SetVMAdminPassword(password string) {
 	s.vmAdminPassword = password
 }
@@ -103,55 +150,7 @@ func (s *Client) SetBlobServiceClient(storageAccountName string, storageAccountK
 	return nil
 }
 
-func newBlobClient(accountName string, accountKey string, baseURL string) (*storage.BlobStorageClient, error) {
-	client, err := storage.NewClient(accountName, accountKey, baseURL, storage.DefaultAPIVersion, true)
-	if err != nil {
-		return nil, err
-	}
-	blobClient := client.GetBlobService()
-	return &blobClient, nil
-}
-
-func (s *Client) Delete(identifier string) error {
-	_, err := s.executeFunctionOnMatchingVM(identifier, s.VirtualMachinesClient.Delete)
-	return err
-}
-
-func generateLocalImageURL(accountName string, baseURL string, containerName string, localBlobName string) string {
-	return fmt.Sprintf("https://%s.blob.%s/%s/%s", accountName, baseURL, containerName, localBlobName)
-}
-
-func (s *Client) Replace(identifier string, vhdURL string) error {
-	instance, err := s.deallocate(identifier)
-	if err != nil {
-		return errwrap.Wrap(err, "error shutting down VM")
-	}
-
-	tmpName := generateInstanceName(*instance.Name)
-	localBlobName := tmpName + "-image.vhd"
-	localDiskName := tmpName + "-osdisk.vhd"
-	err = s.BlobServiceClient.CopyBlob(s.storageContainerName, localBlobName, vhdURL)
-	if err != nil {
-		return errwrap.Wrap(err, "error copying source blob to local blob")
-	}
-
-	localImageURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localBlobName)
-	localDiskURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localDiskName)
-	newInstance, err := s.generateInstanceCopy(*instance.Name, tmpName, localImageURL, localDiskURL)
-	if err != nil {
-		return errwrap.Wrap(err, "failed to generate a new instance object")
-	}
-
-	err = s.Delete(identifier)
-	if err != nil {
-		return errwrap.Wrap(err, "failed removing original VM")
-	}
-
-	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *newInstance.Name, *newInstance, nil)
-	return err
-}
-
-func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName string, localImageURL string, localOSDiskURL string) (*compute.VirtualMachine, error) {
+func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName string, localImageURL string, localOSDiskURL string, diskSizeGB int32) (*compute.VirtualMachine, error) {
 	instance, err := s.VirtualMachinesClient.Get(s.resourceGroupName, sourceInstanceName, compute.InstanceView)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "unable to get virtual machine instance from azure api")
@@ -159,6 +158,7 @@ func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName
 
 	instance.Name = &newInstanceName
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &localImageURL
+	instance.VirtualMachineProperties.StorageProfile.OsDisk.DiskSizeGB = &diskSizeGB
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Vhd.URI = &localOSDiskURL
 	instance.VirtualMachineProperties.VMID = nil
 	instance.Resources = nil
@@ -208,6 +208,19 @@ func (s *Client) getFilteredList(identifier string) ([]compute.VirtualMachine, e
 		}
 	}
 	return matchingInstances, nil
+}
+
+func newBlobClient(accountName string, accountKey string, baseURL string) (*storage.BlobStorageClient, error) {
+	client, err := storage.NewClient(accountName, accountKey, baseURL, storage.DefaultAPIVersion, true)
+	if err != nil {
+		return nil, err
+	}
+	blobClient := client.GetBlobService()
+	return &blobClient, nil
+}
+
+func generateLocalImageURL(accountName string, baseURL string, containerName string, localBlobName string) string {
+	return fmt.Sprintf("https://%s.blob.%s/%s/%s", accountName, baseURL, containerName, localBlobName)
 }
 
 func getGUID() string {

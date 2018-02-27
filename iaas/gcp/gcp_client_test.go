@@ -8,7 +8,8 @@ import (
 	. "github.com/pivotal-cf/cliaas/iaas/gcp"
 	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 	errwrap "github.com/pkg/errors"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
+	"errors"
 )
 
 var _ = Describe("GCPClientAPI", func() {
@@ -19,6 +20,7 @@ var _ = Describe("GCPClientAPI", func() {
 		var controlProject = "prj"
 		var controlInstanceName = "blah"
 		var controlInstanceTag = "hello"
+		var controlDiskSizeGB = int64(10)
 
 		Describe("given a CreateVM method and a valid instance", func() {
 			var controlInstance compute.Instance
@@ -95,6 +97,58 @@ var _ = Describe("GCPClientAPI", func() {
 					err := client.CreateVM(controlInstance)
 					Expect(err).Should(HaveOccurred())
 					Expect(errwrap.Cause(err)).Should(Equal(controlErr))
+				})
+			})
+		})
+
+		Describe("given a CreateImage method and a valid image tarball url and disk size", func() {
+			var controlImage compute.Image
+			var controlTarballPath = "some-path"
+			Context("when called with a valid images tarball and disk size", func() {
+				var fakeGoogleClient *gcpfakes.FakeGoogleComputeClient
+				controlImage = compute.Image{
+					DiskSizeGb: controlDiskSizeGB,
+				}
+				fakeOperation := &compute.Operation{
+					Status: "DONE",
+				}
+				BeforeEach(func() {
+					fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.ImageInsertReturns(fakeOperation, nil)
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+
+				It("then the image should be created", func() {
+					_, err := client.CreateImage(controlTarballPath, controlDiskSizeGB)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(fakeGoogleClient.ImageInsertCallCount()).Should(Equal(1))
+					project, image, _ := fakeGoogleClient.ImageInsertArgsForCall(0)
+					Expect(project).Should(Equal(controlProject))
+					Expect(image.DiskSizeGb).Should(Equal(controlDiskSizeGB))
+					Expect(len(image.Name)).Should(BeNumerically(">", 0))
+					Expect(image.RawDisk.Source).Should(ContainSubstring(controlTarballPath))
+				})
+			})
+
+			Context("when gcp returns an error", func() {
+				BeforeEach(func() {
+					fakeGoogleClient := new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.ImageInsertReturns(nil, errors.New("error"))
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+				It("then we should exit in error", func() {
+					_, err := client.CreateImage(controlTarballPath, controlDiskSizeGB)
+					Expect(err).Should(HaveOccurred())
 				})
 			})
 		})
@@ -247,8 +301,8 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 			})
 		})
-		Describe("given a GetVMInfo method and a filter object argument", func() {
 
+		Describe("given a GetVMInfo method and a filter object argument", func() {
 			Context("when there is a matching instance", func() {
 				controlInstanceList := createInstanceList(controlInstanceName, controlInstanceTag)
 				BeforeEach(func() {
@@ -272,7 +326,6 @@ var _ = Describe("GCPClientAPI", func() {
 			})
 
 			Context("when there is no matching instance", func() {
-
 				BeforeEach(func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.ListReturns(createInstanceList("nothing-to-match", "nothing-to-match"), nil)
@@ -290,8 +343,8 @@ var _ = Describe("GCPClientAPI", func() {
 					Expect(err).Should(HaveOccurred())
 				})
 			})
-			Context("when there is empty instance set", func() {
 
+			Context("when there is empty instance set", func() {
 				BeforeEach(func() {
 					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
 					fakeGoogleClient.ListReturns(&compute.InstanceList{}, nil)
@@ -310,12 +363,58 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 			})
 		})
+
+		Describe("given a GetDisk method and a filter object argument", func() {
+			Context("when there is a matching disk", func() {
+				controlDisk := createDisk(controlInstanceName, controlDiskSizeGB)
+				controlDiskList := &compute.DiskList{
+					Items: []*compute.Disk{controlDisk},
+				}
+
+				BeforeEach(func() {
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.DiskListReturns(controlDiskList, nil)
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+
+				It("then it should yield the filtered disk instance from a gcp disk list", func() {
+					disk, err := client.GetDisk(Filter{NameRegexString: controlInstanceName})
+					Expect(disk).ShouldNot(BeNil())
+					Expect(controlDisk.SizeGb).To(BeEquivalentTo(controlDiskSizeGB))
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when there is no matching disk", func() {
+				BeforeEach(func() {
+					var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.DiskListReturns(&compute.DiskList{
+						Items: []*compute.Disk{createDisk("nothing-to-match", 0)},
+					}, nil)
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+
+				It("then it should give an error", func() {
+					disk, err := client.GetDisk(Filter{NameRegexString: "bbb"})
+					Expect(err).Should(HaveOccurred())
+					Expect(disk).Should(BeNil())
+				})
+			})
+		})
 	})
 
-	Describe("given a NewGCPCLIentAPI()", func() {
-
+	Describe("given a NewGCPClientAPI()", func() {
 		Context("when passed a incomplete/invalid set of configs", func() {
-
 			var client *Client
 			var err error
 			var fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
@@ -329,8 +428,8 @@ var _ = Describe("GCPClientAPI", func() {
 				Expect(client).Should(BeNil())
 			})
 		})
-		Context("when passed a valid set of configs", func() {
 
+		Context("when passed a valid set of configs", func() {
 			var client *Client
 			var err error
 			var controlZone = "zone"
@@ -364,5 +463,13 @@ func createInstanceList(name, tag string) *compute.InstanceList {
 				},
 			},
 		},
+	}
+}
+
+func createDisk(name string, sizeGB int64) *compute.Disk {
+	return &compute.Disk{
+		Status: InstanceRunning,
+		Name:   name,
+		SizeGb: sizeGB,
 	}
 }
