@@ -133,7 +133,7 @@ func (c *AWSConfig) NewClient() (Client, error) {
 		return nil, errwrap.Wrap(err, "failed to make ec2 client")
 	}
 
-	return NewAWSAPIClientAdaptor(
+	return NewAWSAPIClient(
 		aws.NewAWSClient(ec2Client, c.VPCID, clock.NewClock())), nil
 }
 

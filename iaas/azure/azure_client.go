@@ -27,6 +27,7 @@ type Client struct {
 	storageAccountName    string
 	storageBaseURL        string
 	vmAdminPassword       string
+
 }
 
 type BlobCopier interface {
@@ -85,7 +86,7 @@ func (s *Client) Delete(identifier string) error {
 	return err
 }
 
-func (s *Client) Replace(identifier string, vhdURL string) error {
+func (s *Client) Replace(identifier string, vhdURL string, diskSizeGB int64) error {
 	instance, err := s.deallocate(identifier)
 	if err != nil {
 		return errwrap.Wrap(err, "error shutting down VM")
@@ -101,7 +102,7 @@ func (s *Client) Replace(identifier string, vhdURL string) error {
 
 	localImageURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localBlobName)
 	localDiskURL := generateLocalImageURL(s.storageAccountName, s.storageBaseURL, s.storageContainerName, localDiskName)
-	newInstance, err := s.generateInstanceCopy(*instance.Name, tmpName, localImageURL, localDiskURL)
+	newInstance, err := s.generateInstanceCopy(*instance.Name, tmpName, localImageURL, localDiskURL, int32(diskSizeGB))
 	if err != nil {
 		return errwrap.Wrap(err, "failed to generate a new instance object")
 	}
@@ -149,7 +150,7 @@ func (s *Client) SetBlobServiceClient(storageAccountName string, storageAccountK
 	return nil
 }
 
-func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName string, localImageURL string, localOSDiskURL string) (*compute.VirtualMachine, error) {
+func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName string, localImageURL string, localOSDiskURL string, diskSizeGB int32) (*compute.VirtualMachine, error) {
 	instance, err := s.VirtualMachinesClient.Get(s.resourceGroupName, sourceInstanceName, compute.InstanceView)
 	if err != nil {
 		return nil, errwrap.Wrap(err, "unable to get virtual machine instance from azure api")
@@ -157,6 +158,7 @@ func (s *Client) generateInstanceCopy(sourceInstanceName string, newInstanceName
 
 	instance.Name = &newInstanceName
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Image.URI = &localImageURL
+	instance.VirtualMachineProperties.StorageProfile.OsDisk.DiskSizeGB = diskSizeGB
 	instance.VirtualMachineProperties.StorageProfile.OsDisk.Vhd.URI = &localOSDiskURL
 	instance.VirtualMachineProperties.VMID = nil
 	instance.Resources = nil

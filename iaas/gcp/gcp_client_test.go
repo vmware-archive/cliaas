@@ -9,6 +9,7 @@ import (
 	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 	errwrap "github.com/pkg/errors"
 	"google.golang.org/api/compute/v1"
+	"errors"
 )
 
 var _ = Describe("GCPClientAPI", func() {
@@ -96,6 +97,58 @@ var _ = Describe("GCPClientAPI", func() {
 					err := client.CreateVM(controlInstance)
 					Expect(err).Should(HaveOccurred())
 					Expect(errwrap.Cause(err)).Should(Equal(controlErr))
+				})
+			})
+		})
+
+		Describe("given a CreateImage method and a valid image tarball url and disk size", func() {
+			var controlImage compute.Image
+			var controlTarballPath = "some-path"
+			Context("when called with a valid images tarball and disk size", func() {
+				var fakeGoogleClient *gcpfakes.FakeGoogleComputeClient
+				controlImage = compute.Image{
+					DiskSizeGb: controlDiskSizeGB,
+				}
+				fakeOperation := &compute.Operation{
+					Status: "DONE",
+				}
+				BeforeEach(func() {
+					fakeGoogleClient = new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.ImageInsertReturns(fakeOperation, nil)
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+
+				It("then the image should be created", func() {
+					_, err := client.CreateImage(controlTarballPath, controlDiskSizeGB)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(fakeGoogleClient.ImageInsertCallCount()).Should(Equal(1))
+					project, image, _ := fakeGoogleClient.ImageInsertArgsForCall(0)
+					Expect(project).Should(Equal(controlProject))
+					Expect(image.DiskSizeGb).Should(Equal(controlDiskSizeGB))
+					Expect(len(image.Name)).Should(BeNumerically(">", 0))
+					Expect(image.RawDisk.Source).Should(ContainSubstring(controlTarballPath))
+				})
+			})
+
+			Context("when gcp returns an error", func() {
+				BeforeEach(func() {
+					fakeGoogleClient := new(gcpfakes.FakeGoogleComputeClient)
+					fakeGoogleClient.ImageInsertReturns(nil, errors.New("error"))
+
+					client, _ = NewClient(
+						ConfigGoogleClient(fakeGoogleClient),
+						ConfigZoneName(controlZone),
+						ConfigProjectName(controlProject),
+					)
+				})
+				It("then we should exit in error", func() {
+					_, err := client.CreateImage(controlTarballPath, controlDiskSizeGB)
+					Expect(err).Should(HaveOccurred())
 				})
 			})
 		})
@@ -360,7 +413,7 @@ var _ = Describe("GCPClientAPI", func() {
 		})
 	})
 
-	Describe("given a NewGCPCLIentAPI()", func() {
+	Describe("given a NewGCPClientAPI()", func() {
 		Context("when passed a incomplete/invalid set of configs", func() {
 			var client *Client
 			var err error

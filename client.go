@@ -14,25 +14,25 @@ import (
 
 type Client interface {
 	Delete(vmIdentifier string) error
-	Replace(vmIdentifier string, imageIdentifier string) error
+	Replace(vmIdentifier string, imageIdentifier string, diskSizeGB int64) error
 	GetDisk(vmIdentifier string) (iaas.Disk, error)
 }
 
-func NewAWSAPIClientAdaptor(client aws.AWSClient) Client {
-	return &awsAPIClientAdaptor{
+func NewAWSAPIClient(client aws.AWSClient) Client {
+	return &awsAPIClient{
 		client: client,
 	}
 }
 
-type awsAPIClientAdaptor struct {
+type awsAPIClient struct {
 	client aws.AWSClient
 }
 
-func (c *awsAPIClientAdaptor) Delete(identifier string) error {
+func (c *awsAPIClient) Delete(identifier string) error {
 	return c.client.DeleteVM(identifier)
 }
 
-func (c *awsAPIClientAdaptor) Replace(identifier string, ami string) error {
+func (c *awsAPIClient) Replace(identifier string, ami string, diskSizeGB int64) error {
 	vmInfo, err := c.client.GetVMInfo(identifier + "*")
 	if err != nil {
 		return err
@@ -79,12 +79,18 @@ func (c *awsAPIClientAdaptor) Replace(identifier string, ami string) error {
 	return nil
 }
 
-func (c *awsAPIClientAdaptor) GetDisk(identifier string) (iaas.Disk, error) {
+func (c *awsAPIClient) GetDisk(identifier string) (iaas.Disk, error) {
 	return iaas.Disk{SizeGB: int64(0)}, nil
 }
 
+func NewGCPAPIClient(client gcp.ClientAPI) Client {
+	return &gcpClient{
+		client: client,
+	}
+}
+
 type gcpClient struct {
-	client *gcp.Client
+	client gcp.ClientAPI
 }
 
 func (c *gcpClient) Delete(identifier string) error {
@@ -101,7 +107,7 @@ func (c *gcpClient) GetDisk(identifier string) (iaas.Disk, error) {
 	return iaas.Disk{SizeGB: disk.SizeGb}, nil
 }
 
-func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string) error {
+func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string, diskSizeGB int64) error {
 	vmInstance, err := c.client.GetVMInfo(gcp.Filter{
 		NameRegexString: identifier + "*",
 	})
@@ -119,7 +125,7 @@ func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string) err
 		return errwrap.Wrap(err, "waitforstatus after stopvm failed")
 	}
 
-	diskName, err := c.client.CreateImage(sourceImageTarballURL)
+	diskName, err := c.client.CreateImage(sourceImageTarballURL, diskSizeGB)
 	if err != nil {
 		return errwrap.Wrap(err, "could not create new disk image")
 	}

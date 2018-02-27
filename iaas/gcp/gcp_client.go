@@ -29,7 +29,8 @@ type ClientAPI interface {
 	GetVMInfo(filter Filter) (*compute.Instance, error)
 	GetDisk(filter Filter) (*compute.Disk, error)
 	StopVM(instanceName string) error
-	CreateImage(tarball string) (string, error)
+	CreateImage(tarball string, diskSizeGB int64) (string, error)
+	WaitForStatus(vmName string, desiredStatus string) error
 }
 
 type Client struct {
@@ -117,16 +118,21 @@ func ConfigProjectName(value string) func(*Client) error {
 	}
 }
 
-func (s *Client) CreateImage(tarball string) (string, error) {
+func (s *Client) CreateImage(tarball string, diskSizeGB int64) (string, error) {
 	diskName := fmt.Sprintf("opsman-disk-%v", time.Now().Format("2006-01-02-15-04-05"))
 	_, err := s.googleClient.ImageInsert(s.projectName, &compute.Image{
 		Name: diskName,
+		DiskSizeGb: diskSizeGB,
 		RawDisk: &compute.ImageRawDisk{
 			Source: fmt.Sprintf("http://storage.googleapis.com/%v", tarball),
 		},
 	}, s.timeout)
+	if err != nil {
+		return "", err
+	}
+
 	diskURL := fmt.Sprintf("projects/%s/global/images/%s", s.projectName, diskName)
-	return diskURL, err
+	return diskURL, nil
 }
 
 func (s *Client) CreateVM(instance compute.Instance) error {

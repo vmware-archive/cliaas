@@ -68,10 +68,11 @@ type FakeClientAPI struct {
 	stopVMReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CreateImageStub        func(tarball string) (string, error)
+	CreateImageStub        func(tarball string, diskSizeGB int64) (string, error)
 	createImageMutex       sync.RWMutex
 	createImageArgsForCall []struct {
-		tarball string
+		tarball    string
+		diskSizeGB int64
 	}
 	createImageReturns struct {
 		result1 string
@@ -80,6 +81,18 @@ type FakeClientAPI struct {
 	createImageReturnsOnCall map[int]struct {
 		result1 string
 		result2 error
+	}
+	WaitForStatusStub        func(vmName string, desiredStatus string) error
+	waitForStatusMutex       sync.RWMutex
+	waitForStatusArgsForCall []struct {
+		vmName        string
+		desiredStatus string
+	}
+	waitForStatusReturns struct {
+		result1 error
+	}
+	waitForStatusReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -331,16 +344,17 @@ func (fake *FakeClientAPI) StopVMReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClientAPI) CreateImage(tarball string) (string, error) {
+func (fake *FakeClientAPI) CreateImage(tarball string, diskSizeGB int64) (string, error) {
 	fake.createImageMutex.Lock()
 	ret, specificReturn := fake.createImageReturnsOnCall[len(fake.createImageArgsForCall)]
 	fake.createImageArgsForCall = append(fake.createImageArgsForCall, struct {
-		tarball string
-	}{tarball})
-	fake.recordInvocation("CreateImage", []interface{}{tarball})
+		tarball    string
+		diskSizeGB int64
+	}{tarball, diskSizeGB})
+	fake.recordInvocation("CreateImage", []interface{}{tarball, diskSizeGB})
 	fake.createImageMutex.Unlock()
 	if fake.CreateImageStub != nil {
-		return fake.CreateImageStub(tarball)
+		return fake.CreateImageStub(tarball, diskSizeGB)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -354,10 +368,10 @@ func (fake *FakeClientAPI) CreateImageCallCount() int {
 	return len(fake.createImageArgsForCall)
 }
 
-func (fake *FakeClientAPI) CreateImageArgsForCall(i int) string {
+func (fake *FakeClientAPI) CreateImageArgsForCall(i int) (string, int64) {
 	fake.createImageMutex.RLock()
 	defer fake.createImageMutex.RUnlock()
-	return fake.createImageArgsForCall[i].tarball
+	return fake.createImageArgsForCall[i].tarball, fake.createImageArgsForCall[i].diskSizeGB
 }
 
 func (fake *FakeClientAPI) CreateImageReturns(result1 string, result2 error) {
@@ -382,6 +396,55 @@ func (fake *FakeClientAPI) CreateImageReturnsOnCall(i int, result1 string, resul
 	}{result1, result2}
 }
 
+func (fake *FakeClientAPI) WaitForStatus(vmName string, desiredStatus string) error {
+	fake.waitForStatusMutex.Lock()
+	ret, specificReturn := fake.waitForStatusReturnsOnCall[len(fake.waitForStatusArgsForCall)]
+	fake.waitForStatusArgsForCall = append(fake.waitForStatusArgsForCall, struct {
+		vmName        string
+		desiredStatus string
+	}{vmName, desiredStatus})
+	fake.recordInvocation("WaitForStatus", []interface{}{vmName, desiredStatus})
+	fake.waitForStatusMutex.Unlock()
+	if fake.WaitForStatusStub != nil {
+		return fake.WaitForStatusStub(vmName, desiredStatus)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.waitForStatusReturns.result1
+}
+
+func (fake *FakeClientAPI) WaitForStatusCallCount() int {
+	fake.waitForStatusMutex.RLock()
+	defer fake.waitForStatusMutex.RUnlock()
+	return len(fake.waitForStatusArgsForCall)
+}
+
+func (fake *FakeClientAPI) WaitForStatusArgsForCall(i int) (string, string) {
+	fake.waitForStatusMutex.RLock()
+	defer fake.waitForStatusMutex.RUnlock()
+	return fake.waitForStatusArgsForCall[i].vmName, fake.waitForStatusArgsForCall[i].desiredStatus
+}
+
+func (fake *FakeClientAPI) WaitForStatusReturns(result1 error) {
+	fake.WaitForStatusStub = nil
+	fake.waitForStatusReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClientAPI) WaitForStatusReturnsOnCall(i int, result1 error) {
+	fake.WaitForStatusStub = nil
+	if fake.waitForStatusReturnsOnCall == nil {
+		fake.waitForStatusReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.waitForStatusReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClientAPI) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -397,6 +460,8 @@ func (fake *FakeClientAPI) Invocations() map[string][][]interface{} {
 	defer fake.stopVMMutex.RUnlock()
 	fake.createImageMutex.RLock()
 	defer fake.createImageMutex.RUnlock()
+	fake.waitForStatusMutex.RLock()
+	defer fake.waitForStatusMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
