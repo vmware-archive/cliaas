@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/cliaas/iaas/azure"
+	"github.com/Azure/azure-sdk-for-go/arm/network"
 
 	"fmt"
 )
@@ -15,6 +16,10 @@ const (
 	resourceManagerEndpoint = "https://management.azure.com/"
 	controlOpsManVMDiskURL  = "https://opsmanagereastus.blob.core.windows.net/images/ops-manager-1.10.3.vhd"
 	controlOpsManVMDiskSize  = int64(10)
+)
+
+const (
+	imageURL = "https://opsmanagerwestus.blob.core.windows.net/images/ops-manager-1.11.11.vhd"
 )
 
 var (
@@ -27,6 +32,11 @@ var (
 
 	storageAccountName = strings.Replace(prefix, "-", "", -1)
 	containerName      = "cliaas"
+
+	testAzureClient   azureTestClient
+	subnet            network.Subnet
+	newImageURL       string
+	storageAccountKey string
 )
 
 var _ = Describe("Azure API Client", func() {
@@ -35,6 +45,23 @@ var _ = Describe("Azure API Client", func() {
 	var azureClient *azure.Client
 
 	BeforeEach(func() {
+		testAzureClient.deleteResourceGroup(prefix)
+
+		testAzureClient = azureTestClient{
+			SubscriptionID: subscriptionID,
+			ClientID:       clientID,
+			ClientSecret:   clientSecret,
+			TenantID:       tenantID,
+			Location:       location,
+		}
+
+		testAzureClient.createResourceGroup(prefix)
+		storageAccountKey = testAzureClient.createStorageAccount(prefix, storageAccountName)
+		createContainer(storageAccountName, storageAccountKey, containerName)
+		newImageURL, _ := copyBlob(storageAccountName, storageAccountKey, containerName, imageURL, "image.vhd")
+
+		subnet = testAzureClient.createVirtualNetwork(prefix, fmt.Sprintf("%s-network", prefix))
+
 		identifier = fmt.Sprintf("%s-vm", prefix)
 		testAzureClient.createVM(prefix, identifier, newImageURL, storageAccountName, containerName, &subnet)
 
@@ -44,8 +71,8 @@ var _ = Describe("Azure API Client", func() {
 	})
 
 	AfterEach(func() {
-		azureClient.Delete(identifier)
-		Expect(testAzureClient.vmExists(identifier, prefix)).Should(BeFalse())
+		err := testAzureClient.deleteResourceGroup(prefix)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("Delete", func() {

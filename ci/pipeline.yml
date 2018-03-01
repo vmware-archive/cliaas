@@ -45,29 +45,27 @@ jobs:
       - task: unit
         file: cliaas/ci/unit.yml
       - aggregate:
-        - try:
-            task: aws-integration
-            file: cliaas/ci/integration.yml
-            params:
-              IAAS: aws
-              AWS_ACCESS_KEY: {{aws_access_key}}
-              AWS_SECRET_KEY: {{aws_secret_key}}
-              AWS_REGION: {{aws_region}}
-              AWS_VPC: {{aws_vpc}}
-              AWS_SUBNET: {{aws_subnet}}
-              AWS_SECURITY_GROUP: {{aws_security_group}}
-              KEYPAIR_NAME: {{keypair_name}}
-        - try:
-            task: azure-integration
-            file: cliaas/ci/integration.yml
-            params:
-              IAAS: azure
-              AZURE_SUBSCRIPTION_ID: {{azure_subscription_id}}
-              AZURE_CLIENT_ID: {{azure_client_id}}
-              AZURE_CLIENT_SECRET: {{azure_client_secret}}
-              AZURE_TENANT_ID: {{azure_tenant_id}}
-              PREFIX: {{azure_prefix}}
-              LOCATION: {{azure_location}}
+        - task: aws-integration
+          file: cliaas/ci/integration.yml
+          params:
+            IAAS: aws
+            AWS_ACCESS_KEY: {{aws_access_key}}
+            AWS_SECRET_KEY: {{aws_secret_key}}
+            AWS_REGION: {{aws_region}}
+            AWS_VPC: {{aws_vpc}}
+            AWS_SUBNET: {{aws_subnet}}
+            AWS_SECURITY_GROUP: {{aws_security_group}}
+            KEYPAIR_NAME: {{keypair_name}}
+        - task: azure-integration
+          file: cliaas/ci/integration.yml
+          params:
+            IAAS: azure
+            AZURE_SUBSCRIPTION_ID: {{azure_subscription_id}}
+            AZURE_CLIENT_ID: {{azure_client_id}}
+            AZURE_CLIENT_SECRET: {{azure_client_secret}}
+            AZURE_TENANT_ID: {{azure_tenant_id}}
+            PREFIX: {{azure_prefix}}
+            LOCATION: {{azure_location}}
         - task: gcp-integration
           file: cliaas/ci/integration.yml
           params:

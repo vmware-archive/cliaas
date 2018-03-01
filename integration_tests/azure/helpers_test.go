@@ -54,13 +54,13 @@ func (t azureTestClient) createResourceGroup(resourceGroupName string) resources
 	return group
 }
 
-func (t azureTestClient) deleteResourceGroup(resourceGroupName string) {
-	log.Printf("Deleting resource group %s...\n", resourceGroupName)
+func (t azureTestClient) deleteResourceGroup(resourceGroupName string)  error{
+	log.Printf("Deleting resource group '%s' ...\n", resourceGroupName)
 	groupClient := resources.NewGroupsClient(t.SubscriptionID)
 	groupClient.Authorizer = t.createServicePrincipalToken()
 
 	_, err := groupClient.Delete(resourceGroupName, nil)
-	Expect(err).NotTo(HaveOccurred())
+	return err
 }
 
 func (t azureTestClient) createStorageAccount(resourceGroupName, accountName string) string {
@@ -214,18 +214,19 @@ func (t azureTestClient) vmExists(identifier, resourceGroupName string) bool {
 }
 
 func createContainer(storageAccountName, storageAccountKey, containerName string) {
-	log.Printf("Creating container %s...\n", containerName)
+	log.Printf("Creating container '%s' with account name '%s' and account key '%s' ...\n", containerName, storageAccountName, storageAccountKey)
 	client, err := storage.NewBasicClient(storageAccountName, storageAccountKey)
 	Expect(err).NotTo(HaveOccurred())
 
 	blobClient := client.GetBlobService()
 	cnt := blobClient.GetContainerReference(containerName)
+	log.Printf("Got container '%s' with properties '%#v'", cnt.Name, cnt.Properties)
 	err = cnt.Create()
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func copyBlob(storageAccountName, storageAccountKey, containerName, sourceBlobURL, destinationBlobName string) string {
-	log.Printf("Copying %s to container %s with name %s...\n", sourceBlobURL, containerName, destinationBlobName)
+func copyBlob(storageAccountName, storageAccountKey, containerName, sourceBlobURL, destinationBlobName string) (string, storage.BlobStorageClient) {
+	log.Printf("Copying blob '%s' to container '%s' with name '%s' ...\n", sourceBlobURL, containerName, destinationBlobName)
 	client, err := storage.NewBasicClient(storageAccountName, storageAccountKey)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -233,7 +234,11 @@ func copyBlob(storageAccountName, storageAccountKey, containerName, sourceBlobUR
 	err = blobClient.CopyBlob(containerName, destinationBlobName, sourceBlobURL)
 	Expect(err).NotTo(HaveOccurred())
 
-	return fmt.Sprintf("https://%s.blob.core.windows.net/%s/%s", storageAccountName, containerName, destinationBlobName)
+	return fmt.Sprintf("https://%s.blob.core.windows.net/%s/%s", storageAccountName, containerName, destinationBlobName), blobClient
+}
+
+func deleteBlob(containerName, destinationBlobName string, blobClient storage.BlobStorageClient) error {
+	return blobClient.DeleteBlob(containerName, destinationBlobName, nil)
 }
 
 func getMatchingInstances(vmList []compute.VirtualMachine, identifierRegex *regexp.Regexp, matchingInstances []compute.VirtualMachine) []compute.VirtualMachine {
