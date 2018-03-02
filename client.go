@@ -125,12 +125,12 @@ func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string, dis
 		return errwrap.Wrap(err, "waitforstatus after stopvm failed")
 	}
 
-	diskName, err := c.client.CreateImage(sourceImageTarballURL, diskSizeGB)
+	sourceImage, err := c.client.CreateImage(sourceImageTarballURL, diskSizeGB)
 	if err != nil {
 		return errwrap.Wrap(err, "could not create new disk image")
 	}
 
-	newInstance := createGCPInstanceFromExisting(vmInstance, diskName, fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02-15-04-05")))
+	newInstance := createGCPInstanceFromExisting(vmInstance, sourceImage, fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02-15-04-05")))
 	err = c.client.CreateVM(*newInstance)
 	if err != nil {
 		return errwrap.Wrap(err, "CreateVM call failed")
@@ -139,7 +139,7 @@ func (c *gcpClient) Replace(identifier string, sourceImageTarballURL string, dis
 	return c.client.WaitForStatus(newInstance.Name, gcp.InstanceRunning)
 }
 
-func createGCPInstanceFromExisting(vmInstance *compute.Instance, diskName string, name string) *compute.Instance {
+func createGCPInstanceFromExisting(vmInstance *compute.Instance, sourceImage string, name string) *compute.Instance {
 	newInstance := &compute.Instance{
 		NetworkInterfaces: vmInstance.NetworkInterfaces,
 		MachineType:       vmInstance.MachineType,
@@ -151,7 +151,7 @@ func createGCPInstanceFromExisting(vmInstance *compute.Instance, diskName string
 			&compute.AttachedDisk{
 				Boot: true,
 				InitializeParams: &compute.AttachedDiskInitializeParams{
-					SourceImage: diskName,
+					SourceImage: sourceImage,
 				},
 			},
 		},

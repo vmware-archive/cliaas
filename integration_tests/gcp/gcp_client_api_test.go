@@ -1,7 +1,6 @@
 package gcp_test
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -9,21 +8,24 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/oauth2/google"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/pivotal-cf/cliaas/iaas/gcp"
 )
 
+var gcpClient GoogleComputeClient
+
+const diskSizeGB = int64(10)
+
 var _ = Describe("GCPClientAPI", func() {
 	Describe("given a gcpclientapi and a gcp client which targets a valid gcp account/creds", func() {
+		var gcpClientAPI *Client
 		var credContents = os.Getenv("GCP_CREDS")
 		var project = os.Getenv("GCP_PROJECT")
 		var zone = os.Getenv("GCP_ZONE")
 		var credFile *os.File
-		var gcpClientAPI *Client
 		var instanceNameGUID string
 		BeforeEach(func() {
 			var err error
@@ -36,16 +38,18 @@ var _ = Describe("GCPClientAPI", func() {
 			}()
 			_, err = credFile.Write([]byte(credContents))
 			Expect(err).NotTo(HaveOccurred())
-			gcpClient, err := NewDefaultGoogleComputeClient(credFile.Name())
 			Expect(err).ShouldNot(HaveOccurred())
+
+			gcpClient, err = NewDefaultGoogleComputeClient(credFile.Name())
+
 			gcpClientAPI, err = NewClient(
 				ConfigGoogleClient(gcpClient),
 				ConfigZoneName(zone),
 				ConfigProjectName(project),
 			)
 			Expect(err).ShouldNot(HaveOccurred())
-			createVM(instanceNameGUID, project, zone)
 		})
+
 		AfterEach(func() {
 			if instanceExists(instanceNameGUID, project, zone) {
 				deleteVM(instanceNameGUID, project, zone)
@@ -57,122 +61,112 @@ var _ = Describe("GCPClientAPI", func() {
 
 			_ = os.Remove(credFile.Name())
 		})
-		Context("when calling CreateVM with valid arguments", func() {
-			var instanceNameGUIDCreate string
-			var computeInstance compute.Instance
-			BeforeEach(func() {
-				var err error
-				instanceNameGUIDCreate, err = newUUID()
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(instanceExists(instanceNameGUIDCreate, project, zone)).Should(BeFalse())
-				computeInstance = newComputeInstance(instanceNameGUIDCreate, project, zone)
-				err = gcpClientAPI.CreateVM(computeInstance)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-			AfterEach(func() {
-				deleteVM(instanceNameGUIDCreate, project, zone)
-			})
-			It("then a new instance should have been created in GCP", func() {
-				Expect(instanceExists(instanceNameGUIDCreate, project, zone)).Should(BeTrue())
-			})
-		})
 
-		Context("when calling DeleteVM with valid arguments for a running instance", func() {
-			It("then the specified instance should not longer exist in GCP", func() {
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
-				err := gcpClientAPI.DeleteVM(instanceNameGUID)
-				Expect(err).ShouldNot(HaveOccurred())
-				waitForDelete(instanceNameGUID, project, zone, instanceExists)
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeFalse())
+		Context("when using an existing source image", func() {
+			JustBeforeEach(func() {
+				instance := newComputeInstanceFromSourceImage(instanceNameGUID, "projects/debian-cloud/global/images/family/debian-8", project, zone)
+				gcpClientAPI.CreateVM(instance)
 			})
-		})
 
-		Context("when calling GetVMInfo with valid arguments for a running instance", func() {
-			var controlTag = "cliaas"
-			It("then we should recieve all info about the matching instance (by name) in GCP", func() {
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
-				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-
-				var instance *compute.Instance
-				Eventually(func() error {
+			Context("when calling CreateVM with valid arguments", func() {
+				var instanceNameGUIDCreate string
+				var computeInstance compute.Instance
+				BeforeEach(func() {
 					var err error
-					instance, err = gcpClientAPI.GetVMInfo(Filter{
-						NameRegexString: instanceNameGUID,
-						TagRegexString:  "",
-					})
-					return err
-				}, "2m", "10s").Should(Succeed())
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
-				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				Expect(instance.Name).Should(Equal(instanceNameGUID))
-				Expect(instance.Tags).ShouldNot(BeNil())
-				Expect(instance.Tags.Items).Should(HaveLen(1))
-				Expect(instance.Tags.Items[0]).Should(Equal(controlTag))
+					instanceNameGUIDCreate, err = newUUID()
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(instanceExists(instanceNameGUIDCreate, project, zone)).Should(BeFalse())
+					computeInstance = newComputeInstanceFromSourceImage(instanceNameGUIDCreate, "projects/debian-cloud/global/images/family/debian-8", project, zone)
+					err = gcpClientAPI.CreateVM(computeInstance)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+				AfterEach(func() {
+					deleteVM(instanceNameGUIDCreate, project, zone)
+				})
+				It("then a new instance should have been created in GCP", func() {
+					Expect(instanceExists(instanceNameGUIDCreate, project, zone)).Should(BeTrue())
+				})
 			})
 
-			It("then we should receive all info about the matching instance (by tag) in GCP", func() {
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
-				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-
-				var instance *compute.Instance
-				Eventually(func() error {
-					var err error
-					instance, err = gcpClientAPI.GetVMInfo(Filter{
-						NameRegexString: "",
-						TagRegexString:  controlTag,
-					})
-					return err
-				}, "2m", "10s").Should(Succeed())
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
-				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				Expect(instance.Name).Should(Equal(instanceNameGUID))
-				Expect(instance.Tags).ShouldNot(BeNil())
-				Expect(instance.Tags.Items).Should(HaveLen(1))
-				Expect(instance.Tags.Items[0]).Should(Equal(controlTag))
+			Context("when calling DeleteVM with valid arguments for a running instance", func() {
+				It("then the specified instance should not longer exist in GCP", func() {
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
+					err := gcpClientAPI.DeleteVM(instanceNameGUID)
+					Expect(err).ShouldNot(HaveOccurred())
+					waitForDelete(instanceNameGUID, project, zone, instanceExists)
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeFalse())
+				})
 			})
-		})
 
-		Context("when calling StopVM with valid arguments for a running instance", func() {
-			It("then the specified instance should have been stopped in GCP", func() {
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
-				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
-				err := gcpClientAPI.StopVM(instanceNameGUID)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue(), "does the instance exist?")
-				Eventually(func() bool {
-					return instanceStopped(instanceNameGUID, project, zone)
-				}, 30, 5).Should(BeTrue(), "is the instance stopped?")
+			Context("when calling GetVMInfo with valid arguments for a running instance", func() {
+				var controlTag = "cliaas"
+				It("then we should receive all info about the matching instance (by name) in GCP", func() {
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
+					Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
+
+					var instance *compute.Instance
+					Eventually(func() error {
+						var err error
+						instance, err = gcpClientAPI.GetVMInfo(Filter{
+							NameRegexString: instanceNameGUID,
+							TagRegexString:  "",
+						})
+						return err
+					}, "2m", "10s").Should(Succeed())
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
+					Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
+					Expect(instance.Name).Should(Equal(instanceNameGUID))
+					Expect(instance.Tags).ShouldNot(BeNil())
+					Expect(instance.Tags.Items).Should(HaveLen(1))
+					Expect(instance.Tags.Items[0]).Should(Equal(controlTag))
+				})
+
+				It("then we should receive all info about the matching instance (by tag) in GCP", func() {
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
+					Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
+
+					var instance *compute.Instance
+					Eventually(func() error {
+						var err error
+						instance, err = gcpClientAPI.GetVMInfo(Filter{
+							NameRegexString: instanceNameGUID,
+							TagRegexString:  controlTag,
+						})
+						return err
+					}, "2m", "10s").Should(Succeed())
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
+					Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
+					Expect(instance.Name).Should(Equal(instanceNameGUID))
+					Expect(instance.Tags).ShouldNot(BeNil())
+					Expect(instance.Tags.Items).Should(HaveLen(1))
+					Expect(instance.Tags.Items[0]).Should(Equal(controlTag))
+				})
+			})
+			Context("when calling StopVM with valid arguments for a running instance", func() {
+				It("then the specified instance should have been stopped in GCP", func() {
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
+					Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
+					err := gcpClientAPI.StopVM(instanceNameGUID)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue(), "does the instance exist?")
+					Eventually(func() bool {
+						return instanceStopped(instanceNameGUID, project, zone)
+					}, 30, 5).Should(BeTrue(), "is the instance stopped?")
+				})
 			})
 		})
 	})
 })
 
-func getCompute() *compute.Service {
-	ctx := context.Background()
-	hc, err := google.DefaultClient(ctx, compute.CloudPlatformScope)
-	if err != nil {
-		Expect(err).ShouldNot(HaveOccurred())
-	}
-	c, err := compute.New(hc)
-	if err != nil {
-		Expect(err).ShouldNot(HaveOccurred())
-	}
-
-	return c
-}
-
 func deleteDisk(instanceNameGUID string, project string, zone string) {
-	c := getCompute()
-
-	call := c.Disks.Delete(project, zone, instanceNameGUID)
-	_, err := call.Do()
+	_, err := gcpClient.Delete(project, zone, instanceNameGUID)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	waitForDelete(instanceNameGUID, project, zone, diskExists)
 }
 
 func waitForDelete(instanceNameGUID string, project string, zone string, exists func(string, string, string) bool) {
-	var waitSeconds time.Duration = 10 * time.Second
+	var waitSeconds = 10 * time.Second
 
 	for {
 		if !exists(instanceNameGUID, project, zone) {
@@ -184,9 +178,7 @@ func waitForDelete(instanceNameGUID string, project string, zone string, exists 
 }
 
 func diskExists(instanceNameGUID string, project string, zone string) bool {
-	c := getCompute()
-	call := c.Disks.List(project, zone)
-	list, err := call.Do()
+	list, err := gcpClient.List(project, zone)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	for _, item := range list.Items {
@@ -198,9 +190,7 @@ func diskExists(instanceNameGUID string, project string, zone string) bool {
 }
 
 func instanceExists(instanceNameGUID string, project string, zone string) bool {
-	c := getCompute()
-	call := c.Instances.List(project, zone)
-	list, err := call.Do()
+	list, err := gcpClient.List(project, zone)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	for _, item := range list.Items {
@@ -213,9 +203,7 @@ func instanceExists(instanceNameGUID string, project string, zone string) bool {
 }
 
 func instanceStopped(instanceNameGUID string, project string, zone string) bool {
-	c := getCompute()
-	call := c.Instances.List(project, zone)
-	list, err := call.Do()
+	list, err := gcpClient.List(project, zone)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	for _, item := range list.Items {
@@ -227,7 +215,7 @@ func instanceStopped(instanceNameGUID string, project string, zone string) bool 
 	return false
 }
 
-func newComputeInstance(instanceNameGUID string, project string, zone string) compute.Instance {
+func newComputeInstanceFromSourceImage(instanceNameGUID string, sourceImage string, project string, zone string) compute.Instance {
 	machineType := "zones/" + zone + "/machineTypes/f1-micro"
 	nic := []*compute.NetworkInterface{
 		&compute.NetworkInterface{
@@ -236,7 +224,7 @@ func newComputeInstance(instanceNameGUID string, project string, zone string) co
 			Network: "global/networks/default",
 		},
 	}
-	sourceImage := "projects/debian-cloud/global/images/family/debian-8"
+
 	disks := []*compute.AttachedDisk{
 		&compute.AttachedDisk{
 			Boot: true,
@@ -258,25 +246,10 @@ func newComputeInstance(instanceNameGUID string, project string, zone string) co
 		Disks:             disks,
 		Tags:              tags,
 	}
-
-}
-
-func createVM(instanceNameGUID string, project string, zone string) {
-	instance := newComputeInstance(instanceNameGUID, project, zone)
-
-	c := getCompute()
-
-	call := c.Instances.Insert(project, zone, &instance)
-	_, err := call.Do()
-	Expect(err).ShouldNot(HaveOccurred())
-
 }
 
 func deleteVM(instanceNameGUID string, project string, zone string) {
-	c := getCompute()
-
-	call := c.Instances.Delete(project, zone, instanceNameGUID)
-	_, err := call.Do()
+	_, err := gcpClient.Delete(project, zone, instanceNameGUID)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	waitForDelete(instanceNameGUID, project, zone, instanceExists)

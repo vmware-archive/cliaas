@@ -119,9 +119,9 @@ func ConfigProjectName(value string) func(*Client) error {
 }
 
 func (s *Client) CreateImage(tarball string, diskSizeGB int64) (string, error) {
-	diskName := fmt.Sprintf("opsman-disk-%v", time.Now().Format("2006-01-02-15-04-05"))
+	imageName := fmt.Sprintf("opsman-disk-%v", time.Now().Format("2006-01-02-15-04-05"))
 	_, err := s.googleClient.ImageInsert(s.projectName, &compute.Image{
-		Name: diskName,
+		Name: imageName,
 		DiskSizeGb: diskSizeGB,
 		RawDisk: &compute.ImageRawDisk{
 			Source: fmt.Sprintf("http://storage.googleapis.com/%v", tarball),
@@ -131,8 +131,8 @@ func (s *Client) CreateImage(tarball string, diskSizeGB int64) (string, error) {
 		return "", err
 	}
 
-	diskURL := fmt.Sprintf("projects/%s/global/images/%s", s.projectName, diskName)
-	return diskURL, nil
+	sourceImage := fmt.Sprintf("projects/%s/global/images/%s", s.projectName, imageName)
+	return sourceImage, nil
 }
 
 func (s *Client) CreateVM(instance compute.Instance) error {
@@ -300,11 +300,11 @@ func (s *googleComputeClientWrapper) ImageInsert(project string, image *compute.
 				errChannel <- errwrap.Wrap(err, "image get failed")
 			}
 
-			if image.Status == ImageReady {
+			if image != nil && image.Status == ImageReady {
 				errChannel <- nil
 			}
 
-			if image.Status == ImageFailed {
+			if image != nil && image.Status == ImageFailed {
 				errChannel <- errors.New("image creation failed")
 			}
 		}
