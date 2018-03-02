@@ -4,6 +4,8 @@
 functions. Presently it only supports upgrading a Pivotal Cloud Foundry
 Operations Manager VM.
 
+Using master from this repo directly may result in breaking the pipelines that consume it. Tracking master is considered unstable. Please use the official releases, or the pcf-pipelines release on Pivotal Network. 
+
 ## Installing
 
 Download the [latest release](https://github.com/pivotal-cf/cliaas/releases/latest).
