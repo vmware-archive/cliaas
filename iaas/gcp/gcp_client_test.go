@@ -364,7 +364,7 @@ var _ = Describe("GCPClientAPI", func() {
 			})
 		})
 
-		Describe("given a GetDisk method and a filter object argument", func() {
+		Describe("given a Disk method and a filter object argument", func() {
 			Context("when there is a matching disk", func() {
 				controlDisk := createDisk(controlInstanceName, controlDiskSizeGB)
 				controlDiskList := &compute.DiskList{
@@ -383,7 +383,7 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 
 				It("then it should yield the filtered disk instance from a gcp disk list", func() {
-					disk, err := client.GetDisk(Filter{NameRegexString: controlInstanceName})
+					disk, err := client.Disk(Filter{NameRegexString: controlInstanceName})
 					Expect(disk).ShouldNot(BeNil())
 					Expect(controlDisk.SizeGb).To(BeEquivalentTo(controlDiskSizeGB))
 					Expect(err).ShouldNot(HaveOccurred())
@@ -405,7 +405,7 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 
 				It("then it should give an error", func() {
-					disk, err := client.GetDisk(Filter{NameRegexString: "bbb"})
+					disk, err := client.Disk(Filter{NameRegexString: "bbb"})
 					Expect(err).Should(HaveOccurred())
 					Expect(disk).Should(BeNil())
 				})

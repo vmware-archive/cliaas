@@ -175,8 +175,5 @@ func (c *GCPConfig) NewClient() (Client, error) {
 	if err != nil {
 		return nil, errwrap.Wrap(err, "failed to create gcp client api")
 	}
-
-	return &gcpClient{
-		client: gcpClientAPI,
-	}, nil
+	return gcpClientAPI, err
 }

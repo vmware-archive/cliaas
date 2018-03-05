@@ -47,14 +47,7 @@ var InvalidAzureClientErr = errors.New("invalid azure sdk client defined")
 var NoMatchesErr = errors.New("no VM names match the provided prefix")
 var MultipleMatchesErr = errors.New("multiple VM names match the provided prefix")
 
-func NewClient(
-	subscriptionID string,
-	clientID string,
-	clientSecret string,
-	tenantID string,
-	resourceGroupName string,
-	resourceManagerEndpoint string,
-) (*Client, error) {
+func NewClient(subscriptionID string, clientID string, clientSecret string, tenantID string, resourceGroupName string, resourceManagerEndpoint string) (*Client, error) {
 	c := map[string]string{
 		"AZURE_CLIENT_ID":       clientID,
 		"AZURE_CLIENT_SECRET":   clientSecret,

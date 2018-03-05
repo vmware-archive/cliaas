@@ -11,7 +11,8 @@ import (
 	errwrap "github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
+	"github.com/pivotal-cf/cliaas/iaas"
 )
 
 type GoogleComputeClient interface {
@@ -27,7 +28,7 @@ type ClientAPI interface {
 	CreateVM(instance compute.Instance) error
 	DeleteVM(instanceName string) error
 	GetVMInfo(filter Filter) (*compute.Instance, error)
-	GetDisk(filter Filter) (*compute.Disk, error)
+	Disk(filter Filter) (*compute.Disk, error)
 	StopVM(instanceName string) error
 	CreateImage(tarball string, diskSizeGB int64) (string, error)
 	WaitForStatus(vmName string, desiredStatus string) error
@@ -59,15 +60,15 @@ func NewDefaultGoogleComputeClient(credpath string) (GoogleComputeClient, error)
 	}
 	return &googleComputeClientWrapper{
 		instanceService: c.Instances,
-		disksService: c.Disks,
-		imageService: c.Images,
-		ctx: ctx,
-		}, nil
+		disksService:    c.Disks,
+		imageService:    c.Images,
+		ctx:             ctx,
+	}, nil
 }
 
 func NewClient(configs ...func(*Client) error) (*Client, error) {
 	gcpClient := new(Client)
-	gcpClient.timeout = 60 * time.Second
+	gcpClient.timeout = 5 * time.Minute
 
 	for _, cfg := range configs {
 		err := cfg(gcpClient)
@@ -90,11 +91,78 @@ func NewClient(configs ...func(*Client) error) (*Client, error) {
 	return gcpClient, nil
 }
 
+/* Cliaas Client Interface */
+func (c *Client) Delete(identifier string) error {
+	return c.DeleteVM(identifier)
+}
+
+func (c *Client) Replace(identifier string, sourceImageTarballURL string, diskSizeGB int64) error {
+	vmInstance, err := c.GetVMInfo(Filter{
+		NameRegexString: identifier + "*",
+	})
+	if err != nil {
+		return errwrap.Wrap(err, "getvminfo failed")
+	}
+
+	err = c.StopVM(vmInstance.Name)
+	if err != nil {
+		return errwrap.Wrap(err, "stopvm failed")
+	}
+
+	err = c.WaitForStatus(vmInstance.Name, InstanceTerminated)
+	if err != nil {
+		return errwrap.Wrap(err, "waitforstatus after stopvm failed")
+	}
+
+	sourceImage, err := c.CreateImage(sourceImageTarballURL, diskSizeGB)
+	if err != nil {
+		return errwrap.Wrap(err, "could not create new disk image")
+	}
+
+	newInstance := createGCPInstanceFromExisting(vmInstance, sourceImage, diskSizeGB, fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02-15-04-05")))
+	err = c.CreateVM(*newInstance)
+	if err != nil {
+		return errwrap.Wrap(err, "CreateVM call failed")
+	}
+
+	return c.WaitForStatus(newInstance.Name, InstanceRunning)
+}
+
 func ConfigTimeout(value time.Duration) func(*Client) error {
 	return func(gcpClient *Client) error {
 		gcpClient.timeout = value * time.Second
 		return nil
 	}
+}
+
+func (s *Client) GetDisk(identifier string) (iaas.Disk, error) {
+	disk, err := s.Disk(Filter{
+		NameRegexString: identifier + "*",
+	})
+	if err != nil {
+		return iaas.Disk{}, err
+	}
+	return iaas.Disk{
+		SizeGB: int64(disk.SizeGb),
+	}, nil
+}
+
+/* End Cliaas Client Interface */
+
+func (s *Client) Disk(filter Filter) (*compute.Disk, error) {
+	list, err := s.googleClient.DiskList(s.projectName, s.zoneName)
+	if err != nil {
+		return nil, errwrap.Wrap(err, "call DiskList on google client failed")
+	}
+
+	for _, item := range list.Items {
+		var validName = regexp.MustCompile(filter.NameRegexString)
+		nameMatch := validName.MatchString(item.Name)
+		if nameMatch {
+			return item, nil
+		}
+	}
+	return nil, fmt.Errorf("No disk matches found")
 }
 
 func ConfigGoogleClient(value GoogleComputeClient) func(*Client) error {
@@ -121,7 +189,7 @@ func ConfigProjectName(value string) func(*Client) error {
 func (s *Client) CreateImage(tarball string, diskSizeGB int64) (string, error) {
 	imageName := fmt.Sprintf("opsman-disk-%v", time.Now().Format("2006-01-02-15-04-05"))
 	_, err := s.googleClient.ImageInsert(s.projectName, &compute.Image{
-		Name: imageName,
+		Name:       imageName,
 		DiskSizeGb: diskSizeGB,
 		RawDisk: &compute.ImageRawDisk{
 			Source: fmt.Sprintf("http://storage.googleapis.com/%v", tarball),
@@ -202,22 +270,6 @@ func (s *Client) getVMInfo(filter Filter, status string) (*compute.Instance, err
 		}
 	}
 	return nil, fmt.Errorf("No instance matches found")
-}
-
-func (s *Client) GetDisk(filter Filter) (*compute.Disk, error) {
-	list, err := s.googleClient.DiskList(s.projectName, s.zoneName)
-	if err != nil {
-		return nil, errwrap.Wrap(err, "call DiskList on google client failed")
-	}
-
-	for _, item := range list.Items {
-		var validName = regexp.MustCompile(filter.NameRegexString)
-		nameMatch := validName.MatchString(item.Name)
-		if nameMatch {
-			return item, nil
-		}
-	}
-	return nil, fmt.Errorf("No disk matches found")
 }
 
 func (s *Client) WaitForStatus(vmName string, desiredStatus string) error {
@@ -316,4 +368,26 @@ func (s *googleComputeClientWrapper) ImageInsert(project string, image *compute.
 		return nil, errors.New("polling for status timed out")
 	}
 	return nil, nil
+}
+
+func createGCPInstanceFromExisting(vmInstance *compute.Instance, sourceImage string, diskSizeGB int64, name string) *compute.Instance {
+	newInstance := &compute.Instance{
+		NetworkInterfaces: vmInstance.NetworkInterfaces,
+		MachineType:       vmInstance.MachineType,
+		Name:              name,
+		Tags: &compute.Tags{
+			Items: vmInstance.Tags.Items,
+		},
+		Disks: []*compute.AttachedDisk{
+			&compute.AttachedDisk{
+				Boot: true,
+				InitializeParams: &compute.AttachedDiskInitializeParams{
+					SourceImage: sourceImage,
+					DiskSizeGb:  diskSizeGB,
+				},
+			},
+		},
+	}
+	newInstance.NetworkInterfaces[0].NetworkIP = ""
+	return newInstance
 }

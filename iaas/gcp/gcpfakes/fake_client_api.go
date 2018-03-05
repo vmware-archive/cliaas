@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 type FakeClientAPI struct {
@@ -44,16 +44,16 @@ type FakeClientAPI struct {
 		result1 *compute.Instance
 		result2 error
 	}
-	GetDiskStub        func(filter gcp.Filter) (*compute.Disk, error)
-	getDiskMutex       sync.RWMutex
-	getDiskArgsForCall []struct {
+	DiskStub        func(filter gcp.Filter) (*compute.Disk, error)
+	diskMutex       sync.RWMutex
+	diskArgsForCall []struct {
 		filter gcp.Filter
 	}
-	getDiskReturns struct {
+	diskReturns struct {
 		result1 *compute.Disk
 		result2 error
 	}
-	getDiskReturnsOnCall map[int]struct {
+	diskReturnsOnCall map[int]struct {
 		result1 *compute.Disk
 		result2 error
 	}
@@ -245,52 +245,52 @@ func (fake *FakeClientAPI) GetVMInfoReturnsOnCall(i int, result1 *compute.Instan
 	}{result1, result2}
 }
 
-func (fake *FakeClientAPI) GetDisk(filter gcp.Filter) (*compute.Disk, error) {
-	fake.getDiskMutex.Lock()
-	ret, specificReturn := fake.getDiskReturnsOnCall[len(fake.getDiskArgsForCall)]
-	fake.getDiskArgsForCall = append(fake.getDiskArgsForCall, struct {
+func (fake *FakeClientAPI) Disk(filter gcp.Filter) (*compute.Disk, error) {
+	fake.diskMutex.Lock()
+	ret, specificReturn := fake.diskReturnsOnCall[len(fake.diskArgsForCall)]
+	fake.diskArgsForCall = append(fake.diskArgsForCall, struct {
 		filter gcp.Filter
 	}{filter})
-	fake.recordInvocation("GetDisk", []interface{}{filter})
-	fake.getDiskMutex.Unlock()
-	if fake.GetDiskStub != nil {
-		return fake.GetDiskStub(filter)
+	fake.recordInvocation("Disk", []interface{}{filter})
+	fake.diskMutex.Unlock()
+	if fake.DiskStub != nil {
+		return fake.DiskStub(filter)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getDiskReturns.result1, fake.getDiskReturns.result2
+	return fake.diskReturns.result1, fake.diskReturns.result2
 }
 
-func (fake *FakeClientAPI) GetDiskCallCount() int {
-	fake.getDiskMutex.RLock()
-	defer fake.getDiskMutex.RUnlock()
-	return len(fake.getDiskArgsForCall)
+func (fake *FakeClientAPI) DiskCallCount() int {
+	fake.diskMutex.RLock()
+	defer fake.diskMutex.RUnlock()
+	return len(fake.diskArgsForCall)
 }
 
-func (fake *FakeClientAPI) GetDiskArgsForCall(i int) gcp.Filter {
-	fake.getDiskMutex.RLock()
-	defer fake.getDiskMutex.RUnlock()
-	return fake.getDiskArgsForCall[i].filter
+func (fake *FakeClientAPI) DiskArgsForCall(i int) gcp.Filter {
+	fake.diskMutex.RLock()
+	defer fake.diskMutex.RUnlock()
+	return fake.diskArgsForCall[i].filter
 }
 
-func (fake *FakeClientAPI) GetDiskReturns(result1 *compute.Disk, result2 error) {
-	fake.GetDiskStub = nil
-	fake.getDiskReturns = struct {
+func (fake *FakeClientAPI) DiskReturns(result1 *compute.Disk, result2 error) {
+	fake.DiskStub = nil
+	fake.diskReturns = struct {
 		result1 *compute.Disk
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeClientAPI) GetDiskReturnsOnCall(i int, result1 *compute.Disk, result2 error) {
-	fake.GetDiskStub = nil
-	if fake.getDiskReturnsOnCall == nil {
-		fake.getDiskReturnsOnCall = make(map[int]struct {
+func (fake *FakeClientAPI) DiskReturnsOnCall(i int, result1 *compute.Disk, result2 error) {
+	fake.DiskStub = nil
+	if fake.diskReturnsOnCall == nil {
+		fake.diskReturnsOnCall = make(map[int]struct {
 			result1 *compute.Disk
 			result2 error
 		})
 	}
-	fake.getDiskReturnsOnCall[i] = struct {
+	fake.diskReturnsOnCall[i] = struct {
 		result1 *compute.Disk
 		result2 error
 	}{result1, result2}
@@ -454,8 +454,8 @@ func (fake *FakeClientAPI) Invocations() map[string][][]interface{} {
 	defer fake.deleteVMMutex.RUnlock()
 	fake.getVMInfoMutex.RLock()
 	defer fake.getVMInfoMutex.RUnlock()
-	fake.getDiskMutex.RLock()
-	defer fake.getDiskMutex.RUnlock()
+	fake.diskMutex.RLock()
+	defer fake.diskMutex.RUnlock()
 	fake.stopVMMutex.RLock()
 	defer fake.stopVMMutex.RUnlock()
 	fake.createImageMutex.RLock()
