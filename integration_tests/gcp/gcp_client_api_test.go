@@ -18,7 +18,6 @@ import (
 var gcpClient GoogleComputeClient
 
 const initialDiskSizeGB = int64(10)
-const sourceImageTarballURL = "ops-manager-us/pcf-gcp-2.0-build.255.tar.gz"
 
 var _ = Describe("GCPClientAPI", func() {
 	Describe("given a gcpclientapi and a gcp client which targets a valid gcp account/creds", func() {
@@ -51,9 +50,7 @@ var _ = Describe("GCPClientAPI", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			sourceImage, err := gcpClientAPI.CreateImage(sourceImageTarballURL, initialDiskSizeGB)
-
-			instance := newComputeInstanceFromSourceImage(instanceNameGUID, sourceImage, initialDiskSizeGB, project, zone)
+			instance := newComputeInstanceFromSourceImage(instanceNameGUID, "projects/debian-cloud/global/images/family/debian-8", initialDiskSizeGB, project, zone)
 			gcpClientAPI.CreateVM(instance)
 		})
 
@@ -84,10 +81,8 @@ var _ = Describe("GCPClientAPI", func() {
 				instanceNameGUIDCreate, err = newUUID()
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(instanceExists(instanceNameGUIDCreate, project, zone)).Should(BeFalse())
-				imageName := fmt.Sprintf("cliaas-%v", time.Now().Format("2006-01-02-15-04-05"))
-				sourceImage := fmt.Sprintf("projects/%s/global/images/%s", project, imageName)
 
-				computeInstance := newComputeInstanceFromSourceImage(instanceNameGUID, sourceImage, initialDiskSizeGB, project, zone)
+				computeInstance := newComputeInstanceFromSourceImage(instanceNameGUIDCreate, "projects/debian-cloud/global/images/family/debian-8", initialDiskSizeGB, project, zone)
 				err = gcpClientAPI.CreateVM(computeInstance)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
@@ -187,7 +182,7 @@ var _ = Describe("GCPClientAPI", func() {
 				err := gcpClientAPI.WaitForStatus(instanceNameGUID, InstanceRunning)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				err = gcpClientAPI.Replace(instanceNameGUID, sourceImageTarballURL, finalDiskSizeGB)
+				err = gcpClientAPI.Replace(instanceNameGUID, "ops-manager-us/pcf-gcp-2.0-build.255.tar.gz", finalDiskSizeGB)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 

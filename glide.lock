@@ -1,5 +1,5 @@
 hash: cfa6319e965bf1c7cd1ba4766dd8ffe2a227c0a8920eae2c29326c788308acc8
-updated: 2017-04-06T13:51:55.63999293-04:00
+updated: 2018-03-06T11:44:02.555146-07:00
 imports:
 - name: cloud.google.com/go
   version: 675fad27ef35e552d3708858ff337d54b3b6f4d3
@@ -43,10 +43,14 @@ imports:
   subpackages:
   - arm/compute
   - arm/examples/helpers
+  - arm/network
+  - arm/resources/resources
+  - arm/storage
+  - storage
 - name: github.com/Azure/azure-storage-go
   version: 7c36d244fc8bf27bcf9785b0b37d6beef2949296
 - name: github.com/Azure/go-autorest
-  version: ec5f4903f77ed9927ac95b19ab8e44ada64c1356
+  version: a2fdd780c9a50455cecd249b00bdc3eb73a78e31
   subpackages:
   - autorest
   - autorest/azure
@@ -66,19 +70,27 @@ imports:
   version: 411e09b969b1170a9f0c467558eb4c4c110d9c77
   subpackages:
   - googleapis/rpc/status
+- name: github.com/google/uuid
+  version: 6a5e28554805e78ea6141142aba763936c4761c0
 - name: github.com/googleapis/gax-go
   version: 9af46dd5a1713e8b5cd71106287eba3cefdde50b
 - name: github.com/jessevdk/go-flags
-  version: 48cf8722c3375517aba351d1f7577c40663a4407
+  version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/pkg/errors
   version: ff09b135c25aae272398c51a07235b90a75aa4f0
 - name: golang.org/x/net
-  version: ffcf1bedda3b04ebb15a168a59800a73d6dc0f4d
+  version: d25186b37f34ebdbbea8f488ef055638dfab272d
+  repo: https://github.com/golang/net.git
+  vcs: git
   subpackages:
+  - .
   - context
   - context/ctxhttp
+  - html
+  - html/atom
+  - html/charset
   - http2
   - http2/hpack
   - idna
@@ -98,6 +110,20 @@ imports:
   vcs: git
   subpackages:
   - .
+  - encoding
+  - encoding/charmap
+  - encoding/htmlindex
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
+  - encoding/unicode
+  - internal/tag
+  - internal/utf8internal
+  - language
+  - runes
   - secure/bidirule
   - transform
   - unicode/bidi
@@ -137,12 +163,10 @@ imports:
   - tap
   - transport
 - name: gopkg.in/yaml.v2
-  version: a3f3340b5840cee44f372bddb5880fcbc419b46a
+  version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports:
-- name: github.com/google/uuid
-  version: 6a5e28554805e78ea6141142aba763936c4761c0
 - name: github.com/onsi/ginkgo
-  version: 77a8c1e5c40d6bb6c5eb4dd4bdce9763564f6298
+  version: 9eda700730cba42af70d53180f9dcce9266bc2bc
   subpackages:
   - config
   - internal/codelocation
@@ -162,7 +186,7 @@ testImports:
   - reporters/stenographer/support/go-isatty
   - types
 - name: github.com/onsi/gomega
-  version: 334b8f472b3af5d541c5642701c1e29e2126f486
+  version: 003f63b7f4cff3fc95357005358af2de0f5fe152
   subpackages:
   - format
   - gbytes
