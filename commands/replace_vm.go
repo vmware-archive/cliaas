@@ -1,9 +1,6 @@
 package commands
 
-import (
-	"strconv"
-	"fmt"
-)
+import "strconv"
 
 type ReplaceVMCommand struct {
 	Identifier string `long:"identifier" required:"true" description:"Identifier of the VM that is being replaced"`
@@ -20,8 +17,6 @@ func (r *ReplaceVMCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("setting disk size for '%s' to %dGB\n", r.Identifier, diskSizeGB)
 
 	return client.Replace(r.Identifier, Cliaas.Config.Image(), diskSizeGB)
 }
