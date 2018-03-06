@@ -316,7 +316,7 @@ func newComputeInstanceFromSourceImage(instanceNameGUID string, sourceImage stri
 			Boot: true,
 			InitializeParams: &compute.AttachedDiskInitializeParams{
 				SourceImage: sourceImage,
-				DiskSizeGb:  diskSizeGB,
+				DiskSizeGb:  int64(10),
 			},
 		},
 	}
