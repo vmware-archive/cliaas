@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pivotal-cf/cliaas/iaas"
 	errwrap "github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
-	"github.com/pivotal-cf/cliaas/iaas"
 )
 
 type GoogleComputeClient interface {

@@ -9,10 +9,10 @@ import (
 
 	"google.golang.org/api/compute/v1"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/pivotal-cf/cliaas/iaas/gcp"
-	"fmt"
 )
 
 var gcpClient GoogleComputeClient
@@ -191,7 +191,7 @@ var _ = Describe("GCPClientAPI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			FContext("when called on a vm with a name matching the given regex", func() {
+			Context("when called on a vm with a name matching the given regex", func() {
 				It("should delete the matching VM and spin up a the new VM in its place", func() {
 					Expect(instanceTerminated(instanceNameGUID, project, zone)).To(BeTrue())
 
@@ -303,7 +303,6 @@ func instanceTerminated(instanceNameGUID string, project string, zone string) bo
 			println("********", item.Status)
 		}
 	}
-
 
 	return false
 }

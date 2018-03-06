@@ -4,10 +4,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/arm/network"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/cliaas/iaas/azure"
-	"github.com/Azure/azure-sdk-for-go/arm/network"
 
 	"fmt"
 )
@@ -15,7 +15,7 @@ import (
 const (
 	resourceManagerEndpoint = "https://management.azure.com/"
 	controlOpsManVMDiskURL  = "https://opsmanagereastus.blob.core.windows.net/images/ops-manager-1.10.3.vhd"
-	controlOpsManVMDiskSize  = int64(10)
+	controlOpsManVMDiskSize = int64(10)
 )
 
 const (

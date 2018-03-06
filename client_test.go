@@ -6,8 +6,8 @@ import (
 	. "github.com/pivotal-cf/cliaas"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
 	"github.com/pivotal-cf/cliaas/iaas/aws"
+	"github.com/pivotal-cf/cliaas/iaas/aws/awsfakes"
 )
 
 var _ = Describe("test for unexported features", func() {

@@ -296,7 +296,7 @@ var _ = Describe("Azure", func() {
 			Context("when given an identifier and no disk is found in Azure", func() {
 				It("should return an error", func() {
 					fakeVirtualMachinesClient.GetReturns(compute.VirtualMachine{}, errors.New("error"))
-					_, err := azureClient.GetDisk(identifier+"nomatch")
+					_, err := azureClient.GetDisk(identifier + "nomatch")
 					Expect(err).To(HaveOccurred())
 				})
 			})

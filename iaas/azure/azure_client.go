@@ -13,8 +13,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/examples/helpers"
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
-	errwrap "github.com/pkg/errors"
 	"github.com/pivotal-cf/cliaas/iaas"
+	errwrap "github.com/pkg/errors"
 )
 
 const defaultResourceManagerEndpoint = "https://management.azure.com/"
@@ -27,7 +27,6 @@ type Client struct {
 	storageAccountName    string
 	storageBaseURL        string
 	vmAdminPassword       string
-
 }
 
 type BlobCopier interface {
@@ -116,6 +115,7 @@ func (s *Client) GetDisk(identifier string) (iaas.Disk, error) {
 	}
 	return iaas.Disk{SizeGB: int64(*instance.StorageProfile.OsDisk.DiskSizeGB)}, nil
 }
+
 /* End Cliaas Client Interface */
 
 func (s *Client) SetVMAdminPassword(password string) {

@@ -6,10 +6,10 @@ import (
 	"code.cloudfoundry.org/clock"
 
 	"github.com/Azure/azure-storage-go"
+	"github.com/pivotal-cf/cliaas/iaas/aws"
 	"github.com/pivotal-cf/cliaas/iaas/azure"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
 	errwrap "github.com/pkg/errors"
-	"github.com/pivotal-cf/cliaas/iaas/aws"
 )
 
 type Config interface {

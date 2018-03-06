@@ -3,13 +3,13 @@ package gcp_test
 import (
 	"fmt"
 
+	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/pivotal-cf/cliaas/iaas/gcp"
 	"github.com/pivotal-cf/cliaas/iaas/gcp/gcpfakes"
 	errwrap "github.com/pkg/errors"
 	"google.golang.org/api/compute/v1"
-	"errors"
 )
 
 var _ = Describe("GCPClientAPI", func() {

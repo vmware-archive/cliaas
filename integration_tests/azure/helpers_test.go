@@ -54,7 +54,7 @@ func (t azureTestClient) createResourceGroup(resourceGroupName string) resources
 	return group
 }
 
-func (t azureTestClient) deleteResourceGroup(resourceGroupName string)  error{
+func (t azureTestClient) deleteResourceGroup(resourceGroupName string) error {
 	log.Printf("Deleting resource group '%s' ...\n", resourceGroupName)
 	groupClient := resources.NewGroupsClient(t.SubscriptionID)
 	groupClient.Authorizer = t.createServicePrincipalToken()
