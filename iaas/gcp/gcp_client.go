@@ -104,27 +104,32 @@ func (c *Client) Replace(identifier string, sourceImageTarballURL string, diskSi
 		return errwrap.Wrap(err, "getvminfo failed")
 	}
 
+	fmt.Printf("Stopping VM '%s'\n", vmInstance.Name)
 	err = c.StopVM(vmInstance.Name)
 	if err != nil {
 		return errwrap.Wrap(err, "stopvm failed")
 	}
 
+	fmt.Printf("Waiting for  VM '%s' to terminate\n", vmInstance.Name)
 	err = c.WaitForStatus(vmInstance.Name, InstanceTerminated)
 	if err != nil {
 		return errwrap.Wrap(err, "waitforstatus after stopvm failed")
 	}
 
+	fmt.Printf("Creating image with image '%s' and disk size '%d'GB\n", sourceImageTarballURL, diskSizeGB)
 	sourceImage, err := c.CreateImage(sourceImageTarballURL, diskSizeGB)
 	if err != nil {
 		return errwrap.Wrap(err, "could not create new disk image")
 	}
 
+	fmt.Printf("Creating VM '%s' using image '%s', and disk size '%d'GB\n", fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02-15-04-05")), sourceImage, diskSizeGB)
 	newInstance := createGCPInstanceFromExisting(vmInstance, sourceImage, diskSizeGB, fmt.Sprintf("%s-%s", identifier, time.Now().Format("2006-01-02-15-04-05")))
 	err = c.CreateVM(*newInstance)
 	if err != nil {
 		return errwrap.Wrap(err, "CreateVM call failed")
 	}
 
+	fmt.Printf("Waiting for  VM '%s' to start up\n", newInstance.Name)
 	return c.WaitForStatus(newInstance.Name, InstanceRunning)
 }
 
@@ -188,6 +193,7 @@ func ConfigProjectName(value string) func(*Client) error {
 
 func (s *Client) CreateImage(tarball string, diskSizeGB int64) (string, error) {
 	imageName := fmt.Sprintf("opsman-disk-%v", time.Now().Format("2006-01-02-15-04-05"))
+	fmt.Printf("Creating image '%s' with disk size '%d'GB \n", imageName, diskSizeGB)
 	_, err := s.googleClient.ImageInsert(s.projectName, &compute.Image{
 		Name:       imageName,
 		DiskSizeGb: diskSizeGB,
@@ -204,6 +210,7 @@ func (s *Client) CreateImage(tarball string, diskSizeGB int64) (string, error) {
 }
 
 func (s *Client) CreateVM(instance compute.Instance) error {
+	fmt.Printf("Creating VM '%s'\n", instance.Name)
 	operation, err := s.googleClient.Insert(s.projectName, s.zoneName, &instance)
 	if err != nil {
 		return errwrap.Wrap(err, "call to googleclient.Insert yielded error")
