@@ -17,7 +17,8 @@ import (
 
 var gcpClient GoogleComputeClient
 
-const diskSizeGB = int64(11)
+const initialDiskSizeGB = int64(10)
+const sourceImageTarballURL = "ops-manager-us/pcf-gcp-2.0-build.255.tar.gz"
 
 var _ = Describe("GCPClientAPI", func() {
 	Describe("given a gcpclientapi and a gcp client which targets a valid gcp account/creds", func() {
@@ -50,7 +51,9 @@ var _ = Describe("GCPClientAPI", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			instance := newComputeInstanceFromSourceImage(instanceNameGUID, "projects/debian-cloud/global/images/family/debian-8", project, zone)
+			sourceImage, err := gcpClientAPI.CreateImage(sourceImageTarballURL, initialDiskSizeGB)
+
+			instance := newComputeInstanceFromSourceImage(instanceNameGUID, sourceImage, initialDiskSizeGB, project, zone)
 			gcpClientAPI.CreateVM(instance)
 		})
 
@@ -76,13 +79,15 @@ var _ = Describe("GCPClientAPI", func() {
 
 		Context("when calling CreateVM with valid arguments", func() {
 			var instanceNameGUIDCreate string
-			var computeInstance compute.Instance
 			BeforeEach(func() {
 				var err error
 				instanceNameGUIDCreate, err = newUUID()
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(instanceExists(instanceNameGUIDCreate, project, zone)).Should(BeFalse())
-				computeInstance = newComputeInstanceFromSourceImage(instanceNameGUIDCreate, "projects/debian-cloud/global/images/family/debian-8", project, zone)
+				imageName := fmt.Sprintf("cliaas-%v", time.Now().Format("2006-01-02-15-04-05"))
+				sourceImage := fmt.Sprintf("projects/%s/global/images/%s", project, imageName)
+
+				computeInstance := newComputeInstanceFromSourceImage(instanceNameGUID, sourceImage, initialDiskSizeGB, project, zone)
 				err = gcpClientAPI.CreateVM(computeInstance)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
@@ -162,7 +167,7 @@ var _ = Describe("GCPClientAPI", func() {
 			})
 		})
 
-		Context("when calling GetDisk with valid arguments for a running instance", func() {
+		Context("when calling Disk with valid arguments for a running instance", func() {
 			It("then a valid disk with the specified size should be returned", func() {
 				Expect(instanceExists(instanceNameGUID, project, zone)).Should(BeTrue())
 				Expect(instanceStopped(instanceNameGUID, project, zone)).Should(BeFalse())
@@ -171,20 +176,22 @@ var _ = Describe("GCPClientAPI", func() {
 				})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(disk).ShouldNot(BeNil())
-				Expect(disk.SizeGb).Should(Equal(diskSizeGB))
+				Expect(disk.SizeGb).Should(Equal(initialDiskSizeGB))
 			})
 		})
 
 		Describe("Replace", func() {
+			var finalDiskSizeGB = int64(11)
+
 			JustBeforeEach(func() {
 				err := gcpClientAPI.WaitForStatus(instanceNameGUID, InstanceRunning)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				err = gcpClientAPI.Replace(instanceNameGUID, "ops-manager-us/pcf-gcp-2.0-build.255.tar.gz", diskSizeGB)
+				err = gcpClientAPI.Replace(instanceNameGUID, sourceImageTarballURL, finalDiskSizeGB)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			Context("when called on a vm with a name matching the given regex", func() {
+			FContext("when called on a vm with a name matching the given regex", func() {
 				It("should delete the matching VM and spin up a the new VM in its place", func() {
 					Expect(instanceTerminated(instanceNameGUID, project, zone)).To(BeTrue())
 
@@ -206,7 +213,7 @@ var _ = Describe("GCPClientAPI", func() {
 
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(disk).ShouldNot(BeNil())
-					Expect(disk.SizeGb).Should(Equal(diskSizeGB))
+					Expect(disk.SizeGb).Should(Equal(finalDiskSizeGB))
 				})
 			})
 		})
@@ -301,7 +308,7 @@ func instanceTerminated(instanceNameGUID string, project string, zone string) bo
 	return false
 }
 
-func newComputeInstanceFromSourceImage(instanceNameGUID string, sourceImage string, project string, zone string) compute.Instance {
+func newComputeInstanceFromSourceImage(instanceNameGUID string, sourceImage string, diskSizeGB int64, project string, zone string) compute.Instance {
 	machineType := "zones/" + zone + "/machineTypes/f1-micro"
 	nic := []*compute.NetworkInterface{
 		&compute.NetworkInterface{
@@ -316,7 +323,7 @@ func newComputeInstanceFromSourceImage(instanceNameGUID string, sourceImage stri
 			Boot: true,
 			InitializeParams: &compute.AttachedDiskInitializeParams{
 				SourceImage: sourceImage,
-				DiskSizeGb:  int64(10),
+				DiskSizeGb:  diskSizeGB,
 			},
 		},
 	}
