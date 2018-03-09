@@ -15,7 +15,7 @@ import (
 const (
 	resourceManagerEndpoint = "https://management.azure.com/"
 	controlOpsManVMDiskURL  = "https://opsmanagereastus.blob.core.windows.net/images/ops-manager-1.10.3.vhd"
-	controlOpsManVMDiskSize = int64(10)
+	controlOpsManVMDiskSize = int64(150)
 )
 
 const (
@@ -91,6 +91,7 @@ var _ = Describe("Azure API Client", func() {
 
 	Describe("Replace", func() {
 		var VMID string
+
 		JustBeforeEach(func() {
 			Expect(testAzureClient.vmExists(identifier, prefix)).Should(BeTrue())
 
@@ -114,6 +115,9 @@ var _ = Describe("Azure API Client", func() {
 				newVMID := *(*vmListResults.Value)[0].VMID
 				Expect(testAzureClient.vmExists(identifier, prefix)).Should(BeTrue())
 				Expect(newVMID).NotTo(Equal(VMID))
+				disk, err := azureClient.GetDisk(VMID)
+				Expect(disk).ShouldNot(BeNil())
+				Expect(disk.SizeGB).Should(Equal(controlOpsManVMDiskSize))
 			})
 		})
 	})
