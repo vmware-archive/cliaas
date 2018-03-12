@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 
-	"github.com/Azure/azure-storage-go"
 	"github.com/pivotal-cf/cliaas/iaas/aws"
 	"github.com/pivotal-cf/cliaas/iaas/azure"
 	"github.com/pivotal-cf/cliaas/iaas/gcp"
@@ -93,7 +92,7 @@ func (c *AzureConfig) NewClient() (Client, error) {
 	}
 
 	if c.StorageURL == "" {
-		c.StorageURL = storage.DefaultBaseURL
+		c.StorageURL = azure.DefaultBaseURL
 	}
 	client.SetStorageContainerName(c.StorageContainerName)
 	client.SetStorageAccountName(c.StorageAccountName)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
-	"github.com/Azure/azure-storage-go"
 	"github.com/Azure/go-autorest/autorest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +42,7 @@ var _ = Describe("Azure", func() {
 				azureClient.BlobServiceClient = fakeBlobServiceClient
 				azureClient.SetStorageAccountName(controlStorageAccountName)
 				azureClient.SetStorageContainerName(controlContainerName)
-				azureClient.SetStorageBaseURL(storage.DefaultBaseURL)
+				azureClient.SetStorageBaseURL(azure.DefaultBaseURL)
 				err = azureClient.Replace(identifier, controlNewImageURL, int64(controlDiskSize))
 			})
 

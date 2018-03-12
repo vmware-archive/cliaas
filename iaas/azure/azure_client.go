@@ -18,6 +18,7 @@ import (
 )
 
 const defaultResourceManagerEndpoint = "https://management.azure.com/"
+const DefaultBaseURL = "core.windows.net"
 
 type Client struct {
 	BlobServiceClient     BlobCopier

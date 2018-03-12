@@ -47,8 +47,6 @@ imports:
   - arm/resources/resources
   - arm/storage
   - storage
-- name: github.com/Azure/azure-storage-go
-  version: 7c36d244fc8bf27bcf9785b0b37d6beef2949296
 - name: github.com/Azure/go-autorest
   version: a2fdd780c9a50455cecd249b00bdc3eb73a78e31
   subpackages:
