@@ -4,7 +4,7 @@ import "strconv"
 
 type ReplaceVMCommand struct {
 	Identifier string `long:"identifier" required:"true" description:"Identifier of the VM that is being replaced"`
-	DiskSizeGB string `long:"disk-size-gb" required:"true" description:"Disk size of the VM that is being replaced"`
+	DiskSizeGB string `long:"disk-size-gb" required:"false" default:"100" description:"Disk size of the VM that is being replaced"`
 }
 
 func (r *ReplaceVMCommand) Execute([]string) error {
