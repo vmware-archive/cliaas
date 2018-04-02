@@ -78,19 +78,6 @@ var _ = Describe("Azure", func() {
 					Expect(sourceBlob).Should(Equal(controlNewImageURL))
 				})
 
-				It("should spin down & delete the matching vm instance", func() {
-					Expect(fakeVirtualMachinesClient.DeallocateCallCount()).Should(Equal(1), "we should call deallocate exactly once")
-					_, vmName, _ := fakeVirtualMachinesClient.DeallocateArgsForCall(0)
-					Expect(vmName).Should(MatchRegexp(controlRegex))
-					var deallocateErr error
-					fakeVirtualMachinesClient.DeallocateReturnsOnCall(1, autorest.Response{}, deallocateErr)
-					Expect(deallocateErr).ShouldNot(HaveOccurred())
-
-					Expect(fakeVirtualMachinesClient.DeleteCallCount()).Should(Equal(1), "we should call delete exactly once")
-					_, vmName, _ = fakeVirtualMachinesClient.DeleteArgsForCall(0)
-					Expect(vmName).Should(MatchRegexp(controlRegex))
-				})
-
 				It("should copy the existing vms config into the new vm instance's config ", func() {
 					Expect(fakeVirtualMachinesClient.CreateOrUpdateCallCount()).Should(Equal(1), "we should call createorupdate exactly once")
 					_, _, parameters, _ := fakeVirtualMachinesClient.CreateOrUpdateArgsForCall(0)
