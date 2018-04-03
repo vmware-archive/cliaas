@@ -11,6 +11,6 @@ version=$(cat $root/version/version)
 cd go/src/github.com/pivotal-cf/cliaas
   go build \
     -o $output_path \
-    -ldflags "-s -w -X cliaas.Version=${version}" \
+    -ldflags "-s -w -X github.com/pivotal-cf/cliaas.Version=${version}" \
     github.com/pivotal-cf/cliaas/cmd/cliaas
 cd -

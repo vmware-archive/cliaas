@@ -47,6 +47,7 @@ type CliaasCommand struct {
 	ReplaceVM     ReplaceVMCommand     `command:"replace-vm" description:"Create a new VM with the old VM's IP"`
 	DeleteVM      DeleteVMCommand      `command:"delete-vm" description:"Delete the VM that has the specified identifier"`
 	GetVMDiskSize GetVMDiskSizeCommand `command:"get-vm-disk-size" description:"Get disk size for VM that has the specified identifier"`
+	Version       VersionCommand       `command:"version" description:"Display the current version of the CLI"`
 }
 
 var Cliaas CliaasCommand
