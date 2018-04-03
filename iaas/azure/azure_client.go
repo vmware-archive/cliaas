@@ -100,6 +100,11 @@ func (s *Client) Replace(identifier string, vhdURL string, diskSizeGB int64) err
 		return errwrap.Wrap(err, "failed to generate a new instance object")
 	}
 
+	err = s.Delete(identifier)
+	if err != nil {
+		return errwrap.Wrap(err, "failed removing original VM")
+	}
+
 	_, err = s.VirtualMachinesClient.CreateOrUpdate(s.resourceGroupName, *newInstance.Name, *newInstance, nil)
 	return err
 }
