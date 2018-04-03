@@ -10,6 +10,8 @@ import (
 	"github.com/pivotal-cf/cliaas/iaas/azure"
 
 	"fmt"
+	"time"
+	"strconv"
 )
 
 const (
@@ -30,7 +32,7 @@ var (
 	prefix         = os.Getenv("PREFIX")
 	location       = os.Getenv("LOCATION")
 
-	storageAccountName = strings.Replace(prefix, "-", "", -1)
+	storageAccountName = strings.Replace(prefix, "-", "", -1) + strconv.Itoa(int(time.Now().Unix()))
 	containerName      = "cliaas"
 
 	testAzureClient   azureTestClient
@@ -115,7 +117,10 @@ var _ = Describe("Azure API Client", func() {
 				newVMID := *(*vmListResults.Value)[0].VMID
 				Expect(testAzureClient.vmExists(identifier, prefix)).Should(BeTrue())
 				Expect(newVMID).NotTo(Equal(VMID))
-				disk, err := azureClient.GetDisk(VMID)
+
+				By("the disk size should be the original disk size")
+				disk, err := azureClient.GetDisk(newVMID)
+				Expect(err).ToNot(HaveOccurred())
 				Expect(disk).ShouldNot(BeNil())
 				Expect(disk.SizeGB).Should(Equal(controlOpsManVMDiskSize))
 			})
