@@ -114,7 +114,13 @@ func (s *Client) GetDisk(identifier string) (iaas.Disk, error) {
 	if err != nil {
 		return iaas.Disk{}, errwrap.Wrap(err, "unable to get virtual machine instance from azure api for disk")
 	}
-	return iaas.Disk{SizeGB: int64(*instance.StorageProfile.OsDisk.DiskSizeGB)}, nil
+
+	diskSize := instance.StorageProfile.OsDisk.DiskSizeGB
+	if diskSize == nil {
+		return iaas.Disk{}, errors.New("unable to get StorageProfile.OsDisk.DiskSizeGB the return valid is nil (Managed disk?)")
+	}
+
+	return iaas.Disk{SizeGB: int64(*diskSize)}, nil
 }
 
 /* End Cliaas Client Interface */
